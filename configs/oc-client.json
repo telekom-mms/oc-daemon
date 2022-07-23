@@ -1,0 +1,7 @@
+{
+    "ClientCertificate": "/path/to/file or PKCS11 URI",
+    "ClientKey": "/path/to/file or PKCS11 URI",
+    "CACertificate": "Empty or additional CA Certificate file(s)",
+    "VPNServer": "My VPN Server Name",
+    "User": "$USER"
+}
