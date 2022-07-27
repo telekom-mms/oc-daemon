@@ -138,7 +138,7 @@ func (e *Excludes) cleanup() {
 	}
 }
 
-// start starts pertiodic cleanup of the split excludes
+// start starts periodic cleanup of the split excludes
 func (e *Excludes) start() {
 	defer close(e.closed)
 
@@ -158,13 +158,13 @@ func (e *Excludes) start() {
 	}
 }
 
-// Start starts pertiodic cleanup of the split excludes
+// Start starts periodic cleanup of the split excludes
 func (e *Excludes) Start() {
 	log.Debug("SplitRouting starting periodic cleanup of excludes")
 	go e.start()
 }
 
-// Stop stops pertiodic cleanup of the split excludes
+// Stop stops periodic cleanup of the split excludes
 func (e *Excludes) Stop() {
 	close(e.done)
 	<-e.closed

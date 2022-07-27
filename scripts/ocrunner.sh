@@ -1,6 +1,6 @@
 #!/bin/bash
 
-go build -race ./cmd/ocrunner
+go build -race ./tools/ocrunner
 sudo ./ocrunner \
 	-authenticate \
 	-connect \
