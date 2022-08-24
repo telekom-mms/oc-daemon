@@ -2,11 +2,47 @@ package api
 
 import (
 	"bytes"
+	"log"
 	"reflect"
 	"testing"
 )
 
-// TestReadWriteMessage tests reading and writing messages
+// TestNewMessage tests NewMessage
+func TestNewMessage(t *testing.T) {
+	for _, typ := range []uint16{
+		TypeNone,
+		TypeOK,
+		TypeError,
+		TypeVPNConnect,
+		TypeVPNQuery,
+		TypeVPNConfigUpdate,
+		TypeUndefined,
+	} {
+		log.Println("NewMessage with type", typ)
+		msg := NewMessage(typ, nil)
+		if msg.Type != typ {
+			t.Errorf("got %d, want %d", msg.Type, typ)
+		}
+	}
+}
+
+// TestNewOK tests NewOK
+func TestNewOK(t *testing.T) {
+	msg := NewOK(nil)
+	if msg.Type != TypeOK {
+		t.Errorf("got %d, want %d", msg.Type, TypeOK)
+	}
+}
+
+// TestNewError tests NewError
+func TestNewError(t *testing.T) {
+	msg := NewError(nil)
+	if msg.Type != TypeError {
+		t.Errorf("got %d, want %d", msg.Type, TypeError)
+	}
+}
+
+// TestReadWriteMessage tests ReadMessage and WriteMessage
 func TestReadWriteMessage(t *testing.T) {
 	want := &Message{
 		Header: Header{
