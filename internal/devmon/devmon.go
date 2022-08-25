@@ -75,7 +75,7 @@ func (d *DevMon) handleLink(add bool, link netlink.Link) {
 }
 
 // registerLinkUpdates registers for link update events
-func (d *DevMon) registerLinkUpdates() chan netlink.LinkUpdate {
+var registerLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
 	// register for link update events
 	events := make(chan netlink.LinkUpdate)
 	options := netlink.LinkSubscribeOptions{
@@ -94,7 +94,7 @@ func (d *DevMon) start() {
 	defer close(d.upsDone)
 
 	// register for link update events
-	events := d.registerLinkUpdates()
+	events := registerLinkUpdates(d)
 
 	// handle link update events
 	for {
@@ -103,7 +103,7 @@ func (d *DevMon) start() {
 			if !ok {
 				// unexpected close of events, try to re-open
 				log.Error("DevMon got unexpected close of link events")
-				events = d.registerLinkUpdates()
+				events = registerLinkUpdates(d)
 				break
 			}
 			switch e.Header.Type {
