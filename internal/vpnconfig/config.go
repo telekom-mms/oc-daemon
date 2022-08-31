@@ -34,8 +34,12 @@ type DNS struct {
 // port number 53
 func (d *DNS) Remotes() map[string][]string {
 	remotes := map[string][]string{}
-	for _, s := range append(d.ServersIPv4, d.ServersIPv6...) {
+	for _, s := range d.ServersIPv4 {
 		server := s.String() + ":53"
+		remotes["."] = append(remotes["."], server)
+	}
+	for _, s := range d.ServersIPv6 {
+		server := "[" + s.String() + "]:53"
 		remotes["."] = append(remotes["."], server)
 	}
 
