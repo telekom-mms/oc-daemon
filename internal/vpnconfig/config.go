@@ -124,10 +124,35 @@ func (c *Config) Valid() bool {
 	return true
 }
 
+// runLinkByname is a helper for getting a link by name
+var runLinkByName = func(name string) (netlink.Link, error) {
+	return netlink.LinkByName(name)
+}
+
+// runLinkSetMTU is a helper for setting the mtu of link
+var runLinkSetMTU = func(link netlink.Link, mtu int) error {
+	return netlink.LinkSetMTU(link, mtu)
+}
+
+// runLinkSetUp is a helper for setting link up
+var runLinkSetUp = func(link netlink.Link) error {
+	return netlink.LinkSetUp(link)
+}
+
+// runLinkSetDown is a helper for setting link down
+var runLinkSetDown = func(link netlink.Link) error {
+	return netlink.LinkSetDown(link)
+}
+
+// runAddrAdd is a helper for adding address to link
+var runAddrAdd = func(link netlink.Link, addr *netlink.Addr) error {
+	return netlink.AddrAdd(link, addr)
+}
+
 // SetupDevice sets up the vpn device with config
 func (c *Config) SetupDevice() {
 	// get link for device
-	link, err := netlink.LinkByName(c.Device.Name)
+	link, err := runLinkByName(c.Device.Name)
 	if err != nil {
 		log.WithField("device", c.Device.Name).
 			Error("Daemon could not find device")
@@ -135,14 +160,14 @@ func (c *Config) SetupDevice() {
 	}
 
 	// set mtu on device
-	if err := netlink.LinkSetMTU(link, c.Device.MTU); err != nil {
+	if err := runLinkSetMTU(link, c.Device.MTU); err != nil {
 		log.WithField("device", c.Device.Name).
 			Error("Daemon could not set mtu on device")
 		return
 	}
 
 	// set device up
-	if err := netlink.LinkSetUp(link); err != nil {
+	if err := runLinkSetUp(link); err != nil {
 		log.WithField("device", c.Device.Name).
 			Error("Daemon could not set device up")
 		return
@@ -157,7 +182,7 @@ func (c *Config) SetupDevice() {
 		addr := &netlink.Addr{
 			IPNet: ipnet,
 		}
-		if err := netlink.AddrAdd(link, addr); err != nil {
+		if err := runAddrAdd(link, addr); err != nil {
 			log.WithFields(log.Fields{
 				"device": c.Device.Name,
 				"ip":     ip,
@@ -177,7 +202,7 @@ func (c *Config) SetupDevice() {
 // TeardownDevice tears down the configured vpn device
 func (c *Config) TeardownDevice() {
 	// get link for device
-	link, err := netlink.LinkByName(c.Device.Name)
+	link, err := runLinkByName(c.Device.Name)
 	if err != nil {
 		log.WithField("device", c.Device.Name).
 			Error("Daemon could not find device ")
@@ -185,7 +210,7 @@ func (c *Config) TeardownDevice() {
 	}
 
 	// set device down
-	if err := netlink.LinkSetDown(link); err != nil {
+	if err := runLinkSetDown(link); err != nil {
 		log.WithField("device", c.Device.Name).
 			Error("Daemon could not set device down")
 		return
@@ -194,7 +219,7 @@ func (c *Config) TeardownDevice() {
 }
 
 // runResolvctl runs the resolvectl cmd
-func runResolvectl(cmd string) {
+var runResolvectl = func(cmd string) {
 	log.WithField("command", cmd).Debug("Daemon executing resolvectl command")
 	c := exec.Command("bash", "-c", "resolvectl "+cmd)
 	if err := c.Run(); err != nil {
@@ -242,7 +267,7 @@ func New() *Config {
 }
 
 // runCleanupCmd runs cmd for cleanups
-func runCleanupCmd(cmd string) {
+var runCleanupCmd = func(cmd string) {
 	log.WithField("command", cmd).Debug("Daemon executing vpn config cleanup command")
 	c := exec.Command("bash", "-c", cmd)
 	if err := c.Run(); err == nil {
