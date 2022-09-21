@@ -12,7 +12,7 @@ import (
 )
 
 // runNft runs nft and passes s to it via stdin
-func runNft(s string) {
+var runNft = func(s string) {
 	cmd := "nft -f -"
 	c := exec.Command("bash", "-c", cmd)
 	c.Stdin = bytes.NewBufferString(s)
