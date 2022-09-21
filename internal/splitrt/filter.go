@@ -136,7 +136,7 @@ func addLocalAddressesIPv6(device string, addresses []*net.IPNet) {
 func addExclude(address *net.IPNet) {
 	set := "excludes4"
 	if address.IP.To4() == nil {
-		set = "excludes6 "
+		set = "excludes6"
 	}
 
 	nftconf := fmt.Sprintf("add element inet oc-daemon-routing %s { %s }",
