@@ -12,7 +12,7 @@ func TestAddrMonStartStop(t *testing.T) {
 	addrMon := NewAddrMon()
 
 	// test without AddrUpdates
-	registerAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
+	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 		return nil
 	}
 	addrMon.Start()
@@ -33,7 +33,7 @@ func TestAddrMonStartStop(t *testing.T) {
 
 	// test with AddrUpdates
 	addrMon = NewAddrMon()
-	registerAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
+	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 		updates := make(chan netlink.AddrUpdate)
 		go addrUpdates(updates, a.upsDone)
 		return updates
@@ -47,7 +47,7 @@ func TestAddrMonStartStop(t *testing.T) {
 	// test with unexpected close and AddrUpdates
 	addrMon = NewAddrMon()
 	runOnce := false
-	registerAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
+	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 		updates := make(chan netlink.AddrUpdate)
 		if !runOnce {
 			runOnce = true

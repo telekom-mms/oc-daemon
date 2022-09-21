@@ -13,7 +13,7 @@ func TestDevMonStartStop(t *testing.T) {
 	devMon := NewDevMon()
 
 	// test without LinkUpdates
-	registerLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
+	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
 		return nil
 	}
 	devMon.Start()
@@ -36,7 +36,7 @@ func TestDevMonStartStop(t *testing.T) {
 
 	// test with LinkUpdates
 	devMon = NewDevMon()
-	registerLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
+	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
 		updates := make(chan netlink.LinkUpdate)
 		go linkUpdates(updates, d.upsDone)
 		return updates
@@ -50,7 +50,7 @@ func TestDevMonStartStop(t *testing.T) {
 	// test with unexpected close and LinkUpdates
 	devMon = NewDevMon()
 	runOnce := false
-	registerLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
+	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
 		updates := make(chan netlink.LinkUpdate)
 		if !runOnce {
 			runOnce = true
