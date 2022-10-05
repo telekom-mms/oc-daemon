@@ -280,3 +280,106 @@ func TestParseBypassVSubnets(t *testing.T) {
 </config-auth>`}
 	test(true, parseBypassVSubnets(opts5))
 }
+
+// TestParseDisableAlwaysOnVPN tests parseDisableAlwaysOnVPN
+func TestParseDisableAlwaysOnVPN(t *testing.T) {
+	test := func(want, got bool) {
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %t, want %t", got, want)
+		}
+	}
+
+	// test empty opts
+	opts := []string{}
+	test(false, parseDisableAlwaysOnVPN(opts))
+
+	// test incomplete or false opts
+	opts = []string{
+		"",
+		"X-CSTP-Disable-Always-On-VPN",
+		"X-CSTP-Disable-Always-On-VPN=",
+		"X-CSTP-Disable-Always-On-VPN=false",
+	}
+	test(false, parseDisableAlwaysOnVPN(opts))
+
+	// test complete
+	opts = []string{"X-CSTP-Disable-Always-On-VPN=true"}
+	test(true, parseDisableAlwaysOnVPN(opts))
+}
+
+// TestParseEnvironment tests parseEnvironment
+func TestParseEnvironment(t *testing.T) {
+	// setup test environment
+	os.Clearenv()
+	for k, v := range map[string]string{
+		"reason":                     "connect",
+		"VPNGATEWAY":                 "10.1.1.1",
+		"VPNPID":                     "12345",
+		"TUNDEV":                     "tun0",
+		"IDLE_TIMEOUT":               "300",
+		"INTERNAL_IP4_ADDRESS":       "192.168.1.123",
+		"INTERNAL_IP4_MTU":           "1300",
+		"INTERNAL_IP4_NETMASK":       "255.255.255.0",
+		"INTERNAL_IP4_NETMASKLEN":    "24",
+		"INTERNAL_IP4_NETADDR":       "192.168.1.0",
+		"INTERNAL_IP4_DNS":           "192.168.1.1",
+		"INTERNAL_IP4_NBNS":          "192.168.1.1",
+		"INTERNAL_IP6_ADDRESS":       "",
+		"INTERNAL_IP6_NETMASK":       "",
+		"INTERNAL_IP6_DNS":           "",
+		"CISCO_DEF_DOMAIN":           "example.com",
+		"CISCO_BANNER":               "some banner",
+		"CISCO_SPLIT_DNS":            "",
+		"CISCO_SPLIT_INC":            "0",
+		"CISCO_SPLIT_EXC":            "1",
+		"CISCO_SPLIT_EXC_0_ADDR":     "172.16.0.0",
+		"CISCO_SPLIT_EXC_0_MASK":     "255.255.0.0",
+		"CISCO_SPLIT_EXC_0_MASKLEN":  "16",
+		"CISCO_SPLIT_EXC_0_PROTOCOL": "0",
+		"CISCO_SPLIT_EXC_0_SPORT":    "0",
+		"CISCO_SPLIT_EXC_0_DPORT":    "0",
+		"CISCO_IPV6_SPLIT_INC":       "0",
+		"CISCO_IPV6_SPLITEXCC":       "0",
+		"CISCO_CSTP_OPTIONS": `X-CSTP-Post-Auth-XML=<?xml version="1.0" encoding="UTF-8"?><config-auth client="vpn" type="complete" aggregate-auth-version="2"><config client="vpn" type="private"><opaque is-for="vpn-client"><custom-attr><dynamic-split-exclude-domains><![CDATA[some.example.com,other.example.com,www.example.com]]></dynamic-split-exclude-domains><BypassVirtualSubnetsOnlyV4><![CDATA[true]]></BypassVirtualSubnetsOnlyV4></custom-attr></opaque></config></config-auth>
+X-CSTP-Disable-Always-On-VPN=true`,
+		"oc_daemon_token": "some token",
+	} {
+		os.Setenv(k, v)
+	}
+
+	// create expected env struct based on test environment
+	want := &env{
+		reason:                "connect",
+		vpnGateway:            "10.1.1.1",
+		vpnPID:                "12345",
+		tunDev:                "tun0",
+		idleTimeout:           "300",
+		internalIP4Address:    "192.168.1.123",
+		internalIP4MTU:        "1300",
+		internalIP4Netmask:    "255.255.255.0",
+		internalIP4NetmaskLen: "24",
+		internalIP4NetAddr:    "192.168.1.0",
+		internalIP4DNS:        "192.168.1.1",
+		internalIP4NBNS:       "192.168.1.1",
+		ciscoDefDomain:        "example.com",
+		ciscoBanner:           "some banner",
+		ciscoSplitInc:         []string{},
+		ciscoSplitExc:         []string{"172.16.0.0/16"},
+		ciscoIPv6SplitInc:     []string{},
+		ciscoIPv6SplitExc:     []string{},
+		ciscoCSTPOptions: []string{
+			`X-CSTP-Post-Auth-XML=<?xml version="1.0" encoding="UTF-8"?><config-auth client="vpn" type="complete" aggregate-auth-version="2"><config client="vpn" type="private"><opaque is-for="vpn-client"><custom-attr><dynamic-split-exclude-domains><![CDATA[some.example.com,other.example.com,www.example.com]]></dynamic-split-exclude-domains><BypassVirtualSubnetsOnlyV4><![CDATA[true]]></BypassVirtualSubnetsOnlyV4></custom-attr></opaque></config></config-auth>`,
+			`X-CSTP-Disable-Always-On-VPN=true`,
+		},
+		dnsSplitExc:                []string{"some.example.com", "other.example.com", "www.example.com"},
+		bypassVirtualSubnetsOnlyV4: true,
+		disableAlwaysOnVPN:         true,
+		token:                      "some token",
+	}
+
+	// run test
+	got := parseEnvironment()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got:\n%#v\nwant:\n%#v", got, want)
+	}
+}
