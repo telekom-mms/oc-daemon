@@ -92,6 +92,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			rr, ok := a.(*dns.CNAME)
 			if !ok {
 				log.Error("DNS-Proxy received invalid CNAME record in reply")
+				continue
 			}
 			log.WithFields(log.Fields{
 				"target": rr.Target,

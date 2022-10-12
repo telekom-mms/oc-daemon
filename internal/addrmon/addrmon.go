@@ -29,8 +29,8 @@ func (a *AddrMon) sendUpdate(update *Update) {
 	}
 }
 
-// registerAddrUpdates registers for addr update events
-func (a *AddrMon) registerAddrUpdates() chan netlink.AddrUpdate {
+// RegisterAddrUpdates registers for addr update events
+var RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 	// register for addr update events
 	events := make(chan netlink.AddrUpdate)
 	options := netlink.AddrSubscribeOptions{
@@ -49,7 +49,7 @@ func (a *AddrMon) start() {
 	defer close(a.upsDone)
 
 	// register for addr update events
-	events := a.registerAddrUpdates()
+	events := RegisterAddrUpdates(a)
 
 	// handle events
 	for {
@@ -58,7 +58,7 @@ func (a *AddrMon) start() {
 			if !ok {
 				// unexpected close of events, try to re-open
 				log.Error("AddrMon got unexpected close of addr events")
-				events = a.registerAddrUpdates()
+				events = RegisterAddrUpdates(a)
 				break
 			}
 

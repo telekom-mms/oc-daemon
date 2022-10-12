@@ -20,6 +20,9 @@ type Profile struct {
 func (p *Profile) GetAllowedHosts() (hosts []string) {
 	hs := p.profile.AutomaticVPNPolicy.AlwaysOn.AllowedHosts
 	for _, h := range strings.Split(hs, ",") {
+		if h == "" {
+			continue
+		}
 		log.WithField("host", h).Debug("Getting allowed host from Profile")
 		hosts = append(hosts, h)
 	}

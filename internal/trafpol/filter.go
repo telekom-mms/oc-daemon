@@ -12,7 +12,7 @@ import (
 )
 
 // runNft runs nft and passes s to it via stdin
-func runNft(s string) {
+var runNft = func(s string) {
 	cmd := "nft -f -"
 	c := exec.Command("bash", "-c", cmd)
 	c.Stdin = bytes.NewBufferString(s)
@@ -221,7 +221,7 @@ func removePortalPorts() {
 }
 
 // runCleanupNft runs nft for cleanups
-func runCleanupNft(s string) {
+var runCleanupNft = func(s string) {
 	log.WithField("stdin", s).Debug("TrafPol executing nft cleanup command")
 	cmd := "nft -f -"
 	c := exec.Command("bash", "-c", cmd)

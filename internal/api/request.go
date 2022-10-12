@@ -34,7 +34,7 @@ func (r *Request) Error(msg string) {
 	r.err = msg
 }
 
-// sendOK send an ok message back to the client
+// sendOK sends an ok message back to the client
 func (r *Request) sendOK() {
 	o := NewOK(r.reply)
 	if err := WriteMessage(r.conn, o); err != nil {

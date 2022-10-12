@@ -18,7 +18,7 @@ const (
 )
 
 // runCmd runs the cmd
-func runCmd(cmd string) {
+var runCmd = func(cmd string) {
 	log.WithField("command", cmd).Debug("Daemon executing command")
 	c := exec.Command("bash", "-c", cmd)
 	if err := c.Run(); err != nil {
@@ -86,7 +86,7 @@ func deleteDefaultRouteIPv6(device string) {
 }
 
 // runCleanupCmd runs cmd for cleanups
-func runCleanupCmd(cmd string) {
+var runCleanupCmd = func(cmd string) {
 	log.WithField("command", cmd).Debug("SplitRouting executing routing cleanup command")
 	c := exec.Command("bash", "-c", cmd)
 	if err := c.Run(); err == nil {
