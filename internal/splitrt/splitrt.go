@@ -43,6 +43,14 @@ func (s *SplitRouting) setupRouting() {
 	addLocalAddressesIPv4(s.config.Device.Name, []*net.IPNet{ipnet4})
 	addLocalAddressesIPv6(s.config.Device.Name, []*net.IPNet{ipnet6})
 
+	// reject unsupported ip versions on vpn
+	if len(s.config.IPv6.Address) == 0 {
+		rejectIPv6(s.config.Device.Name)
+	}
+	if len(s.config.IPv4.Address) == 0 {
+		rejectIPv4(s.config.Device.Name)
+	}
+
 	// add excludes
 	s.excludes.Start()
 
