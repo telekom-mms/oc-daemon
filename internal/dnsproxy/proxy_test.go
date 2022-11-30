@@ -39,10 +39,12 @@ func TestProxySetWatches(t *testing.T) {
 // TestNewProxy tests NewProxy
 func TestNewProxy(t *testing.T) {
 	p := NewProxy("127.0.0.1:4254")
-	if p.server == nil ||
+	if p.udp == nil ||
+		p.tcp == nil ||
 		p.remotes == nil ||
 		p.watches == nil ||
 		p.reports == nil ||
+		p.done == nil ||
 		p.stopClean == nil ||
 		p.doneClean == nil {
 
