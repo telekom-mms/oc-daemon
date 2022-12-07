@@ -248,6 +248,9 @@ func (c *Config) SetDNS(server string) {
 
 	// flush dns caches
 	runResolvectl("flush-caches")
+
+	// reset learnt server features
+	runResolvectl("reset-server-features")
 }
 
 // UnsetDNS unsets the DNS configuration
@@ -259,6 +262,9 @@ func (c *Config) UnsetDNS() {
 
 	// flush dns caches
 	runResolvectl("flush-caches")
+
+	// reset learnt server features
+	runResolvectl("reset-server-features")
 }
 
 // New returns a new Config

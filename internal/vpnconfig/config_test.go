@@ -280,6 +280,7 @@ func TestConfigSetDNS(t *testing.T) {
 		"domain tun0 mycompany.com ~.",
 		"default-route tun0 yes",
 		"flush-caches",
+		"reset-server-features",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -300,6 +301,7 @@ func TestConfigUnsetDNS(t *testing.T) {
 	want := []string{
 		"revert tun0",
 		"flush-caches",
+		"reset-server-features",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
