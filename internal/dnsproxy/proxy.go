@@ -16,10 +16,12 @@ const (
 
 // Proxy is a DNS proxy
 type Proxy struct {
-	server  *dns.Server
+	udp     *dns.Server
+	tcp     *dns.Server
 	remotes *Remotes
 	watches *Watches
 	reports chan *Report
+	done    chan struct{}
 
 	// channels for temp watch cleaning goroutine
 	stopClean chan struct{}
@@ -132,22 +134,54 @@ func (p *Proxy) cleanTempWatches() {
 	}
 }
 
+// startDNSServer starts the dns server
+func (p *Proxy) startDNSServer(server *dns.Server) {
+	log.WithFields(log.Fields{
+		"addr": server.Addr,
+		"net":  server.Net,
+	}).Debug("DNS-Proxy starting server")
+	err := server.ListenAndServe()
+	if err != nil {
+		log.WithError(err).Error("DNS-Proxy DNS server stopped")
+	}
+}
+
+// stopDNSServer stops the dns server
+func (p *Proxy) stopDNSServer(server *dns.Server) {
+	err := server.Shutdown()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"addr":  server.Addr,
+			"net":   server.Net,
+			"error": err,
+		}).Error("DNS-Proxy could not stop DNS server")
+	}
+}
+
 // start starts running the proxy
 func (p *Proxy) start() {
 	// start cleaning goroutine
 	go p.cleanTempWatches()
 
-	// start dns server
+	// start dns servers
 	log.Debug("DNS-Proxy registering handler")
 	dns.HandleFunc(".", p.handleRequest)
-	log.WithFields(log.Fields{
-		"addr": p.server.Addr,
-		"net":  p.server.Net,
-	}).Debug("DNS-Proxy starting server")
-	err := p.server.ListenAndServe()
-	if err != nil {
-		log.WithError(err).Error("DNS-Proxy could not start DNS server")
+	for _, srv := range []*dns.Server{p.udp, p.tcp} {
+		go p.startDNSServer(srv)
 	}
+
+	// wait for proxy termination
+	<-p.done
+
+	// stop cleaning goroutine
+	close(p.stopClean)
+	<-p.doneClean
+
+	// stop dns servers
+	for _, srv := range []*dns.Server{p.udp, p.tcp} {
+		p.stopDNSServer(srv)
+	}
+	close(p.reports)
 }
 
 // Start starts running the proxy
@@ -157,16 +191,10 @@ func (p *Proxy) Start() {
 
 // Stop stops running the proxy
 func (p *Proxy) Stop() {
-	// stop cleaning goroutine
-	close(p.stopClean)
-	<-p.doneClean
-
-	// stop server
-	err := p.server.Shutdown()
-	if err != nil {
-		log.WithError(err).Fatal("DNS-Proxy could not stop DNS server")
+	close(p.done)
+	for range p.reports {
+		// wait for channel shutdown
 	}
-	close(p.reports)
 }
 
 // Reports returns the Report channel for watched domains
@@ -193,13 +221,18 @@ func (p *Proxy) SetWatches(watches []string) {
 // NewProxy returns a new Proxy that listens on address
 func NewProxy(address string) *Proxy {
 	return &Proxy{
-		server: &dns.Server{
+		udp: &dns.Server{
 			Addr: address,
 			Net:  "udp",
+		},
+		tcp: &dns.Server{
+			Addr: address,
+			Net:  "tcp",
 		},
 		remotes: NewRemotes(),
 		watches: NewWatches(),
 		reports: make(chan *Report),
+		done:    make(chan struct{}),
 
 		stopClean: make(chan struct{}),
 		doneClean: make(chan struct{}),
