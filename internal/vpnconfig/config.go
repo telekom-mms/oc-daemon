@@ -240,7 +240,7 @@ var runResolvectl = func(cmd string) {
 func resetResolvedFeatures(query string) {
 	// give resolved some time to settle after changing the
 	// dns configuration
-	time.Sleep(time.Second)
+	time.Sleep(6 * time.Second)
 
 	// reset server features in resolved
 	runResolvectl("reset-server-features")
