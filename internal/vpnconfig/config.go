@@ -5,6 +5,7 @@ import (
 	"net"
 	"os/exec"
 	"reflect"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -230,6 +231,24 @@ var runResolvectl = func(cmd string) {
 	}
 }
 
+// resetResolvedFeatures resets the learnt server features in resolved. This is
+// mainly used for a workaround for a resolved bug in Ubuntu 22.04 with linux
+// kernel versions >= 5.19. The workaround uses TCP for local DNS. Resetting
+// the server features is supposed to make resolved switch to TCP when UDP is
+// not working, i.e., in the case the workaround is needed. A dummy DNS query
+// to the name or address in query is performed to trigger feature detection.
+func resetResolvedFeatures(query string) {
+	// give resolved some time to settle after changing the
+	// dns configuration
+	time.Sleep(time.Second)
+
+	// reset server features in resolved
+	runResolvectl("reset-server-features")
+
+	// send a dummy query to trigger feature detection
+	runResolvectl(fmt.Sprintf("query %s", query))
+}
+
 // SetDNS applies the DNS configuration and sets dns server address;
 // the server address should be the local DNS-Proxy
 func (c *Config) SetDNS(server string) {
@@ -250,7 +269,8 @@ func (c *Config) SetDNS(server string) {
 	runResolvectl("flush-caches")
 
 	// reset learnt server features
-	runResolvectl("reset-server-features")
+	query := c.Gateway.String()
+	go resetResolvedFeatures(query)
 }
 
 // UnsetDNS unsets the DNS configuration
