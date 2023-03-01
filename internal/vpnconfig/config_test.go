@@ -280,9 +280,7 @@ func TestConfigSetDNS(t *testing.T) {
 		"domain tun0 mycompany.com ~.",
 		"default-route tun0 yes",
 		"flush-caches",
-		// server features are currently reset in a separate go routine
-		// with a sleep timer, this is a bit racey, but in this test we
-		// should not see the "reset-server-features" command
+		"reset-server-features",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
