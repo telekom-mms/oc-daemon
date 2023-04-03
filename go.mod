@@ -1,6 +1,6 @@
 module github.com/T-Systems-MMS/oc-daemon
 
-go 1.17
+go 1.18
 
 require (
 	github.com/T-Systems-MMS/tnd v0.0.0-20220608084110-2c450c380130
