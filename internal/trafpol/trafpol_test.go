@@ -2,6 +2,7 @@ package trafpol
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/cpd"
@@ -46,37 +47,50 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	tp.allowHosts.Start()
 	defer tp.allowHosts.Stop()
 
-	want := []string{}
-	got := []string{}
+	var nftMutex sync.Mutex
+	nftCmds := []string{}
 	runNft = func(s string) {
-		got = append(got, s)
+		nftMutex.Lock()
+		defer nftMutex.Unlock()
+		nftCmds = append(nftCmds, s)
+	}
+	getNftCmds := func() []string {
+		nftMutex.Lock()
+		defer nftMutex.Unlock()
+		return append(nftCmds[:0:0], nftCmds...)
 	}
 
 	// test not detected
 	report := &cpd.Report{}
 	tp.handleCPDReport(report)
+
+	want := []string{}
+	got := getNftCmds()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
 	// test detected
+	report.Detected = true
+	tp.handleCPDReport(report)
+
 	want = []string{
 		"add element inet oc-daemon-filter allowports { 80, 443 }",
 	}
-	got = []string{}
-	report.Detected = true
-	tp.handleCPDReport(report)
+	got = getNftCmds()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
 	// test not detected any more
-	want = []string{
-		"delete element inet oc-daemon-filter allowports { 80, 443 }",
-	}
-	got = []string{}
 	report.Detected = false
 	tp.handleCPDReport(report)
+
+	want = []string{
+		"add element inet oc-daemon-filter allowports { 80, 443 }",
+		"delete element inet oc-daemon-filter allowports { 80, 443 }",
+	}
+	got = getNftCmds()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
