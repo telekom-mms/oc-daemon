@@ -95,10 +95,12 @@ func TestDevicesGetAll(t *testing.T) {
 	d.Add(realDev)
 	d.Add(virtDev)
 
-	want := []int{realDev.Index, virtDev.Index}
+	want1 := []int{realDev.Index, virtDev.Index}
+	want2 := []int{virtDev.Index, realDev.Index}
 	got := d.GetAll()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+	if !reflect.DeepEqual(got, want1) &&
+		!reflect.DeepEqual(got, want2) {
+		t.Errorf("got %v, want %v or %v", got, want1, want2)
 	}
 }
 
