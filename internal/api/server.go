@@ -3,6 +3,7 @@ package api
 import (
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -19,6 +20,26 @@ type Server struct {
 	sockFile string
 	listen   net.Listener
 	requests chan *Request
+
+	mutex sync.Mutex
+	stop  bool
+}
+
+// setStopping marks the server as stopping
+func (s *Server) setStopping() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.stop = true
+}
+
+// isStopping returns whether the server is stopping
+func (s *Server) isStopping() bool {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	return s.stop
+
 }
 
 // handleRequest handles a request from the client
@@ -71,6 +92,11 @@ func (s *Server) handleClients() {
 		// wait for new client connection
 		conn, err := s.listen.Accept()
 		if err != nil {
+			if s.isStopping() {
+				// ignore error when shutting down
+				return
+			}
+
 			log.WithError(err).Error("Daemon listener error")
 			return
 		}
@@ -106,6 +132,7 @@ func (s *Server) Start() {
 // Stop stops the API server
 func (s *Server) Stop() {
 	// stop listener
+	s.setStopping()
 	err := s.listen.Close()
 	if err != nil {
 		log.WithError(err).Fatal("Daemon could not close unix listener")
