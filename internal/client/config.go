@@ -12,6 +12,7 @@ type ClientConfig struct {
 	CACertificate     string
 	VPNServer         string
 	User              string
+	Password          string
 }
 
 // empty returns if the config is empty
@@ -24,7 +25,8 @@ func (o *ClientConfig) empty() bool {
 		o.ClientKey == "" &&
 		o.CACertificate == "" &&
 		o.VPNServer == "" &&
-		o.User == "" {
+		o.User == "" &&
+		o.Password == "" {
 		// empty
 		return true
 	}

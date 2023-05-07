@@ -21,6 +21,7 @@ type Authenticate struct {
 	Script      string
 	Server      string
 	User        string
+	Password    string
 
 	Command *exec.Cmd
 	Login   LoginInfo
@@ -67,6 +68,11 @@ func (r *Authenticate) Authenticate() {
 	if r.User != "" {
 		parameters = append(parameters, user)
 	}
+	if r.Password != "" {
+		// read password from stdin and switch to non-interactive mode
+		parameters = append(parameters, "--passwd-on-stdin")
+		parameters = append(parameters, "--non-inter")
+	}
 	parameters = append(parameters, r.Server)
 
 	r.Command = exec.Command("openconnect", parameters...)
@@ -74,6 +80,9 @@ func (r *Authenticate) Authenticate() {
 	// run command: allow user input, show stderr, buffer stdout
 	var b bytes.Buffer
 	r.Command.Stdin = os.Stdin
+	if r.Password != "" {
+		r.Command.Stdin = bytes.NewBufferString(r.Password)
+	}
 	r.Command.Stdout = &b
 	r.Command.Stderr = os.Stderr
 	r.Command.Env = append(os.Environ(), r.Env...)

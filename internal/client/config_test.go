@@ -44,6 +44,7 @@ func TestLoadClientConfig(t *testing.T) {
 		CACertificate:     "/some/ca",
 		VPNServer:         "server.example.com",
 		User:              "user1",
+		Password:          "passwd1",
 	}
 
 	// create temporary file

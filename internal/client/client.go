@@ -44,6 +44,7 @@ func authenticateVPN() *ocrunner.LoginInfo {
 	auth.Script = vpncScript
 	auth.Server = config.VPNServer
 	auth.User = config.User
+	auth.Password = config.Password
 	auth.Authenticate()
 
 	return &auth.Login
