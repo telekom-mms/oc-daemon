@@ -6,8 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // Authenticate is an OpenConnect authentication runner
@@ -31,7 +29,7 @@ type Authenticate struct {
 }
 
 // Authenticate runs OpenConnect in authentication mode
-func (a *Authenticate) Authenticate() {
+func (a *Authenticate) Authenticate() error {
 	// create openconnect command:
 	//
 	// openconnect \
@@ -81,6 +79,7 @@ func (a *Authenticate) Authenticate() {
 	var b bytes.Buffer
 	a.Command.Stdin = os.Stdin
 	if a.Password != "" {
+		// disable user input, pass password via stdin
 		a.Command.Stdin = bytes.NewBufferString(a.Password)
 	}
 	a.Command.Stdout = &b
@@ -88,8 +87,7 @@ func (a *Authenticate) Authenticate() {
 	a.Command.Env = append(os.Environ(), a.Env...)
 	if err := a.Command.Run(); err != nil {
 		// TODO: handle failed program start?
-		log.WithError(err).Error("OC-Runner executing authenticate error")
-		return
+		return err
 	}
 
 	// parse login info, cookie from command line in buffer:
@@ -104,6 +102,8 @@ func (a *Authenticate) Authenticate() {
 	for _, line := range strings.Fields(s) {
 		a.Login.ParseLine(line)
 	}
+
+	return nil
 }
 
 // NewAuthenticate returns a new Authenticate

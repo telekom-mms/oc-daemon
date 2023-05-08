@@ -52,7 +52,7 @@ func TestLoadClientConfig(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.Remove(f.Name())
+	defer func() { _ = os.Remove(f.Name()) }()
 
 	// save config to temporary file
 	want.save(f.Name())
