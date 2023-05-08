@@ -6,7 +6,7 @@ import (
 	"github.com/T-Systems-MMS/oc-daemon/internal/addrmon"
 	"github.com/T-Systems-MMS/oc-daemon/internal/devmon"
 	"github.com/T-Systems-MMS/oc-daemon/internal/dnsproxy"
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnconfig"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
 	log "github.com/sirupsen/logrus"
 )
 

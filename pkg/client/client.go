@@ -5,7 +5,7 @@ import (
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/api"
 	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnstatus"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 )
 
 const (

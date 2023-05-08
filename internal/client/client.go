@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"time"
 
@@ -123,8 +122,7 @@ func getStatus() {
 	c := client.NewClient()
 	status, err := c.Query()
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 	log.Printf("Trusted Network: %t", status.TrustedNetwork)
 	log.Printf("Running: %t", status.Running)

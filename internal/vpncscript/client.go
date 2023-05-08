@@ -4,7 +4,7 @@ import (
 	"net"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/api"
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnconfig"
+	"github.com/T-Systems-MMS/oc-daemon/internal/daemon"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +14,7 @@ const (
 )
 
 // runClient interacts with the daemon over the api
-func runClient(configUpdate *vpnconfig.ConfigUpdate) {
+func runClient(configUpdate *daemon.VPNConfigUpdate) {
 	// connect to daemon
 	conn, err := net.Dial("unix", sockFile)
 	if err != nil {

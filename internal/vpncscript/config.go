@@ -5,7 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnconfig"
+	"github.com/T-Systems-MMS/oc-daemon/internal/daemon"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -188,8 +189,8 @@ func createConfig(env *env) *vpnconfig.Config {
 }
 
 // createConfigUpdate creates a VPN configuration update from env
-func createConfigUpdate(env *env) *vpnconfig.ConfigUpdate {
-	update := vpnconfig.NewUpdate()
+func createConfigUpdate(env *env) *daemon.VPNConfigUpdate {
+	update := daemon.NewVPNConfigUpdate()
 	update.Reason = env.reason
 	update.Token = env.token
 	if env.reason == "connect" {

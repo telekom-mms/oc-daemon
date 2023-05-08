@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnstatus"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 )
 
 // initTestClientServer returns a client an server for testing;

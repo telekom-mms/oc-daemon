@@ -1,15 +1,17 @@
-package vpnconfig
+package daemon
 
 import (
 	"log"
 	"reflect"
 	"testing"
+
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
 )
 
-// TestConfigUpdateValid tests Valid of ConfigUpdate
-func TestConfigUpdateValid(t *testing.T) {
+// TestVPNConfigUpdateValid tests Valid of VPNConfigUpdate
+func TestVPNConfigUpdateValid(t *testing.T) {
 	// test invalid
-	u := NewUpdate()
+	u := NewVPNConfigUpdate()
 	got := u.Valid()
 	want := false
 	if got != want {
@@ -17,7 +19,7 @@ func TestConfigUpdateValid(t *testing.T) {
 	}
 
 	// test valid disconnect
-	u = NewUpdate()
+	u = NewVPNConfigUpdate()
 	u.Reason = "disconnect"
 	u.Token = "some test token"
 
@@ -28,10 +30,10 @@ func TestConfigUpdateValid(t *testing.T) {
 	}
 
 	// test valid connect
-	u = NewUpdate()
+	u = NewVPNConfigUpdate()
 	u.Reason = "connect"
 	u.Token = "some test token"
-	u.Config = New()
+	u.Config = vpnconfig.New()
 
 	got = u.Valid()
 	want = true
@@ -40,25 +42,25 @@ func TestConfigUpdateValid(t *testing.T) {
 	}
 }
 
-// TestConfigUpdateJSON tests JSON and UpdateFromJSON of ConfigUpdate
-func TestConfigUpdateJSON(t *testing.T) {
-	updates := []*ConfigUpdate{}
+// TestVPNConfigUpdateJSON tests JSON and VPNConfigUpdateFromJSON of VPNConfigUpdate
+func TestVPNConfigUpdateJSON(t *testing.T) {
+	updates := []*VPNConfigUpdate{}
 
 	// empty
-	u := NewUpdate()
+	u := NewVPNConfigUpdate()
 	updates = append(updates, u)
 
 	// valid disconnect
-	u = NewUpdate()
+	u = NewVPNConfigUpdate()
 	u.Reason = "disconnect"
 	u.Token = "some test token"
 	updates = append(updates, u)
 
 	// valid connect
-	u = NewUpdate()
+	u = NewVPNConfigUpdate()
 	u.Reason = "connect"
 	u.Token = "some test token"
-	u.Config = New()
+	u.Config = vpnconfig.New()
 	updates = append(updates, u)
 
 	for _, u := range updates {
@@ -68,7 +70,7 @@ func TestConfigUpdateJSON(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		n, err := UpdateFromJSON(b)
+		n, err := VPNConfigUpdateFromJSON(b)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -78,9 +80,9 @@ func TestConfigUpdateJSON(t *testing.T) {
 	}
 }
 
-// TestNewUpdate tests NewUpdate
-func TestNewUpdate(t *testing.T) {
-	u := NewUpdate()
+// TestNewVPNConfigUpdate tests NewUpdate
+func TestNewVPNConfigUpdate(t *testing.T) {
+	u := NewVPNConfigUpdate()
 	if u == nil {
 		t.Errorf("got nil, want != nil")
 	}

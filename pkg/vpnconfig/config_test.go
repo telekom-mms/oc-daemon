@@ -1,12 +1,11 @@
 package vpnconfig
 
 import (
+	"encoding/json"
 	"log"
 	"net"
 	"reflect"
 	"testing"
-
-	"github.com/vishvananda/netlink"
 )
 
 // TestDNSRemotes tests Remotes of DNS
@@ -131,27 +130,10 @@ func TestConfigEqual(t *testing.T) {
 	}
 }
 
-// TestConfigValid tests Valid of Config
-func TestConfigValid(t *testing.T) {
-	// test empty, valid
+// getValidTestConfig returns a valid Config for testing
+func getValidTestConfig() *Config {
 	c := New()
-	want := true
-	got := c.Valid()
-	if got != want {
-		t.Errorf("got %t, want %t", got, want)
-	}
 
-	// test invalid
-	c = New()
-	c.Device.Name = "this is too long for a device name"
-	want = false
-	got = c.Valid()
-	if got != want {
-		t.Errorf("got %t, want %t", got, want)
-	}
-
-	// test valid
-	c = New()
 	c.Gateway = net.IPv4(192, 168, 0, 1)
 	c.PID = 123456
 	c.Timeout = 300
@@ -174,6 +156,31 @@ func TestConfigValid(t *testing.T) {
 	c.Split.ExcludeDNS = []string{"this.other.com", "that.other.com"}
 	c.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
 	c.Flags.DisableAlwaysOnVPN = true
+
+	return c
+}
+
+// TestConfigValid tests Valid of Config
+func TestConfigValid(t *testing.T) {
+	// test empty, valid
+	c := New()
+	want := true
+	got := c.Valid()
+	if got != want {
+		t.Errorf("got %t, want %t", got, want)
+	}
+
+	// test invalid
+	c = New()
+	c.Device.Name = "this is too long for a device name"
+	want = false
+	got = c.Valid()
+	if got != want {
+		t.Errorf("got %t, want %t", got, want)
+	}
+
+	// test valid
+	c = getValidTestConfig()
 	want = true
 	got = c.Valid()
 	if got != want {
@@ -181,128 +188,22 @@ func TestConfigValid(t *testing.T) {
 	}
 }
 
-// TestConfigSetupDevice tests SetupDevice of Config
-func TestConfigSetupDevice(t *testing.T) {
-	c := New()
-	c.Device.Name = "tun0"
-	c.Device.MTU = 1300
-	c.IPv4.Address = net.IPv4(192, 168, 0, 123)
-	c.IPv4.Netmask = net.IPv4Mask(255, 255, 255, 0)
-	c.IPv6.Address = net.ParseIP("2001::1")
-	c.IPv6.Netmask = net.CIDRMask(64, 128)
+// TestConfigJSON tests JSON of Config
+func TestConfigJSON(t *testing.T) {
+	c := getValidTestConfig()
 
-	// overwrite netlink functions
-	device := ""
-	mtu := 0
-	up := false
-	addrs := []*netlink.Addr{}
-	runLinkByName = func(name string) (netlink.Link, error) {
-		device = name
-		return &netlink.Device{}, nil
-	}
-	runLinkSetMTU = func(link netlink.Link, m int) error {
-		mtu = m
-		return nil
-	}
-	runLinkSetUp = func(netlink.Link) error {
-		up = true
-		return nil
-	}
-	runAddrAdd = func(link netlink.Link, addr *netlink.Addr) error {
-		addrs = append(addrs, addr)
-		return nil
+	want := c
+	b, err := c.JSON()
+	if err != nil {
+		t.Error(err)
 	}
 
-	// test
-	c.SetupDevice()
-	if device != c.Device.Name {
-		t.Errorf("got %s, want %s", device, c.Device.Name)
-	}
-	if mtu != c.Device.MTU {
-		t.Errorf("got %d, want %d", mtu, c.Device.MTU)
-	}
-	if !up {
-		t.Errorf("got %t, want true", up)
-	}
-	a := addrs[0].IPNet
-	if !a.IP.Equal(c.IPv4.Address) ||
-		a.Mask.String() != c.IPv4.Netmask.String() {
-		t.Errorf("got %v, want %v", a, c.IPv4)
-	}
-	a = addrs[1].IPNet
-	if !a.IP.Equal(c.IPv6.Address) ||
-		a.Mask.String() != c.IPv6.Netmask.String() {
-		t.Errorf("got %v, want %v", a, c.IPv6)
-	}
-}
-
-// TestConfigTeardownDevice tests TeardownDevice of Config
-func TestConfigTeardownDevice(t *testing.T) {
-	c := New()
-	c.Device.Name = "tun0"
-
-	// overwrite netlink functions
-	device := ""
-	down := false
-	runLinkByName = func(name string) (netlink.Link, error) {
-		device = name
-		return &netlink.Device{}, nil
-	}
-	runLinkSetDown = func(netlink.Link) error {
-		down = true
-		return nil
+	got := New()
+	err = json.Unmarshal(b, got)
+	if err != nil {
+		t.Error(err)
 	}
 
-	// test
-	c.TeardownDevice()
-	if device != c.Device.Name {
-		t.Errorf("got %s, want %s", device, c.Device.Name)
-	}
-	if !down {
-		t.Errorf("got %t, want true", down)
-	}
-}
-
-// TestConfigSetDNS tests SetDNS of Config
-func TestConfigSetDNS(t *testing.T) {
-	c := New()
-	c.Device.Name = "tun0"
-	c.DNS.DefaultDomain = "mycompany.com"
-
-	got := []string{}
-	runResolvectl = func(cmd string) {
-		got = append(got, cmd)
-	}
-	c.SetDNS("127.0.0.1:4253")
-
-	want := []string{
-		"dns tun0 127.0.0.1:4253",
-		"domain tun0 mycompany.com ~.",
-		"default-route tun0 yes",
-		"flush-caches",
-		"reset-server-features",
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
-}
-
-// TestConfigUnsetDNS tests UnsetDNS of Config
-func TestConfigUnsetDNS(t *testing.T) {
-	c := New()
-	c.Device.Name = "tun0"
-
-	got := []string{}
-	runResolvectl = func(cmd string) {
-		got = append(got, cmd)
-	}
-	c.UnsetDNS()
-
-	want := []string{
-		"revert tun0",
-		"flush-caches",
-		"reset-server-features",
-	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -313,21 +214,5 @@ func TestNew(t *testing.T) {
 	c := New()
 	if c == nil {
 		t.Errorf("got nil, want != nil")
-	}
-}
-
-// TestCleanup tests Cleanup
-func TestCleanup(t *testing.T) {
-	got := []string{}
-	runCleanupCmd = func(cmd string) {
-		got = append(got, cmd)
-	}
-	Cleanup("tun0")
-	want := []string{
-		"resolvectl revert tun0",
-		"ip link delete tun0",
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
 	}
 }
