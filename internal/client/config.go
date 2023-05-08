@@ -16,17 +16,17 @@ type ClientConfig struct {
 }
 
 // empty returns if the config is empty
-func (o *ClientConfig) empty() bool {
-	if o == nil {
+func (c *ClientConfig) empty() bool {
+	if c == nil {
 		return true
 	}
 
-	if o.ClientCertificate == "" &&
-		o.ClientKey == "" &&
-		o.CACertificate == "" &&
-		o.VPNServer == "" &&
-		o.User == "" &&
-		o.Password == "" {
+	if c.ClientCertificate == "" &&
+		c.ClientKey == "" &&
+		c.CACertificate == "" &&
+		c.VPNServer == "" &&
+		c.User == "" &&
+		c.Password == "" {
 		// empty
 		return true
 	}
@@ -35,8 +35,8 @@ func (o *ClientConfig) empty() bool {
 }
 
 // save saves the config to file
-func (o *ClientConfig) save(file string) {
-	b, err := json.MarshalIndent(o, "", "    ")
+func (c *ClientConfig) save(file string) {
+	b, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {
 		return
 	}
