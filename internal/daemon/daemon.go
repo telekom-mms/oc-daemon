@@ -72,16 +72,8 @@ type Daemon struct {
 	disableTrafPol bool
 }
 
-// connectVPN connects to the VPN using login in client request
-func (d *Daemon) connectVPN(request *api.Request) {
-	// parse login info
-	login, err := ocrunner.LoginInfoFromJSON(request.Data())
-	if err != nil {
-		log.WithError(err).Error("Daemon could not parse login info JSON")
-		request.Error("invalid login info in connect message")
-		return
-	}
-
+// connectVPN connects to the VPN using login info from client request
+func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 	// allow only one connection
 	if d.status.Running {
 		return
@@ -277,8 +269,16 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 
 	switch request.Type() {
 	case api.TypeVPNConnect:
+		// parse login info
+		login, err := ocrunner.LoginInfoFromJSON(request.Data())
+		if err != nil {
+			log.WithError(err).Error("Daemon could not parse login info JSON")
+			request.Error("invalid login info in connect message")
+			break
+		}
+
 		// connect VPN
-		d.connectVPN(request)
+		d.connectVPN(login)
 
 	case api.TypeVPNDisconnect:
 		// diconnect VPN
