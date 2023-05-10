@@ -77,7 +77,7 @@ type Status struct {
 	ConnectedAt     int64
 	Servers         []string
 	OCRunning       bool
-	Config          *vpnconfig.Config
+	VPNConfig       *vpnconfig.Config
 }
 
 // JSON returns the Status as JSON

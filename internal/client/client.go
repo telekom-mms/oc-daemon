@@ -144,5 +144,5 @@ func getStatus() {
 	}
 
 	fmt.Printf("OC Running:       %t\n", status.OCRunning)
-	log.Printf("Config: %+v", status.Config)
+	fmt.Printf("VPN Config:       %+v\n", status.VPNConfig)
 }

@@ -158,6 +158,17 @@ func (d *Daemon) setStatusOCRunning(running bool) {
 	d.status.OCRunning = running
 }
 
+// setStatusVPNConfig sets the VPN config in status
+func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
+	if d.status.VPNConfig.Equal(config) {
+		// config not changed
+		return
+	}
+
+	// config changed
+	d.status.VPNConfig = config
+}
+
 // connectVPN connects to the VPN using login info from client request
 func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 	// allow only one connection
@@ -243,17 +254,17 @@ func (d *Daemon) setupDNS(config *vpnconfig.Config) {
 // teardownDNS tears down the DNS configuration
 func (d *Daemon) teardownDNS() {
 	remotes := map[string][]string{
-		".": []string{defaultDNSServer},
+		".": {defaultDNSServer},
 	}
 	d.dns.SetRemotes(remotes)
 	d.dns.SetWatches([]string{})
-	unsetVPNDNS(d.status.Config)
+	unsetVPNDNS(d.status.VPNConfig)
 }
 
 // updateVPNConfigUp updates the VPN config for VPN connect
 func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	// check if old and new config differ
-	if config.Equal(d.status.Config) {
+	if config.Equal(d.status.VPNConfig) {
 		log.WithField("error", "old and new vpn configs are equal").
 			Error("Daemon config up error")
 		return
@@ -284,7 +295,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	d.disableTrafPol = config.Flags.DisableAlwaysOnVPN
 
 	// save config
-	d.status.Config = config
+	d.setStatusVPNConfig(config)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
 	d.setStatusConnectedAt(time.Now().Unix())
 	ip := ""
@@ -320,14 +331,14 @@ func (d *Daemon) updateVPNConfigDown() {
 
 	// disconnecting, tear down configuration
 	log.Info("Daemon tearing down vpn configuration")
-	if d.status.Config != nil {
-		teardownVPNDevice(d.status.Config)
+	if d.status.VPNConfig != nil {
+		teardownVPNDevice(d.status.VPNConfig)
 		d.teardownRouting()
 		d.teardownDNS()
 	}
 
 	// save config
-	d.status.Config = nil
+	d.setStatusVPNConfig(nil)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusConnectedAt(0)
 	d.setStatusIP("")
