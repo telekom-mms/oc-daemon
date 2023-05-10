@@ -99,7 +99,7 @@ func reconnectVPN() {
 		}
 
 		if !status.TrustedNetwork.Trusted() &&
-			!status.Connected &&
+			!status.ConnectionState.Connected() &&
 			!status.Running {
 			// authenticate and connect
 			connectVPN()
@@ -127,7 +127,7 @@ func getStatus() {
 	}
 
 	fmt.Printf("Trusted Network:  %s\n", status.TrustedNetwork)
+	fmt.Printf("Connection State: %s\n", status.ConnectionState)
 	log.Printf("Running: %t", status.Running)
-	log.Printf("Connected: %t", status.Connected)
 	log.Printf("Config: %+v", status.Config)
 }

@@ -90,17 +90,32 @@ func (d *Daemon) setStatusTrustedNetwork(trusted bool) {
 	d.status.TrustedNetwork = trustedNetwork
 }
 
+// setStatusConnectionState sets the connection state in status
+func (d *Daemon) setStatusConnectionState(connectionState vpnstatus.ConnectionState) {
+	if d.status.ConnectionState == connectionState {
+		// state not changed
+		return
+	}
+
+	// state changed
+	d.status.ConnectionState = connectionState
+}
+
 // connectVPN connects to the VPN using login info from client request
 func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 	// allow only one connection
 	if d.status.Running {
 		return
 	}
+
 	// ignore invalid login information
 	if !login.Valid() {
 		return
 	}
+
+	// update status
 	d.status.Running = true
+	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
 
 	// connect using runner
 	env := []string{"oc_daemon_token=" + d.token}
@@ -110,7 +125,7 @@ func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 // disconnectVPN disconnects from the VPN
 func (d *Daemon) disconnectVPN() {
 	// update status
-	d.status.Connected = false
+	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnecting)
 	d.status.Running = false
 
 	// stop runner
@@ -195,7 +210,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	}
 
 	// check if we are already connected
-	if d.status.Connected {
+	if d.status.ConnectionState.Connected() {
 		log.WithField("error", "vpn already connected").
 			Error("Daemon config up error")
 		return
@@ -213,7 +228,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 
 	// save config
 	d.status.Config = config
-	d.status.Connected = true
+	d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
 }
 
 // updateVPNConfigDown updates the VPN config for VPN disconnect
@@ -229,7 +244,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	}
 
 	// check if vpn is still flagged as connected
-	if d.status.Connected {
+	if d.status.ConnectionState.Connected() {
 		log.WithField("error", "vpn still connected").
 			Error("Daemon config down error")
 		return
@@ -245,7 +260,7 @@ func (d *Daemon) updateVPNConfigDown() {
 
 	// save config
 	d.status.Config = nil
-	d.status.Connected = false
+	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 }
 
 // updateVPNConfig updates the VPN config with config update in client request
@@ -354,7 +369,7 @@ func (d *Daemon) handleTNDResult(trusted bool) {
 func (d *Daemon) handleRunnerDisconnect() {
 	// make sure running and connected are not set
 	d.status.Running = false
-	d.status.Connected = false
+	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 
 	// make sure the vpn config is not active any more
 	d.updateVPNConfigDown()

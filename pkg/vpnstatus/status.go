@@ -34,12 +34,46 @@ func (t TrustedNetwork) String() string {
 	return ""
 }
 
+// ConnectionState is the current connection state
+type ConnectionState uint32
+
+// ConnectionState states
+const (
+	ConnectionStateUnknown ConnectionState = iota
+	ConnectionStateDisconnected
+	ConnectionStateConnecting
+	ConnectionStateConnected
+	ConnectionStateDisconnecting
+)
+
+// Connected returns whether ConnectionState is state "connected"
+func (c ConnectionState) Connected() bool {
+	return c == ConnectionStateConnected
+}
+
+// String returns ConnectionState as string
+func (c ConnectionState) String() string {
+	switch c {
+	case ConnectionStateUnknown:
+		return "unknown"
+	case ConnectionStateDisconnected:
+		return "disconnected"
+	case ConnectionStateConnecting:
+		return "connecting"
+	case ConnectionStateConnected:
+		return "connected"
+	case ConnectionStateDisconnecting:
+		return "disconnecting"
+	}
+	return ""
+}
+
 // Status is a VPN status
 type Status struct {
-	TrustedNetwork TrustedNetwork
-	Running        bool
-	Connected      bool
-	Config         *vpnconfig.Config
+	TrustedNetwork  TrustedNetwork
+	ConnectionState ConnectionState
+	Running         bool
+	Config          *vpnconfig.Config
 }
 
 // JSON returns the Status as JSON

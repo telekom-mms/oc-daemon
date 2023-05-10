@@ -52,7 +52,7 @@ func (c *Client) checkStatus() error {
 	if status.TrustedNetwork.Trusted() {
 		return fmt.Errorf("trusted network detected, nothing to do")
 	}
-	if status.Connected {
+	if status.ConnectionState.Connected() {
 		return fmt.Errorf("VPN already connected, nothing to do")
 	}
 	if status.Running {
