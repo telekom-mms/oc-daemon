@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/api"
+	"github.com/T-Systems-MMS/oc-daemon/internal/dbusapi"
 	"github.com/T-Systems-MMS/oc-daemon/internal/dnsproxy"
 	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
 	"github.com/T-Systems-MMS/oc-daemon/internal/sleepmon"
@@ -46,6 +47,7 @@ var (
 // Daemon is used to run the daemon
 type Daemon struct {
 	server *api.Server
+	dbus   *dbusapi.Service
 
 	dns *dnsproxy.Proxy
 	tnd *trustnet.TND
@@ -90,6 +92,7 @@ func (d *Daemon) setStatusTrustedNetwork(trusted bool) {
 
 	// status changed
 	d.status.TrustedNetwork = trustedNetwork
+	d.dbus.SetProperty(dbusapi.PropertyTrustedNetwork, trustedNetwork)
 }
 
 // setStatusConnectionState sets the connection state in status
@@ -101,6 +104,7 @@ func (d *Daemon) setStatusConnectionState(connectionState vpnstatus.ConnectionSt
 
 	// state changed
 	d.status.ConnectionState = connectionState
+	d.dbus.SetProperty(dbusapi.PropertyConnectionState, connectionState)
 }
 
 // setStatusIP sets the IP in status
@@ -112,6 +116,7 @@ func (d *Daemon) setStatusIP(ip string) {
 
 	// ip changed
 	d.status.IP = ip
+	d.dbus.SetProperty(dbusapi.PropertyIP, ip)
 }
 
 // setStatusDevice sets the device in status
@@ -123,6 +128,7 @@ func (d *Daemon) setStatusDevice(device string) {
 
 	// device changed
 	d.status.Device = device
+	d.dbus.SetProperty(dbusapi.PropertyDevice, device)
 }
 
 // setStatusConnectedAt sets the connection time in status
@@ -134,6 +140,7 @@ func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
 
 	// connection time changed
 	d.status.ConnectedAt = connectedAt
+	d.dbus.SetProperty(dbusapi.PropertyConnectedAt, connectedAt)
 }
 
 // setStatusServers sets the vpn servers in status
@@ -145,6 +152,7 @@ func (d *Daemon) setStatusServers(servers []string) {
 
 	// servers changed
 	d.status.Servers = servers
+	d.dbus.SetProperty(dbusapi.PropertyServers, servers)
 }
 
 // setStatusOCRunning sets the openconnect running state in status
@@ -406,6 +414,37 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 	case api.TypeVPNConfigUpdate:
 		// update VPN config
 		d.updateVPNConfig(request)
+	}
+}
+
+// handleDBusRequest handles a D-Bus API client request
+func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
+	defer request.Close()
+	log.Debug("Daemon handling D-Bus client request")
+
+	switch request.Name {
+	case dbusapi.RequestConnect:
+		// create login info
+		cookie := request.Parameters[0].(string)
+		host := request.Parameters[1].(string)
+		connectURL := request.Parameters[2].(string)
+		fingerprint := request.Parameters[3].(string)
+		resolve := request.Parameters[4].(string)
+
+		login := &ocrunner.LoginInfo{
+			Cookie:      cookie,
+			Host:        host,
+			ConnectURL:  connectURL,
+			Fingerprint: fingerprint,
+			Resolve:     resolve,
+		}
+
+		// connect VPN
+		d.connectVPN(login)
+
+	case dbusapi.RequestDisconnect:
+		// diconnect VPN
+		d.disconnectVPN()
 	}
 }
 
@@ -689,6 +728,12 @@ func (d *Daemon) start() {
 	d.server.Start()
 	defer d.server.Stop()
 
+	// start dbus api service
+	d.dbus.Start()
+	defer d.dbus.Stop()
+	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusServers(d.profile.GetVPNServers())
+
 	// start xml profile watching
 	d.profile.Start()
 	defer d.profile.Stop()
@@ -698,6 +743,9 @@ func (d *Daemon) start() {
 		select {
 		case req := <-d.server.Requests():
 			d.handleClientRequest(req)
+
+		case req := <-d.dbus.Requests():
+			d.handleDBusRequest(req)
 
 		case r := <-d.dns.Reports():
 			d.handleDNSReport(r)
@@ -740,6 +788,7 @@ func NewDaemon() *Daemon {
 
 	return &Daemon{
 		server: api.NewServer(sockFile),
+		dbus:   dbusapi.NewService(),
 
 		sleepmon: sleepmon.NewSleepMon(),
 
