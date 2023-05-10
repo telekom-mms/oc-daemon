@@ -101,6 +101,17 @@ func (d *Daemon) setStatusConnectionState(connectionState vpnstatus.ConnectionSt
 	d.status.ConnectionState = connectionState
 }
 
+// setStatusIP sets the IP in status
+func (d *Daemon) setStatusIP(ip string) {
+	if d.status.IP == ip {
+		// ip not changed
+		return
+	}
+
+	// ip changed
+	d.status.IP = ip
+}
+
 // connectVPN connects to the VPN using login info from client request
 func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 	// allow only one connection
@@ -229,6 +240,15 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	// save config
 	d.status.Config = config
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
+	ip := ""
+	for _, addr := range []net.IP{config.IPv4.Address, config.IPv6.Address} {
+		// this assumes either a single IPv4 or a single IPv6 address
+		// is configured on a vpn device
+		if addr != nil {
+			ip = addr.String()
+		}
+	}
+	d.setStatusIP(ip)
 }
 
 // updateVPNConfigDown updates the VPN config for VPN disconnect
@@ -261,6 +281,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	// save config
 	d.status.Config = nil
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusIP("")
 }
 
 // updateVPNConfig updates the VPN config with config update in client request

@@ -72,6 +72,7 @@ func (c ConnectionState) String() string {
 type Status struct {
 	TrustedNetwork  TrustedNetwork
 	ConnectionState ConnectionState
+	IP              string
 	Running         bool
 	Config          *vpnconfig.Config
 }

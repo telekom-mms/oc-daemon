@@ -128,6 +128,7 @@ func getStatus() {
 
 	fmt.Printf("Trusted Network:  %s\n", status.TrustedNetwork)
 	fmt.Printf("Connection State: %s\n", status.ConnectionState)
+	fmt.Printf("IP:               %s\n", status.IP)
 	log.Printf("Running: %t", status.Running)
 	log.Printf("Config: %+v", status.Config)
 }
