@@ -73,6 +73,7 @@ type Status struct {
 	TrustedNetwork  TrustedNetwork
 	ConnectionState ConnectionState
 	IP              string
+	Device          string
 	Running         bool
 	Config          *vpnconfig.Config
 }

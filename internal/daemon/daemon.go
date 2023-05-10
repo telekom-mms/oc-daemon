@@ -112,6 +112,17 @@ func (d *Daemon) setStatusIP(ip string) {
 	d.status.IP = ip
 }
 
+// setStatusDevice sets the device in status
+func (d *Daemon) setStatusDevice(device string) {
+	if d.status.Device == device {
+		// device not changed
+		return
+	}
+
+	// device changed
+	d.status.Device = device
+}
+
 // connectVPN connects to the VPN using login info from client request
 func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 	// allow only one connection
@@ -249,6 +260,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 		}
 	}
 	d.setStatusIP(ip)
+	d.setStatusDevice(config.Device.Name)
 }
 
 // updateVPNConfigDown updates the VPN config for VPN disconnect
@@ -282,6 +294,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	d.status.Config = nil
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusIP("")
+	d.setStatusDevice("")
 }
 
 // updateVPNConfig updates the VPN config with config update in client request
