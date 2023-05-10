@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=com.telekom_mms.oc_daemon.Daemon
+Exec=/bin/false
+# alias for systemd service, do not use?
+# SystemdService=dbus-com.telekom_mms.oc_daemon.Daemon.service
