@@ -75,6 +75,7 @@ type Status struct {
 	IP              string
 	Device          string
 	ConnectedAt     int64
+	Servers         []string
 	Running         bool
 	Config          *vpnconfig.Config
 }

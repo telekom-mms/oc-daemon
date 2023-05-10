@@ -138,6 +138,11 @@ func getStatus() {
 		fmt.Printf("Connected At:     %s\n", connectedAt)
 	}
 
+	fmt.Printf("Servers:\n")
+	for _, server := range status.Servers {
+		fmt.Printf("  - \"%s\"\n", server)
+	}
+
 	log.Printf("Running: %t", status.Running)
 	log.Printf("Config: %+v", status.Config)
 }

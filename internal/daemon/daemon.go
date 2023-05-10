@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net"
+	"reflect"
 	"strconv"
 	"syscall"
 	"time"
@@ -133,6 +134,17 @@ func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
 
 	// connection time changed
 	d.status.ConnectedAt = connectedAt
+}
+
+// setStatusServers sets the vpn servers in status
+func (d *Daemon) setStatusServers(servers []string) {
+	if reflect.DeepEqual(d.status.Servers, servers) {
+		// servers not changed
+		return
+	}
+
+	// servers changed
+	d.status.Servers = servers
 }
 
 // connectVPN connects to the VPN using login info from client request
@@ -456,6 +468,7 @@ func (d *Daemon) handleProfileUpdate() {
 	d.stopTrafPol()
 	d.checkTrafPol()
 	d.checkTND()
+	d.setStatusServers(d.profile.GetVPNServers())
 }
 
 // cleanup cleans up after a failed shutdown
