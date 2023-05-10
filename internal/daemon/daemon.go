@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/api"
 	"github.com/T-Systems-MMS/oc-daemon/internal/dnsproxy"
@@ -121,6 +122,17 @@ func (d *Daemon) setStatusDevice(device string) {
 
 	// device changed
 	d.status.Device = device
+}
+
+// setStatusConnectedAt sets the connection time in status
+func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
+	if d.status.ConnectedAt == connectedAt {
+		// connection time not changed
+		return
+	}
+
+	// connection time changed
+	d.status.ConnectedAt = connectedAt
 }
 
 // connectVPN connects to the VPN using login info from client request
@@ -251,6 +263,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	// save config
 	d.status.Config = config
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
+	d.setStatusConnectedAt(time.Now().Unix())
 	ip := ""
 	for _, addr := range []net.IP{config.IPv4.Address, config.IPv6.Address} {
 		// this assumes either a single IPv4 or a single IPv6 address
@@ -293,6 +306,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	// save config
 	d.status.Config = nil
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusConnectedAt(0)
 	d.setStatusIP("")
 	d.setStatusDevice("")
 }
@@ -404,6 +418,7 @@ func (d *Daemon) handleRunnerDisconnect() {
 	// make sure running and connected are not set
 	d.status.Running = false
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusConnectedAt(0)
 
 	// make sure the vpn config is not active any more
 	d.updateVPNConfigDown()

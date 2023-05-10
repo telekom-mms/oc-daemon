@@ -130,6 +130,14 @@ func getStatus() {
 	fmt.Printf("Connection State: %s\n", status.ConnectionState)
 	fmt.Printf("IP:               %s\n", status.IP)
 	fmt.Printf("Device:           %s\n", status.Device)
+
+	connectedAt := time.Unix(status.ConnectedAt, 0)
+	if connectedAt.IsZero() {
+		fmt.Printf("Connected At:     0\n")
+	} else {
+		fmt.Printf("Connected At:     %s\n", connectedAt)
+	}
+
 	log.Printf("Running: %t", status.Running)
 	log.Printf("Config: %+v", status.Config)
 }
