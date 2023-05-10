@@ -72,6 +72,24 @@ type Daemon struct {
 	disableTrafPol bool
 }
 
+// setStatusTrustedNetwork sets the trusted network status in status
+func (d *Daemon) setStatusTrustedNetwork(trusted bool) {
+	// convert bool to trusted network status
+	trustedNetwork := vpnstatus.TrustedNetworkNotTrusted
+	if trusted {
+		trustedNetwork = vpnstatus.TrustedNetworkTrusted
+	}
+
+	// check status change
+	if d.status.TrustedNetwork == trustedNetwork {
+		// status not changed
+		return
+	}
+
+	// status changed
+	d.status.TrustedNetwork = trustedNetwork
+}
+
 // connectVPN connects to the VPN using login info from client request
 func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 	// allow only one connection
@@ -315,7 +333,7 @@ func (d *Daemon) handleDNSReport(r *dnsproxy.Report) {
 // checkDisconnectVPN checks if we need to disconnect the VPN when handling a
 // TND result
 func (d *Daemon) checkDisconnectVPN() {
-	if d.status.TrustedNetwork && d.status.Running {
+	if d.status.TrustedNetwork.Trusted() && d.status.Running {
 		// disconnect VPN when switching from untrusted network with
 		// active VPN connection to a trusted network
 		log.Info("Daemon detected trusted network, disconnecting VPN connection")
@@ -326,7 +344,7 @@ func (d *Daemon) checkDisconnectVPN() {
 // handleTNDResult handles a TND result
 func (d *Daemon) handleTNDResult(trusted bool) {
 	log.WithField("trusted", trusted).Debug("Daemon handling TND result")
-	d.status.TrustedNetwork = trusted
+	d.setStatusTrustedNetwork(trusted)
 	d.checkDisconnectVPN()
 	d.checkTrafPol()
 }
@@ -530,7 +548,7 @@ func (d *Daemon) checkTrafPol() {
 	}
 
 	// check if we are connected to a trusted network
-	if d.status.TrustedNetwork {
+	if d.status.TrustedNetwork.Trusted() {
 		d.stopTrafPol()
 		return
 	}

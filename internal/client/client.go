@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"time"
 
@@ -97,7 +98,7 @@ func reconnectVPN() {
 			log.WithError(err).Fatal("error reconnecting to VPN")
 		}
 
-		if !status.TrustedNetwork &&
+		if !status.TrustedNetwork.Trusted() &&
 			!status.Connected &&
 			!status.Running {
 			// authenticate and connect
@@ -124,7 +125,8 @@ func getStatus() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Trusted Network: %t", status.TrustedNetwork)
+
+	fmt.Printf("Trusted Network:  %s\n", status.TrustedNetwork)
 	log.Printf("Running: %t", status.Running)
 	log.Printf("Connected: %t", status.Connected)
 	log.Printf("Config: %+v", status.Config)

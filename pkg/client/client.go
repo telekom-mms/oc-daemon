@@ -49,7 +49,7 @@ func (c *Client) checkStatus() error {
 	}
 
 	// check if we need to start the VPN connection
-	if status.TrustedNetwork {
+	if status.TrustedNetwork.Trusted() {
 		return fmt.Errorf("trusted network detected, nothing to do")
 	}
 	if status.Connected {
