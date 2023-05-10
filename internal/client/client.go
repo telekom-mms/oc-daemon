@@ -85,7 +85,7 @@ func reconnectVPN() {
 	}
 
 	// disconnect if needed
-	if status.Running {
+	if status.OCRunning {
 		// send disconnect request
 		disconnectVPN()
 	}
@@ -100,7 +100,7 @@ func reconnectVPN() {
 
 		if !status.TrustedNetwork.Trusted() &&
 			!status.ConnectionState.Connected() &&
-			!status.Running {
+			!status.OCRunning {
 			// authenticate and connect
 			connectVPN()
 			return
@@ -143,6 +143,6 @@ func getStatus() {
 		fmt.Printf("  - \"%s\"\n", server)
 	}
 
-	log.Printf("Running: %t", status.Running)
+	fmt.Printf("OC Running:       %t\n", status.OCRunning)
 	log.Printf("Config: %+v", status.Config)
 }

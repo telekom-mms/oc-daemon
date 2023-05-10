@@ -76,7 +76,7 @@ type Status struct {
 	Device          string
 	ConnectedAt     int64
 	Servers         []string
-	Running         bool
+	OCRunning       bool
 	Config          *vpnconfig.Config
 }
 

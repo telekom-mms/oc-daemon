@@ -147,10 +147,21 @@ func (d *Daemon) setStatusServers(servers []string) {
 	d.status.Servers = servers
 }
 
+// setStatusOCRunning sets the openconnect running state in status
+func (d *Daemon) setStatusOCRunning(running bool) {
+	if d.status.OCRunning == running {
+		// OC running state not changed
+		return
+	}
+
+	// OC running state changed
+	d.status.OCRunning = running
+}
+
 // connectVPN connects to the VPN using login info from client request
 func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 	// allow only one connection
-	if d.status.Running {
+	if d.status.OCRunning {
 		return
 	}
 
@@ -160,7 +171,7 @@ func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 	}
 
 	// update status
-	d.status.Running = true
+	d.setStatusOCRunning(true)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
 
 	// connect using runner
@@ -172,7 +183,7 @@ func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
 func (d *Daemon) disconnectVPN() {
 	// update status
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnecting)
-	d.status.Running = false
+	d.setStatusOCRunning(false)
 
 	// stop runner
 	if d.runner == nil {
@@ -249,7 +260,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	}
 
 	// check if vpn is flagged as running
-	if !d.status.Running {
+	if !d.status.OCRunning {
 		log.WithField("error", "vpn not running").
 			Error("Daemon config up error")
 		return
@@ -294,7 +305,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	// or potentially calling this twice is better than not at all?
 
 	// check if vpn is still flagged as running
-	if d.status.Running {
+	if d.status.OCRunning {
 		log.WithField("error", "vpn still running").
 			Error("Daemon config down error")
 		return
@@ -391,7 +402,7 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 func (d *Daemon) handleDNSReport(r *dnsproxy.Report) {
 	log.WithField("report", r).Debug("Daemon handling DNS report")
 
-	if !d.status.Running { // TODO: fix connected state and change to connected?
+	if !d.status.OCRunning { // TODO: fix connected state and change to connected?
 		return
 	}
 	if d.splitrt == nil {
@@ -408,7 +419,7 @@ func (d *Daemon) handleDNSReport(r *dnsproxy.Report) {
 // checkDisconnectVPN checks if we need to disconnect the VPN when handling a
 // TND result
 func (d *Daemon) checkDisconnectVPN() {
-	if d.status.TrustedNetwork.Trusted() && d.status.Running {
+	if d.status.TrustedNetwork.Trusted() && d.status.OCRunning {
 		// disconnect VPN when switching from untrusted network with
 		// active VPN connection to a trusted network
 		log.Info("Daemon detected trusted network, disconnecting VPN connection")
@@ -428,7 +439,7 @@ func (d *Daemon) handleTNDResult(trusted bool) {
 // cleaning up everthing. This is also called when stopping the daemon
 func (d *Daemon) handleRunnerDisconnect() {
 	// make sure running and connected are not set
-	d.status.Running = false
+	d.setStatusOCRunning(false)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusConnectedAt(0)
 
@@ -442,7 +453,7 @@ func (d *Daemon) handleRunnerEvent(e *ocrunner.ConnectEvent) {
 
 	if e.Connect {
 		// make sure running is set
-		d.status.Running = true
+		d.setStatusOCRunning(true)
 		return
 	}
 
@@ -455,7 +466,7 @@ func (d *Daemon) handleSleepMonEvent(sleep bool) {
 	log.WithField("sleep", sleep).Debug("Daemon handling SleepMon event")
 
 	// disconnect vpn on resume
-	if !sleep && d.status.Running {
+	if !sleep && d.status.OCRunning {
 		d.disconnectVPN()
 	}
 }

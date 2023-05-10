@@ -55,7 +55,7 @@ func (c *Client) checkStatus() error {
 	if status.ConnectionState.Connected() {
 		return fmt.Errorf("VPN already connected, nothing to do")
 	}
-	if status.Running {
+	if status.OCRunning {
 		return fmt.Errorf("OpenConnect client already running, nothing to do")
 	}
 	return nil
@@ -106,7 +106,7 @@ func (c *Client) Disconnect() error {
 	if err != nil {
 		return fmt.Errorf("could not query OC-Daemon: %w", err)
 	}
-	if !status.Running {
+	if !status.OCRunning {
 		return fmt.Errorf("OpenConnect client is not running, nothing to do")
 	}
 
