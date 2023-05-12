@@ -4,8 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"net"
+	"reflect"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/api"
 	"github.com/T-Systems-MMS/oc-daemon/internal/dnsproxy"
@@ -72,25 +74,116 @@ type Daemon struct {
 	disableTrafPol bool
 }
 
-// connectVPN connects to the VPN using login in client request
-func (d *Daemon) connectVPN(request *api.Request) {
-	// parse login info
-	login, err := ocrunner.LoginInfoFromJSON(request.Data())
-	if err != nil {
-		log.WithError(err).Error("Daemon could not parse login info JSON")
-		request.Error("invalid login info in connect message")
+// setStatusTrustedNetwork sets the trusted network status in status
+func (d *Daemon) setStatusTrustedNetwork(trusted bool) {
+	// convert bool to trusted network status
+	trustedNetwork := vpnstatus.TrustedNetworkNotTrusted
+	if trusted {
+		trustedNetwork = vpnstatus.TrustedNetworkTrusted
+	}
+
+	// check status change
+	if d.status.TrustedNetwork == trustedNetwork {
+		// status not changed
 		return
 	}
 
-	// allow only one connection
-	if d.status.Running {
+	// status changed
+	d.status.TrustedNetwork = trustedNetwork
+}
+
+// setStatusConnectionState sets the connection state in status
+func (d *Daemon) setStatusConnectionState(connectionState vpnstatus.ConnectionState) {
+	if d.status.ConnectionState == connectionState {
+		// state not changed
 		return
 	}
+
+	// state changed
+	d.status.ConnectionState = connectionState
+}
+
+// setStatusIP sets the IP in status
+func (d *Daemon) setStatusIP(ip string) {
+	if d.status.IP == ip {
+		// ip not changed
+		return
+	}
+
+	// ip changed
+	d.status.IP = ip
+}
+
+// setStatusDevice sets the device in status
+func (d *Daemon) setStatusDevice(device string) {
+	if d.status.Device == device {
+		// device not changed
+		return
+	}
+
+	// device changed
+	d.status.Device = device
+}
+
+// setStatusConnectedAt sets the connection time in status
+func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
+	if d.status.ConnectedAt == connectedAt {
+		// connection time not changed
+		return
+	}
+
+	// connection time changed
+	d.status.ConnectedAt = connectedAt
+}
+
+// setStatusServers sets the vpn servers in status
+func (d *Daemon) setStatusServers(servers []string) {
+	if reflect.DeepEqual(d.status.Servers, servers) {
+		// servers not changed
+		return
+	}
+
+	// servers changed
+	d.status.Servers = servers
+}
+
+// setStatusOCRunning sets the openconnect running state in status
+func (d *Daemon) setStatusOCRunning(running bool) {
+	if d.status.OCRunning == running {
+		// OC running state not changed
+		return
+	}
+
+	// OC running state changed
+	d.status.OCRunning = running
+}
+
+// setStatusVPNConfig sets the VPN config in status
+func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
+	if d.status.VPNConfig.Equal(config) {
+		// config not changed
+		return
+	}
+
+	// config changed
+	d.status.VPNConfig = config
+}
+
+// connectVPN connects to the VPN using login info from client request
+func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
+	// allow only one connection
+	if d.status.OCRunning {
+		return
+	}
+
 	// ignore invalid login information
 	if !login.Valid() {
 		return
 	}
-	d.status.Running = true
+
+	// update status
+	d.setStatusOCRunning(true)
+	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
 
 	// connect using runner
 	env := []string{"oc_daemon_token=" + d.token}
@@ -100,8 +193,8 @@ func (d *Daemon) connectVPN(request *api.Request) {
 // disconnectVPN disconnects from the VPN
 func (d *Daemon) disconnectVPN() {
 	// update status
-	d.status.Connected = false
-	d.status.Running = false
+	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnecting)
+	d.setStatusOCRunning(false)
 
 	// stop runner
 	if d.runner == nil {
@@ -161,31 +254,31 @@ func (d *Daemon) setupDNS(config *vpnconfig.Config) {
 // teardownDNS tears down the DNS configuration
 func (d *Daemon) teardownDNS() {
 	remotes := map[string][]string{
-		".": []string{defaultDNSServer},
+		".": {defaultDNSServer},
 	}
 	d.dns.SetRemotes(remotes)
 	d.dns.SetWatches([]string{})
-	unsetVPNDNS(d.status.Config)
+	unsetVPNDNS(d.status.VPNConfig)
 }
 
 // updateVPNConfigUp updates the VPN config for VPN connect
 func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	// check if old and new config differ
-	if config.Equal(d.status.Config) {
+	if config.Equal(d.status.VPNConfig) {
 		log.WithField("error", "old and new vpn configs are equal").
 			Error("Daemon config up error")
 		return
 	}
 
 	// check if vpn is flagged as running
-	if !d.status.Running {
+	if !d.status.OCRunning {
 		log.WithField("error", "vpn not running").
 			Error("Daemon config up error")
 		return
 	}
 
 	// check if we are already connected
-	if d.status.Connected {
+	if d.status.ConnectionState.Connected() {
 		log.WithField("error", "vpn already connected").
 			Error("Daemon config up error")
 		return
@@ -202,8 +295,19 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	d.disableTrafPol = config.Flags.DisableAlwaysOnVPN
 
 	// save config
-	d.status.Config = config
-	d.status.Connected = true
+	d.setStatusVPNConfig(config)
+	d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
+	d.setStatusConnectedAt(time.Now().Unix())
+	ip := ""
+	for _, addr := range []net.IP{config.IPv4.Address, config.IPv6.Address} {
+		// this assumes either a single IPv4 or a single IPv6 address
+		// is configured on a vpn device
+		if addr != nil {
+			ip = addr.String()
+		}
+	}
+	d.setStatusIP(ip)
+	d.setStatusDevice(config.Device.Name)
 }
 
 // updateVPNConfigDown updates the VPN config for VPN disconnect
@@ -212,14 +316,14 @@ func (d *Daemon) updateVPNConfigDown() {
 	// or potentially calling this twice is better than not at all?
 
 	// check if vpn is still flagged as running
-	if d.status.Running {
+	if d.status.OCRunning {
 		log.WithField("error", "vpn still running").
 			Error("Daemon config down error")
 		return
 	}
 
 	// check if vpn is still flagged as connected
-	if d.status.Connected {
+	if d.status.ConnectionState.Connected() {
 		log.WithField("error", "vpn still connected").
 			Error("Daemon config down error")
 		return
@@ -227,15 +331,18 @@ func (d *Daemon) updateVPNConfigDown() {
 
 	// disconnecting, tear down configuration
 	log.Info("Daemon tearing down vpn configuration")
-	if d.status.Config != nil {
-		teardownVPNDevice(d.status.Config)
+	if d.status.VPNConfig != nil {
+		teardownVPNDevice(d.status.VPNConfig)
 		d.teardownRouting()
 		d.teardownDNS()
 	}
 
 	// save config
-	d.status.Config = nil
-	d.status.Connected = false
+	d.setStatusVPNConfig(nil)
+	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusConnectedAt(0)
+	d.setStatusIP("")
+	d.setStatusDevice("")
 }
 
 // updateVPNConfig updates the VPN config with config update in client request
@@ -277,8 +384,16 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 
 	switch request.Type() {
 	case api.TypeVPNConnect:
+		// parse login info
+		login, err := ocrunner.LoginInfoFromJSON(request.Data())
+		if err != nil {
+			log.WithError(err).Error("Daemon could not parse login info JSON")
+			request.Error("invalid login info in connect message")
+			break
+		}
+
 		// connect VPN
-		d.connectVPN(request)
+		d.connectVPN(login)
 
 	case api.TypeVPNDisconnect:
 		// diconnect VPN
@@ -298,7 +413,7 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 func (d *Daemon) handleDNSReport(r *dnsproxy.Report) {
 	log.WithField("report", r).Debug("Daemon handling DNS report")
 
-	if !d.status.Running { // TODO: fix connected state and change to connected?
+	if !d.status.OCRunning { // TODO: fix connected state and change to connected?
 		return
 	}
 	if d.splitrt == nil {
@@ -315,7 +430,7 @@ func (d *Daemon) handleDNSReport(r *dnsproxy.Report) {
 // checkDisconnectVPN checks if we need to disconnect the VPN when handling a
 // TND result
 func (d *Daemon) checkDisconnectVPN() {
-	if d.status.TrustedNetwork && d.status.Running {
+	if d.status.TrustedNetwork.Trusted() && d.status.OCRunning {
 		// disconnect VPN when switching from untrusted network with
 		// active VPN connection to a trusted network
 		log.Info("Daemon detected trusted network, disconnecting VPN connection")
@@ -326,7 +441,7 @@ func (d *Daemon) checkDisconnectVPN() {
 // handleTNDResult handles a TND result
 func (d *Daemon) handleTNDResult(trusted bool) {
 	log.WithField("trusted", trusted).Debug("Daemon handling TND result")
-	d.status.TrustedNetwork = trusted
+	d.setStatusTrustedNetwork(trusted)
 	d.checkDisconnectVPN()
 	d.checkTrafPol()
 }
@@ -335,8 +450,9 @@ func (d *Daemon) handleTNDResult(trusted bool) {
 // cleaning up everthing. This is also called when stopping the daemon
 func (d *Daemon) handleRunnerDisconnect() {
 	// make sure running and connected are not set
-	d.status.Running = false
-	d.status.Connected = false
+	d.setStatusOCRunning(false)
+	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusConnectedAt(0)
 
 	// make sure the vpn config is not active any more
 	d.updateVPNConfigDown()
@@ -348,7 +464,7 @@ func (d *Daemon) handleRunnerEvent(e *ocrunner.ConnectEvent) {
 
 	if e.Connect {
 		// make sure running is set
-		d.status.Running = true
+		d.setStatusOCRunning(true)
 		return
 	}
 
@@ -361,7 +477,7 @@ func (d *Daemon) handleSleepMonEvent(sleep bool) {
 	log.WithField("sleep", sleep).Debug("Daemon handling SleepMon event")
 
 	// disconnect vpn on resume
-	if !sleep && d.status.Running {
+	if !sleep && d.status.OCRunning {
 		d.disconnectVPN()
 	}
 }
@@ -374,6 +490,7 @@ func (d *Daemon) handleProfileUpdate() {
 	d.stopTrafPol()
 	d.checkTrafPol()
 	d.checkTND()
+	d.setStatusServers(d.profile.GetVPNServers())
 }
 
 // cleanup cleans up after a failed shutdown
@@ -530,7 +647,7 @@ func (d *Daemon) checkTrafPol() {
 	}
 
 	// check if we are connected to a trusted network
-	if d.status.TrustedNetwork {
+	if d.status.TrustedNetwork.Trusted() {
 		d.stopTrafPol()
 		return
 	}

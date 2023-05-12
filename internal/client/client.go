@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"time"
 
@@ -84,7 +85,7 @@ func reconnectVPN() {
 	}
 
 	// disconnect if needed
-	if status.Running {
+	if status.OCRunning {
 		// send disconnect request
 		disconnectVPN()
 	}
@@ -97,9 +98,9 @@ func reconnectVPN() {
 			log.WithError(err).Fatal("error reconnecting to VPN")
 		}
 
-		if !status.TrustedNetwork &&
-			!status.Connected &&
-			!status.Running {
+		if !status.TrustedNetwork.Trusted() &&
+			!status.ConnectionState.Connected() &&
+			!status.OCRunning {
 			// authenticate and connect
 			connectVPN()
 			return
@@ -124,8 +125,24 @@ func getStatus() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Trusted Network: %t", status.TrustedNetwork)
-	log.Printf("Running: %t", status.Running)
-	log.Printf("Connected: %t", status.Connected)
-	log.Printf("Config: %+v", status.Config)
+
+	fmt.Printf("Trusted Network:  %s\n", status.TrustedNetwork)
+	fmt.Printf("Connection State: %s\n", status.ConnectionState)
+	fmt.Printf("IP:               %s\n", status.IP)
+	fmt.Printf("Device:           %s\n", status.Device)
+
+	connectedAt := time.Unix(status.ConnectedAt, 0)
+	if connectedAt.IsZero() {
+		fmt.Printf("Connected At:     0\n")
+	} else {
+		fmt.Printf("Connected At:     %s\n", connectedAt)
+	}
+
+	fmt.Printf("Servers:\n")
+	for _, server := range status.Servers {
+		fmt.Printf("  - \"%s\"\n", server)
+	}
+
+	fmt.Printf("OC Running:       %t\n", status.OCRunning)
+	fmt.Printf("VPN Config:       %+v\n", status.VPNConfig)
 }
