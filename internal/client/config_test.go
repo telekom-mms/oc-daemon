@@ -44,6 +44,7 @@ func TestLoadClientConfig(t *testing.T) {
 		CACertificate:     "/some/ca",
 		VPNServer:         "server.example.com",
 		User:              "user1",
+		Password:          "passwd1",
 	}
 
 	// create temporary file
@@ -51,7 +52,7 @@ func TestLoadClientConfig(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.Remove(f.Name())
+	defer func() { _ = os.Remove(f.Name()) }()
 
 	// save config to temporary file
 	want.save(f.Name())

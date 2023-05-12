@@ -1,16 +1,20 @@
-package vpnconfig
+package daemon
 
-import "encoding/json"
+import (
+	"encoding/json"
 
-// ConfigUpdate is a VPN configuration update
-type ConfigUpdate struct {
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
+)
+
+// VPNConfigUpdate is a VPN configuration update
+type VPNConfigUpdate struct {
 	Reason string
 	Token  string
-	Config *Config
+	Config *vpnconfig.Config
 }
 
 // Valid returns if the config update is valid
-func (c *ConfigUpdate) Valid() bool {
+func (c *VPNConfigUpdate) Valid() bool {
 	switch c.Reason {
 	case "disconnect":
 		// token must be valid and config nil
@@ -33,7 +37,7 @@ func (c *ConfigUpdate) Valid() bool {
 }
 
 // JSON returns the Config as JSON
-func (c *ConfigUpdate) JSON() ([]byte, error) {
+func (c *VPNConfigUpdate) JSON() ([]byte, error) {
 	b, err := json.Marshal(c)
 	if err != nil {
 		return nil, err
@@ -42,9 +46,9 @@ func (c *ConfigUpdate) JSON() ([]byte, error) {
 	return b, nil
 }
 
-// UpdateFromJSON parses and returns the ConfigUpdate in b
-func UpdateFromJSON(b []byte) (*ConfigUpdate, error) {
-	c := NewUpdate()
+// VPNConfigUpdateFromJSON parses and returns the VPNConfigUpdate in b
+func VPNConfigUpdateFromJSON(b []byte) (*VPNConfigUpdate, error) {
+	c := NewVPNConfigUpdate()
 	err := json.Unmarshal(b, c)
 	if err != nil {
 		return nil, err
@@ -53,7 +57,7 @@ func UpdateFromJSON(b []byte) (*ConfigUpdate, error) {
 	return c, nil
 }
 
-// NewUpdate returns a new ConfigUpdate
-func NewUpdate() *ConfigUpdate {
-	return &ConfigUpdate{}
+// NewVPNConfigUpdate returns a new VPNConfigUpdate
+func NewVPNConfigUpdate() *VPNConfigUpdate {
+	return &VPNConfigUpdate{}
 }

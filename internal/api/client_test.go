@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnstatus"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 )
 
 // initTestClientServer returns a client an server for testing;
@@ -27,7 +27,7 @@ func initTestClientServer() (*Client, *Server) {
 func TestClientRequest(t *testing.T) {
 	client, server := initTestClientServer()
 	server.Start()
-	reply := client.Request(NewMessage(TypeVPNQuery, nil))
+	reply, _ := client.Request(NewMessage(TypeVPNQuery, nil))
 	server.Stop()
 
 	log.Println(reply)
@@ -53,7 +53,7 @@ func TestClientQuery(t *testing.T) {
 	}()
 	server.Start()
 	want := status
-	got := client.Query()
+	got, _ := client.Query()
 	server.Stop()
 
 	log.Println(got)

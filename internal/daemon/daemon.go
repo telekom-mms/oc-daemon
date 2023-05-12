@@ -13,9 +13,9 @@ import (
 	"github.com/T-Systems-MMS/oc-daemon/internal/sleepmon"
 	"github.com/T-Systems-MMS/oc-daemon/internal/splitrt"
 	"github.com/T-Systems-MMS/oc-daemon/internal/trafpol"
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnconfig"
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnstatus"
 	"github.com/T-Systems-MMS/oc-daemon/internal/xmlprofile"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 	"github.com/T-Systems-MMS/tnd/pkg/trustnet"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -155,7 +155,7 @@ func (d *Daemon) setupDNS(config *vpnconfig.Config) {
 	d.dns.SetWatches(excludes)
 
 	// update dns configuration of host
-	config.SetDNS(dnsAddr)
+	setVPNDNS(config, dnsAddr)
 }
 
 // teardownDNS tears down the DNS configuration
@@ -165,7 +165,7 @@ func (d *Daemon) teardownDNS() {
 	}
 	d.dns.SetRemotes(remotes)
 	d.dns.SetWatches([]string{})
-	d.status.Config.UnsetDNS()
+	unsetVPNDNS(d.status.Config)
 }
 
 // updateVPNConfigUp updates the VPN config for VPN connect
@@ -193,7 +193,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 
 	// connecting, set up configuration
 	log.Info("Daemon setting up vpn configuration")
-	config.SetupDevice()
+	setupVPNDevice(config)
 	d.setupRouting(config)
 	d.setupDNS(config)
 
@@ -228,7 +228,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	// disconnecting, tear down configuration
 	log.Info("Daemon tearing down vpn configuration")
 	if d.status.Config != nil {
-		d.status.Config.TeardownDevice()
+		teardownVPNDevice(d.status.Config)
 		d.teardownRouting()
 		d.teardownDNS()
 	}
@@ -241,7 +241,7 @@ func (d *Daemon) updateVPNConfigDown() {
 // updateVPNConfig updates the VPN config with config update in client request
 func (d *Daemon) updateVPNConfig(request *api.Request) {
 	// parse config
-	configUpdate, err := vpnconfig.UpdateFromJSON(request.Data())
+	configUpdate, err := VPNConfigUpdateFromJSON(request.Data())
 	if err != nil {
 		log.WithError(err).Error("Daemon could not parse config update from JSON")
 		request.Error("invalid config update message")
@@ -379,7 +379,7 @@ func (d *Daemon) handleProfileUpdate() {
 // cleanup cleans up after a failed shutdown
 func (d *Daemon) cleanup() {
 	ocrunner.CleanupConnect()
-	vpnconfig.Cleanup(vpnDevice)
+	cleanupVPNConfig(vpnDevice)
 	splitrt.Cleanup()
 	trafpol.Cleanup()
 }

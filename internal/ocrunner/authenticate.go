@@ -6,8 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // Authenticate is an OpenConnect authentication runner
@@ -21,6 +19,7 @@ type Authenticate struct {
 	Script      string
 	Server      string
 	User        string
+	Password    string
 
 	Command *exec.Cmd
 	Login   LoginInfo
@@ -30,7 +29,7 @@ type Authenticate struct {
 }
 
 // Authenticate runs OpenConnect in authentication mode
-func (r *Authenticate) Authenticate() {
+func (a *Authenticate) Authenticate() error {
 	// create openconnect command:
 	//
 	// openconnect \
@@ -44,12 +43,12 @@ func (r *Authenticate) Authenticate() {
 	//   --quiet \
 	//   "$SERVER"
 	//
-	certificate := fmt.Sprintf("--certificate=%s", r.Certificate)
-	sslKey := fmt.Sprintf("--sslkey=%s", r.Key)
-	caFile := fmt.Sprintf("--cafile=%s", r.CA)
-	xmlConfig := fmt.Sprintf("--xmlconfig=%s", r.XMLProfile)
-	script := fmt.Sprintf("--script=%s", r.Script)
-	user := fmt.Sprintf("--user=%s", r.User)
+	certificate := fmt.Sprintf("--certificate=%s", a.Certificate)
+	sslKey := fmt.Sprintf("--sslkey=%s", a.Key)
+	caFile := fmt.Sprintf("--cafile=%s", a.CA)
+	xmlConfig := fmt.Sprintf("--xmlconfig=%s", a.XMLProfile)
+	script := fmt.Sprintf("--script=%s", a.Script)
+	user := fmt.Sprintf("--user=%s", a.User)
 
 	parameters := []string{
 		"--protocol=anyconnect",
@@ -61,26 +60,34 @@ func (r *Authenticate) Authenticate() {
 		"--quiet",
 		"--no-proxy",
 	}
-	if r.CA != "" {
+	if a.CA != "" {
 		parameters = append(parameters, caFile)
 	}
-	if r.User != "" {
+	if a.User != "" {
 		parameters = append(parameters, user)
 	}
-	parameters = append(parameters, r.Server)
+	if a.Password != "" {
+		// read password from stdin and switch to non-interactive mode
+		parameters = append(parameters, "--passwd-on-stdin")
+		parameters = append(parameters, "--non-inter")
+	}
+	parameters = append(parameters, a.Server)
 
-	r.Command = exec.Command("openconnect", parameters...)
+	a.Command = exec.Command("openconnect", parameters...)
 
 	// run command: allow user input, show stderr, buffer stdout
 	var b bytes.Buffer
-	r.Command.Stdin = os.Stdin
-	r.Command.Stdout = &b
-	r.Command.Stderr = os.Stderr
-	r.Command.Env = append(os.Environ(), r.Env...)
-	if err := r.Command.Run(); err != nil {
+	a.Command.Stdin = os.Stdin
+	if a.Password != "" {
+		// disable user input, pass password via stdin
+		a.Command.Stdin = bytes.NewBufferString(a.Password)
+	}
+	a.Command.Stdout = &b
+	a.Command.Stderr = os.Stderr
+	a.Command.Env = append(os.Environ(), a.Env...)
+	if err := a.Command.Run(); err != nil {
 		// TODO: handle failed program start?
-		log.WithError(err).Error("OC-Runner executing authenticate error")
-		return
+		return err
 	}
 
 	// parse login info, cookie from command line in buffer:
@@ -93,8 +100,10 @@ func (r *Authenticate) Authenticate() {
 	//
 	s := b.String()
 	for _, line := range strings.Fields(s) {
-		r.Login.ParseLine(line)
+		a.Login.ParseLine(line)
 	}
+
+	return nil
 }
 
 // NewAuthenticate returns a new Authenticate

@@ -3,7 +3,7 @@ package vpnstatus
 import (
 	"encoding/json"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnconfig"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
 )
 
 // Status is a VPN status

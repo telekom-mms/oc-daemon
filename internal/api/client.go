@@ -1,12 +1,12 @@
 package api
 
 import (
+	"fmt"
 	"net"
 	"time"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
-	"github.com/T-Systems-MMS/oc-daemon/internal/vpnstatus"
-	log "github.com/sirupsen/logrus"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 )
 
 const (
@@ -24,11 +24,11 @@ type Client struct {
 }
 
 // Request sends msg to the server and returns the server's response
-func (c *Client) Request(msg *Message) *Message {
+func (c *Client) Request(msg *Message) (*Message, error) {
 	// connect to daemon
 	conn, err := net.DialTimeout("unix", c.sockFile, connectTimeout)
 	if err != nil {
-		log.WithError(err).Fatal("Client dial error")
+		return nil, fmt.Errorf("client dial error: %w", err)
 	}
 	defer func() {
 		_ = conn.Close()
@@ -37,72 +37,86 @@ func (c *Client) Request(msg *Message) *Message {
 	// set timeout for entire request/response message exchange
 	deadline := time.Now().Add(clientTimeout)
 	if err := conn.SetDeadline(deadline); err != nil {
-		log.WithError(err).Fatal("Client set deadline error")
+		return nil, fmt.Errorf("client set deadline error: %w", err)
 	}
 
 	// send message to daemon
 	err = WriteMessage(conn, msg)
 	if err != nil {
-		log.WithError(err).Fatal("Client send message error")
+		return nil, fmt.Errorf("client send message error: %w", err)
 	}
 
 	// receive reply
 	reply, err := ReadMessage(conn)
 	if err != nil {
-		log.WithError(err).Fatal("Client receive message error")
+		return nil, fmt.Errorf("client receive message error: %w", err)
 	}
 
-	return reply
+	return reply, nil
 }
 
 // Query retrieves the VPN status from the daemon
-func (c *Client) Query() *vpnstatus.Status {
-	// send query to daemon
+func (c *Client) Query() (*vpnstatus.Status, error) {
 	msg := NewMessage(TypeVPNQuery, nil)
-	reply := c.Request(msg)
+	// send query to daemon
 
 	// handle response
+	reply, err := c.Request(msg)
+	if err != nil {
+		return nil, err
+	}
 	switch reply.Type {
 	case TypeOK:
 		// parse status in reply
 		status, err := vpnstatus.NewFromJSON(reply.Value)
 		if err != nil {
-			log.WithError(err).Fatal("Client received invalid status")
+			return nil, fmt.Errorf("client received invalid status: %w", err)
 		}
-		return status
+		return status, nil
 
 	case TypeError:
-		log.WithField("error", string(reply.Value)).Error("Client received error reply")
+		err := fmt.Errorf("%s", reply.Value)
+		return nil, fmt.Errorf("client received error reply: %w", err)
 	}
-	return nil
+	return nil, fmt.Errorf("client received invalid reply")
 }
 
 // Connect sends a connect request with login info to the daemon
-func (c *Client) Connect(login *ocrunner.LoginInfo) {
+func (c *Client) Connect(login *ocrunner.LoginInfo) error {
 	// convert login to json
 	b, err := login.JSON()
 	if err != nil {
-		log.WithError(err).Fatal("Client could not convert login info to JSON")
+		return fmt.Errorf("client could not convert login info to JSON: %w", err)
 	}
 
 	// create connect request
 	msg := NewMessage(TypeVPNConnect, b)
 
 	// send request to server
-	reply := c.Request(msg)
-	if reply.Type == TypeError {
-		log.WithField("error", string(reply.Value)).Error("Client received error reply")
+	reply, err := c.Request(msg)
+	if err != nil {
+		return err
 	}
+	if reply.Type == TypeError {
+		err := fmt.Errorf("%s", reply.Value)
+		return fmt.Errorf("client received error reply: %w", err)
+	}
+	return nil
 }
 
 // Disconnect sends a disconnect request to the daemon
-func (c *Client) Disconnect() {
+func (c *Client) Disconnect() error {
 	// send disconnect request
 	msg := NewMessage(TypeVPNDisconnect, nil)
-	reply := c.Request(msg)
-	if reply.Type == TypeError {
-		log.WithField("error", string(reply.Value)).Error("Client received error reply")
+	reply, err := c.Request(msg)
+	if err != nil {
+		return err
 	}
+	if reply.Type == TypeError {
+		err := fmt.Errorf("%s", reply.Value)
+		return fmt.Errorf("client received error reply: %w", err)
+	}
+	return nil
 }
 
 // NewClient returns a new Client

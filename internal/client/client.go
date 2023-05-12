@@ -5,21 +5,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/api"
-	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/client"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	// runDir is the daemons run dir
-	runDir = "/run/oc-daemon"
-
-	// daemon socket file
-	sockFile = runDir + "/daemon.sock"
-
-	// oc runner settings
-	vpncScript = "/usr/bin/oc-daemon-vpncscript"
-
 	// maxReconnectTries is the maximum amount or reconnect retries
 	maxReconnectTries = 5
 )
@@ -33,29 +23,26 @@ func readXMLProfile() []byte {
 	return b
 }
 
-// authenticateVPN authenticates user for vpn connection and returns login info
-func authenticateVPN() *ocrunner.LoginInfo {
-	// authenticate
-	auth := ocrunner.NewAuthenticate()
-	auth.Certificate = config.ClientCertificate
-	auth.Key = config.ClientKey
-	auth.CA = config.CACertificate
-	auth.XMLProfile = xmlProfile
-	auth.Script = vpncScript
-	auth.Server = config.VPNServer
-	auth.User = config.User
-	auth.Authenticate()
+// connectVPN connects to the VPN if necessary
+func connectVPN() {
+	// create client
+	c := client.NewClient()
 
-	return &auth.Login
-}
-
-// authenticateConnectVPN authenticates the user and connects to the VPN
-func authenticateConnectVPN(client *api.Client) {
 	// try to read current xml profile
 	pre := readXMLProfile()
 
-	// autenticate user for vpn connection
-	login := authenticateVPN()
+	// authenticate
+	c.ClientCertificate = config.ClientCertificate
+	c.ClientKey = config.ClientKey
+	c.CACertificate = config.CACertificate
+	c.XMLProfile = xmlProfile
+	c.VPNServer = config.VPNServer
+	c.User = config.User
+	c.Password = config.Password
+
+	if err := c.Authenticate(); err != nil {
+		log.WithError(err).Fatal("error authenticating user for VPN")
+	}
 
 	// warn user if profile changed
 	post := readXMLProfile()
@@ -67,88 +54,54 @@ func authenticateConnectVPN(client *api.Client) {
 		time.Sleep(2 * time.Second)
 	}
 
-	// send login info to daemon
-	client.Connect(login)
-}
-
-// connectVPN connects to the VPN if necessary
-func connectVPN() {
-	// create client
-	client := api.NewClient(sockFile)
-
-	// get status
-	status := client.Query()
-	if status == nil {
-		return
+	// connect
+	if err := c.Connect(); err != nil {
+		log.WithError(err).Fatal("error connecting to VPN")
 	}
-
-	// check if we need to start the VPN connection
-	if status.TrustedNetwork {
-		log.Println("Trusted network detected, nothing to do")
-		return
-	}
-	if status.Connected {
-		log.Println("VPN already connected, nothing to do")
-		return
-	}
-	if status.Running {
-		log.Println("OpenConnect client already running, nothing to do")
-		return
-	}
-
-	// authenticate and connect
-	authenticateConnectVPN(client)
 }
 
 // disconnectVPN disconnects the VPN
 func disconnectVPN() {
 	// create client
-	client := api.NewClient(sockFile)
-
-	// check status
-	status := client.Query()
-	if status == nil {
-		return
-	}
-	if !status.Running {
-		log.Println("OpenConnect client is not running, nothing to do")
-		return
-	}
+	c := client.NewClient()
 
 	// disconnect
-	client.Disconnect()
+	err := c.Disconnect()
+	if err != nil {
+		log.WithError(err).Fatal("error disconnecting from VPN")
+	}
 }
 
 // reconnectVPN reconnects to the VPN
 func reconnectVPN() {
 	// create client
-	client := api.NewClient(sockFile)
+	client := client.NewClient()
 
 	// check status
-	status := client.Query()
-	if status == nil {
-		log.Fatal("error reconnecting to VPN")
+	status, err := client.Query()
+	if err != nil {
+		log.WithError(err).Fatal("error reconnecting to VPN")
 	}
 
 	// disconnect if needed
 	if status.Running {
 		// send disconnect request
-		client.Disconnect()
+		disconnectVPN()
 	}
 
 	// wait for status to switch to untrusted network and not running
 	try := 0
 	for {
-		status := client.Query()
-		if status == nil {
-			log.Fatal("error reconnecting to VPN")
+		status, err := client.Query()
+		if err != nil {
+			log.WithError(err).Fatal("error reconnecting to VPN")
 		}
 
 		if !status.TrustedNetwork &&
 			!status.Connected &&
 			!status.Running {
 			// authenticate and connect
-			authenticateConnectVPN(client)
+			connectVPN()
 			return
 		}
 
@@ -166,10 +119,10 @@ func reconnectVPN() {
 
 // getStatus gets the VPN status from the daemon
 func getStatus() {
-	client := api.NewClient(sockFile)
-	status := client.Query()
-	if status == nil {
-		return
+	c := client.NewClient()
+	status, err := c.Query()
+	if err != nil {
+		log.Fatal(err)
 	}
 	log.Printf("Trusted Network: %t", status.TrustedNetwork)
 	log.Printf("Running: %t", status.Running)
