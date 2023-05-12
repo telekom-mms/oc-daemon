@@ -13,49 +13,73 @@ import (
 // env contains openconnect parameters passed through the environment:
 //
 // List of parameters passed through environment
-// * reason                       -- why this script was called, one of:
-//                                   pre-init connect disconnect reconnect
-//                                   attempt-reconnect
-// * VPNGATEWAY                   -- VPN gateway address (always present)
-// * VPNPID                       -- PID of the process controlling the VPN
-//                                   (OpenConnect v9.0+)
-// * TUNDEV                       -- tunnel device (always present)
-// * IDLE_TIMEOUT                 -- gateway's idle timeout in seconds
-//                                   (OpenConnect v8.06+); unused
-// * INTERNAL_IP4_ADDRESS         -- address (always present)
-// * INTERNAL_IP4_MTU             -- MTU (often unset)
-// * INTERNAL_IP4_NETMASK         -- netmask (often unset)
-// * INTERNAL_IP4_NETMASKLEN      -- netmask length (often unset)
-// * INTERNAL_IP4_NETADDR         -- address of network (only present if
-//                                   netmask is set)
-// * INTERNAL_IP4_DNS             -- list of DNS servers
-// * INTERNAL_IP4_NBNS            -- list of WINS servers
-// * INTERNAL_IP6_ADDRESS         -- IPv6 address
-// * INTERNAL_IP6_NETMASK         -- IPv6 netmask
-// * INTERNAL_IP6_DNS             -- IPv6 list of dns servers
-// * CISCO_DEF_DOMAIN             -- default domain name
-// * CISCO_BANNER                 -- banner from server
-// * CISCO_SPLIT_DNS              -- DNS search domain list
-// * CISCO_SPLIT_INC              -- number of networks in split-network-list
-// * CISCO_SPLIT_INC_%d_ADDR      -- network address
-// * CISCO_SPLIT_INC_%d_MASK      -- subnet mask (for example: 255.255.255.0)
-// * CISCO_SPLIT_INC_%d_MASKLEN   -- subnet masklen (for example: 24)
-// * CISCO_SPLIT_INC_%d_PROTOCOL  -- protocol (often just 0); unused
-// * CISCO_SPLIT_INC_%d_SPORT     -- source port (often just 0); unused
-// * CISCO_SPLIT_INC_%d_DPORT     -- destination port (often just 0); unused
-// * CISCO_IPV6_SPLIT_INC         -- number of networks in IPv6
-//                                   split-network-list
-// * CISCO_IPV6_SPLIT_INC_%d_ADDR -- IPv6 network address
-// * CISCO_IPV6_SPLIT_INC_$%d_MASKLEN -- IPv6 subnet masklen
 //
-//  The split tunnel variables above have *_EXC* counterparts for network
-//  addresses to be excluded from the VPN tunnel.
+//   - reason                           -- why this script was called, one of:
+//     --                                  pre-init connect disconnect reconnect
+//     --                                  attempt-reconnect
+//
+//   - VPNGATEWAY                       -- VPN gateway address (always present)
+//
+//   - VPNPID                           -- PID of the process controlling the VPN (OpenConnect v9.0+)
+//
+//   - TUNDEV                           -- tunnel device (always present)
+//
+//   - IDLE_TIMEOUT                     -- gateway's idle timeout in seconds (OpenConnect v8.06+); unused
+//
+//   - INTERNAL_IP4_ADDRESS             -- address (always present)
+//
+//   - INTERNAL_IP4_MTU                 -- MTU (often unset)
+//
+//   - INTERNAL_IP4_NETMASK             -- netmask (often unset)
+//
+//   - INTERNAL_IP4_NETMASKLEN          -- netmask length (often unset)
+//
+//   - INTERNAL_IP4_NETADDR             -- address of network (only present if netmask is set)
+//
+//   - INTERNAL_IP4_DNS                 -- list of DNS servers
+//
+//   - INTERNAL_IP4_NBNS                -- list of WINS servers
+//
+//   - INTERNAL_IP6_ADDRESS             -- IPv6 address
+//
+//   - INTERNAL_IP6_NETMASK             -- IPv6 netmask
+//
+//   - INTERNAL_IP6_DNS                 -- IPv6 list of dns servers
+//
+//   - CISCO_DEF_DOMAIN                 -- default domain name
+//
+//   - CISCO_BANNER                     -- banner from server
+//
+//   - CISCO_SPLIT_DNS                  -- DNS search domain list
+//
+//   - CISCO_SPLIT_INC                  -- number of networks in split-network-list
+//
+//   - CISCO_SPLIT_INC_%d_ADDR          -- network address
+//
+//   - CISCO_SPLIT_INC_%d_MASK          -- subnet mask (for example: 255.255.255.0)
+//
+//   - CISCO_SPLIT_INC_%d_MASKLEN       -- subnet masklen (for example: 24)
+//
+//   - CISCO_SPLIT_INC_%d_PROTOCOL      -- protocol (often just 0); unused
+//
+//   - CISCO_SPLIT_INC_%d_SPORT         -- source port (often just 0); unused
+//
+//   - CISCO_SPLIT_INC_%d_DPORT         -- destination port (often just 0); unused
+//
+//   - CISCO_IPV6_SPLIT_INC             -- number of networks in IPv6 split-network-list
+//
+//   - CISCO_IPV6_SPLIT_INC_%d_ADDR     -- IPv6 network address
+//
+//   - CISCO_IPV6_SPLIT_INC_$%d_MASKLEN -- IPv6 subnet masklen
+//
+//     The split tunnel variables above have *_EXC* counterparts for network
+//     addresses to be excluded from the VPN tunnel.
 //
 // Other/undocumented environment variables
-// * CISCO_CSTP_OPTIONS           -- List of all CSTP headers, includes dynamic
-//                                   DNS-based Split Exclude and Bypass Virtual
-//                                   Subnets Only settings in nested
-//                                   X-CSTP-Post-Auth-XML header
+//   - CISCO_CSTP_OPTIONS               -- List of all CSTP headers, includes dynamic
+//     --                                  DNS-based Split Exclude and Bypass Virtual
+//     --                                  Subnets Only settings in nested
+//     --                                  X-CSTP-Post-Auth-XML header
 type env struct {
 	// general settings
 	reason      string

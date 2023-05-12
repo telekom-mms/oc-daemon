@@ -40,7 +40,10 @@ func main() {
 		a.XMLProfile = *profile
 		a.Script = *script
 		a.Server = *server
-		a.Authenticate()
+		err := a.Authenticate()
+		if err != nil {
+			log.Error(err)
+		}
 	}
 
 	// connect client

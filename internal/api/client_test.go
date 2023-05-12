@@ -66,7 +66,10 @@ func TestClientQuery(t *testing.T) {
 func TestClientConnect(t *testing.T) {
 	client, server := initTestClientServer()
 	server.Start()
-	client.Connect(&ocrunner.LoginInfo{})
+	err := client.Connect(&ocrunner.LoginInfo{})
+	if err != nil {
+		t.Error(err)
+	}
 	server.Stop()
 }
 
@@ -74,7 +77,10 @@ func TestClientConnect(t *testing.T) {
 func TestClientDisconnect(t *testing.T) {
 	client, server := initTestClientServer()
 	server.Start()
-	client.Disconnect()
+	err := client.Disconnect()
+	if err != nil {
+		t.Error(err)
+	}
 	server.Stop()
 }
 
