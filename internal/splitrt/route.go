@@ -2,7 +2,6 @@ package splitrt
 
 import (
 	"fmt"
-	"net"
 	"os/exec"
 
 	log "github.com/sirupsen/logrus"
@@ -30,7 +29,7 @@ var runCmd = func(cmd string) {
 }
 
 // addDefaultRouteIPv4 adds default routing for IPv4
-func addDefaultRouteIPv4(device string, addresses []*net.IPNet) {
+func addDefaultRouteIPv4(device string) {
 	// set default route and routing rules
 	for _, r := range []string{
 		fmt.Sprintf("ip -4 route add 0.0.0.0/0 dev %s table %s",
@@ -49,7 +48,7 @@ func addDefaultRouteIPv4(device string, addresses []*net.IPNet) {
 }
 
 // addDefaultRouteIPv6 adds default routing for IPv6
-func addDefaultRouteIPv6(device string, addresses []*net.IPNet) {
+func addDefaultRouteIPv6(device string) {
 	// set default route and routing rules
 	for _, r := range []string{
 		fmt.Sprintf("ip -6 route add ::/0 dev %s table %s", device,

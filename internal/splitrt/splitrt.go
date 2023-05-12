@@ -83,8 +83,8 @@ func (s *SplitRouting) setupRouting() {
 
 	// setup routing
 	// TODO: add netlink variant?
-	addDefaultRouteIPv4(s.config.Device.Name, []*net.IPNet{ipnet4})
-	addDefaultRouteIPv6(s.config.Device.Name, []*net.IPNet{ipnet6})
+	addDefaultRouteIPv4(s.config.Device.Name)
+	addDefaultRouteIPv6(s.config.Device.Name)
 
 }
 
