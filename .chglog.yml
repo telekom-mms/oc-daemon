@@ -1,0 +1,7 @@
+conventional-commits: false
+deb:
+  distribution: ["jammy"]
+  urgency: "medium"
+debug: false
+owner: "The MMS Linux Dev Team <mmslinux-dev@t-systems-mms.com>"
+package-name: "oc-daemon"
