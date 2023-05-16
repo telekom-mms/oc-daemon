@@ -14,6 +14,20 @@ const (
 	maxReconnectTries = 5
 )
 
+// listServers gets the VPN status from the daemon and prints the VPN servers in it
+func listServers() {
+	c := client.NewClient(config)
+	status, err := c.Query()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Servers:\n")
+	for _, server := range status.Servers {
+		fmt.Printf("  - \"%s\"\n", server)
+	}
+}
+
 // connectVPN connects to the VPN if necessary
 func connectVPN() {
 	// create client
