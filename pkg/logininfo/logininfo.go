@@ -1,4 +1,4 @@
-package ocrunner
+package logininfo
 
 import (
 	"encoding/json"

@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 )
 
@@ -82,7 +82,7 @@ func (c *Client) Query() (*vpnstatus.Status, error) {
 }
 
 // Connect sends a connect request with login info to the daemon
-func (c *Client) Connect(login *ocrunner.LoginInfo) error {
+func (c *Client) Connect(login *logininfo.LoginInfo) error {
 	// convert login to json
 	b, err := login.JSON()
 	if err != nil {

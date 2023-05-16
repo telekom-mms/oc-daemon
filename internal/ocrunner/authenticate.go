@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
 )
 
 // Authenticate is an OpenConnect authentication runner
@@ -22,7 +24,7 @@ type Authenticate struct {
 	Password    string
 
 	Command *exec.Cmd
-	Login   LoginInfo
+	Login   logininfo.LoginInfo
 
 	// Env are extra environment variables set during execution
 	Env []string

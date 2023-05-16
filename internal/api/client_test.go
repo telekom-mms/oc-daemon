@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 )
 
@@ -66,7 +66,7 @@ func TestClientQuery(t *testing.T) {
 func TestClientConnect(t *testing.T) {
 	client, server := initTestClientServer()
 	server.Start()
-	err := client.Connect(&ocrunner.LoginInfo{})
+	err := client.Connect(&logininfo.LoginInfo{})
 	if err != nil {
 		t.Error(err)
 	}

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,7 +24,7 @@ type ConnectEvent struct {
 	Connect bool
 
 	// login info for connect
-	login *LoginInfo
+	login *logininfo.LoginInfo
 
 	// Env are extra environment variables set during execution
 	env []string
@@ -203,7 +204,7 @@ func (c *Connect) Stop() {
 }
 
 // Connect connects the vpn by starting openconnect
-func (c *Connect) Connect(login *LoginInfo, env []string) {
+func (c *Connect) Connect(login *logininfo.LoginInfo, env []string) {
 	e := &ConnectEvent{
 		Connect: true,
 		login:   login,

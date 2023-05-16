@@ -5,6 +5,7 @@ import (
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/api"
 	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 )
 
@@ -28,7 +29,10 @@ type Client struct {
 	Password          string
 
 	client *api.Client
-	login  *ocrunner.LoginInfo
+
+	// Login contains information required to connect to the VPN, produced
+	// by successful authentication
+	Login *logininfo.LoginInfo
 }
 
 // Query retrieves the current status from OC-Daemon
@@ -82,7 +86,7 @@ func (c *Client) Authenticate() error {
 	if err := auth.Authenticate(); err != nil {
 		return err
 	}
-	c.login = &auth.Login
+	c.Login = &auth.Login
 
 	return nil
 }
@@ -96,7 +100,7 @@ func (c *Client) Connect() error {
 	}
 
 	// send login info to daemon
-	return c.client.Connect(c.login)
+	return c.client.Connect(c.Login)
 }
 
 // Disconnect disconnects the client from the VPN server

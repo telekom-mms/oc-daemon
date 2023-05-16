@@ -17,6 +17,7 @@ import (
 	"github.com/T-Systems-MMS/oc-daemon/internal/sleepmon"
 	"github.com/T-Systems-MMS/oc-daemon/internal/splitrt"
 	"github.com/T-Systems-MMS/oc-daemon/internal/trafpol"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/xmlprofile"
@@ -180,7 +181,7 @@ func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 }
 
 // connectVPN connects to the VPN using login info from client request
-func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
+func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	// allow only one connection
 	if d.status.OCRunning {
 		return
@@ -395,7 +396,7 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 	switch request.Type() {
 	case api.TypeVPNConnect:
 		// parse login info
-		login, err := ocrunner.LoginInfoFromJSON(request.Data())
+		login, err := logininfo.LoginInfoFromJSON(request.Data())
 		if err != nil {
 			log.WithError(err).Error("Daemon could not parse login info JSON")
 			request.Error("invalid login info in connect message")
@@ -433,7 +434,7 @@ func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 		fingerprint := request.Parameters[3].(string)
 		resolve := request.Parameters[4].(string)
 
-		login := &ocrunner.LoginInfo{
+		login := &logininfo.LoginInfo{
 			Cookie:      cookie,
 			Host:        host,
 			ConnectURL:  connectURL,
