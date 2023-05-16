@@ -14,7 +14,6 @@ const (
 	maxReconnectTries = 5
 )
 
-
 // connectVPN connects to the VPN if necessary
 func connectVPN() {
 	// create client
@@ -27,7 +26,7 @@ func connectVPN() {
 	c.ClientCertificate = config.ClientCertificate
 	c.ClientKey = config.ClientKey
 	c.CACertificate = config.CACertificate
-	c.XMLProfile = xmlProfile
+	c.XMLProfile = xmlprofile.SystemProfile
 	c.VPNServer = config.VPNServer
 	c.User = config.User
 	c.Password = config.Password

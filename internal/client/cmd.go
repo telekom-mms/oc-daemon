@@ -5,103 +5,31 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/daemon"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/client"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/xmlprofile"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	// dirNams it the directory name appended to path names
-	dirName = "/oc-daemon"
-
-	// userDir is the directory for the user config
-	userDir = ""
-
-	// userConfig is the user config file
-	userConfig = ""
-
-	// systemDir is the system-wide config dir
-	systemDir = "/var/lib" + dirName
-
-	// configFile is the config file name appended to path names
-	configFile = "/oc-client.json"
-
-	// systemConfig is the system-wide config file
-	systemConfig = systemDir + configFile
-
-	// xmlProfile is the anyconnect xml profile
-	xmlProfile = systemDir + "/profile.xml"
-
 	// config is the OC client config
-	config *ClientConfig
+	config *client.Config
 
 	// command line arguments
 	command = ""
 )
 
-// prepareFolder prepares the user directory
-func prepareFolder() {
-	c, err := os.UserConfigDir()
-	if err != nil {
-		log.WithError(err).Fatal("Client could not get user config dir")
-	}
-	userDir = c + dirName
+// saveConfig saves the user config to the user dir
+func saveConfig() {
+	userConfig := client.UserConfig()
+	userDir := filepath.Dir(userConfig)
 	if err := os.MkdirAll(userDir, 0700); err != nil {
 		log.WithError(err).Fatal("Client could not create user dir")
 	}
-
-	userConfig = userDir + configFile
-}
-
-// expandPath expands tilde and environment variables in path
-func expandPath(path string) string {
-	if strings.HasPrefix(path, "~") {
-		path = filepath.Join("$HOME", path[1:])
+	if err := config.Save(userConfig); err != nil {
+		log.WithError(err).Fatal("Client could not save config to file")
 	}
-	return os.ExpandEnv(path)
-}
-
-// expandPaths expands the paths in config
-func expandPaths() {
-	config.ClientCertificate = expandPath(config.ClientCertificate)
-	config.ClientKey = expandPath(config.ClientKey)
-	config.CACertificate = expandPath(config.CACertificate)
-}
-
-// expandUser expands the username in config
-func expandUser() {
-	config.User = os.ExpandEnv(config.User)
-}
-
-// expandConfig expands variables in config
-func expandConfig() {
-	expandPaths()
-	expandUser()
-}
-
-// loadConfig loads the user config from the config file
-func loadConfig() {
-	// try user config
-	config = loadClientConfig(userConfig)
-	if config != nil {
-		return
-	}
-
-	// try system config
-	config = loadClientConfig(systemConfig)
-	if config != nil {
-		return
-	}
-
-	// return new config
-	config = newClientConfig()
-}
-
-// saveConfig saves the user config to the user dir
-func saveConfig() {
-	config.save(userConfig)
 }
 
 // parseCommandLine parses the command line
@@ -196,11 +124,14 @@ func parseCommandLine() {
 
 	// reset to system settings
 	if *sys {
-		config = loadClientConfig(systemConfig)
-		if config == nil {
+		systemConfig := client.SystemConfig()
+		c, err := client.LoadConfig(systemConfig)
+		if err != nil {
 			log.WithField("systemConfig", systemConfig).
+				WithError(err).
 				Fatal("Client could not load system settings from system config")
 		}
+		config = c
 	}
 }
 
@@ -217,17 +148,14 @@ func listServers() {
 
 // Run is the main entry point of the oc client
 func Run() {
-	// prepare directory
-	prepareFolder()
-
 	// load configuration
-	loadConfig()
+	config = client.LoadUserSystemConfig()
 
 	// parse command line arguments
 	parseCommandLine()
 
 	// make sure config is not empty
-	if config.empty() {
+	if config.Empty() {
 		log.Fatal("Cannot run with empty configuration. You need to " +
 			"configure client certificate, client key and vpn " +
 			"server first. See -help for command line arguments")
@@ -238,12 +166,10 @@ func Run() {
 	case "list":
 		listServers()
 	case "", "connect":
-		expandConfig()
 		connectVPN()
 	case "disconnect":
 		disconnectVPN()
 	case "reconnect":
-		expandConfig()
 		reconnectVPN()
 	case "status":
 		getStatus()
