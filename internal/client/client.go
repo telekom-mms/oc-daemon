@@ -1,12 +1,11 @@
 package client
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/T-Systems-MMS/oc-daemon/pkg/client"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/xmlprofile"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,14 +14,6 @@ const (
 	maxReconnectTries = 5
 )
 
-// readXMLProfile reads the contents of the XML profile
-func readXMLProfile() []byte {
-	b, err := os.ReadFile(xmlProfile)
-	if err != nil {
-		return nil
-	}
-	return b
-}
 
 // connectVPN connects to the VPN if necessary
 func connectVPN() {
@@ -30,7 +21,7 @@ func connectVPN() {
 	c := client.NewClient()
 
 	// try to read current xml profile
-	pre := readXMLProfile()
+	pre := xmlprofile.LoadSystemProfile()
 
 	// authenticate
 	c.ClientCertificate = config.ClientCertificate
@@ -46,8 +37,8 @@ func connectVPN() {
 	}
 
 	// warn user if profile changed
-	post := readXMLProfile()
-	if !bytes.Equal(pre, post) {
+	post := xmlprofile.LoadSystemProfile()
+	if !pre.Equal(post) {
 		time.Sleep(2 * time.Second)
 		log.Warnln("XML Profile was updated. Connection attempt " +
 			"might fail. Please, check status and reconnect " +

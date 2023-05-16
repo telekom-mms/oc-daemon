@@ -1,4 +1,4 @@
-package xmlprofile
+package profilemon
 
 import (
 	"bytes"
@@ -10,7 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Watch struct {
+// ProfileMon is a XML profile monitor
+type ProfileMon struct {
 	file    string
 	updates chan struct{}
 	done    chan struct{}
@@ -18,35 +19,35 @@ type Watch struct {
 }
 
 // sendUpdate sends an update over the updates channel
-func (w *Watch) sendUpdate() {
+func (p *ProfileMon) sendUpdate() {
 	// send an update or abort if we are shutting down
 	select {
-	case w.updates <- struct{}{}:
-	case <-w.done:
+	case p.updates <- struct{}{}:
+	case <-p.done:
 	}
 }
 
 // handleEvent compares file hashes to see if the file changed and sends an
 // update notification
-func (w *Watch) handleEvent() {
-	b, err := os.ReadFile(w.file)
+func (p *ProfileMon) handleEvent() {
+	b, err := os.ReadFile(p.file)
 	if err != nil {
 		log.WithError(err).Error("Could not read xml profile in watcher")
 		return
 	}
 
 	hash := sha256.Sum256(b)
-	if bytes.Equal(hash[:], w.hash[:]) {
+	if bytes.Equal(hash[:], p.hash[:]) {
 		return
 	}
 
-	w.hash = hash
-	w.sendUpdate()
+	p.hash = hash
+	p.sendUpdate()
 }
 
-// start starts watching
-func (w *Watch) start() {
-	defer close(w.updates)
+// start starts the profile monitor
+func (p *ProfileMon) start() {
+	defer close(p.updates)
 
 	// create watcher
 	watcher, err := fsnotify.NewWatcher()
@@ -60,7 +61,7 @@ func (w *Watch) start() {
 	}()
 
 	// add xml profile folder to watcher
-	dir := filepath.Dir(w.file)
+	dir := filepath.Dir(p.file)
 	if err := watcher.Add(dir); err != nil {
 		log.WithError(err).Debug("XML Profile watcher add profile dir error")
 	}
@@ -74,12 +75,12 @@ func (w *Watch) start() {
 					"close of events channel")
 				return
 			}
-			if event.Name == w.file {
+			if event.Name == p.file {
 				log.WithFields(log.Fields{
 					"name": event.Name,
 					"op":   event.Op,
 				}).Debug("XML Profile watcher handling file event")
-				w.handleEvent()
+				p.handleEvent()
 			}
 
 		case err, ok := <-watcher.Errors:
@@ -90,28 +91,33 @@ func (w *Watch) start() {
 			}
 			log.WithError(err).Error("XML Profile watcher error event")
 
-		case <-w.done:
+		case <-p.done:
 			return
 		}
 	}
 }
 
-// Start starts watching
-func (w *Watch) Start() {
-	go w.start()
+// Start starts the profile monitor
+func (p *ProfileMon) Start() {
+	go p.start()
 }
 
-// Stop stops watching
-func (w *Watch) Stop() {
-	close(w.done)
-	for range w.updates {
+// Stop stops the profile monitor
+func (p *ProfileMon) Stop() {
+	close(p.done)
+	for range p.updates {
 		// wait for channel shutdown
 	}
 }
 
-// NewWatch returns a new Watch
-func NewWatch(file string) *Watch {
-	return &Watch{
+// Updates returns the channel for profile updates
+func (p *ProfileMon) Updates() chan struct{} {
+	return p.updates
+}
+
+// NewProfileMon returns a new profile monitor
+func NewProfileMon(file string) *ProfileMon {
+	return &ProfileMon{
 		file:    file,
 		updates: make(chan struct{}),
 		done:    make(chan struct{}),

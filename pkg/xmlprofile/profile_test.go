@@ -1,6 +1,7 @@
 package xmlprofile
 
 import (
+	"encoding/xml"
 	"os"
 	"reflect"
 	"testing"
@@ -8,8 +9,7 @@ import (
 
 // TestProfileGetAllowedHosts tests GetAllowedHosts of Profile
 func TestProfileGetAllowedHosts(t *testing.T) {
-	p := NewXMLProfile("does not exist")
-	p.Parse()
+	p := NewProfile()
 
 	// test empty
 	var want []string
@@ -19,7 +19,7 @@ func TestProfileGetAllowedHosts(t *testing.T) {
 	}
 
 	// test filled
-	p.profile.AutomaticVPNPolicy.AlwaysOn.AllowedHosts =
+	p.AutomaticVPNPolicy.AlwaysOn.AllowedHosts =
 		"192.168.1.1,somecompany.com,10.0.0.0/8"
 	want = []string{
 		"192.168.1.1",
@@ -34,8 +34,7 @@ func TestProfileGetAllowedHosts(t *testing.T) {
 
 // TestProfileGetVPNServers tests GetVPNServers of Profile
 func TestProfileGetVPNServers(t *testing.T) {
-	p := NewXMLProfile("does not exist")
-	p.Parse()
+	p := NewProfile()
 
 	// test empty
 	var want []string
@@ -45,7 +44,7 @@ func TestProfileGetVPNServers(t *testing.T) {
 	}
 
 	// test filled
-	p.profile.ServerList.HostEntry = []HostEntry{
+	p.ServerList.HostEntry = []HostEntry{
 		{
 			HostName:    "vpn1.mycompany.com",
 			HostAddress: "vpn1.mycompany.com",
@@ -67,8 +66,7 @@ func TestProfileGetVPNServers(t *testing.T) {
 
 // TestProfileGetVPNServerHostNames tests GetVPNServerHostNames of Profile
 func TestProfileGetVPNServerHostNames(t *testing.T) {
-	p := NewXMLProfile("does not exist")
-	p.Parse()
+	p := NewProfile()
 
 	// test empty
 	var want []string
@@ -78,7 +76,7 @@ func TestProfileGetVPNServerHostNames(t *testing.T) {
 	}
 
 	// test filled
-	p.profile.ServerList.HostEntry = []HostEntry{
+	p.ServerList.HostEntry = []HostEntry{
 		{
 			HostName: "vpn1.mycompany.com",
 		},
@@ -98,8 +96,7 @@ func TestProfileGetVPNServerHostNames(t *testing.T) {
 
 // TestProfileGetTNDServers tests GetTNDServers of Profile
 func TestProfileGetTNDServers(t *testing.T) {
-	p := NewXMLProfile("does not exist")
-	p.Parse()
+	p := NewProfile()
 
 	// test empty
 	var want []string
@@ -109,7 +106,7 @@ func TestProfileGetTNDServers(t *testing.T) {
 	}
 
 	// test filled
-	p.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []TrustedHTTPSServer{
+	p.AutomaticVPNPolicy.TrustedHTTPSServerList = []TrustedHTTPSServer{
 		{
 			Address:         "tnd1.mycompany.com",
 			Port:            "443",
@@ -133,8 +130,7 @@ func TestProfileGetTNDServers(t *testing.T) {
 
 // TestProfileGetTNDHTTPSServers tests GetTNDHTTPSServers of Profile
 func TestProfileGetTNDHTTPSServers(t *testing.T) {
-	p := NewXMLProfile("does not exist")
-	p.Parse()
+	p := NewProfile()
 
 	// test empty
 	var wantURLs []string
@@ -148,7 +144,7 @@ func TestProfileGetTNDHTTPSServers(t *testing.T) {
 	}
 
 	// test filled
-	p.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []TrustedHTTPSServer{
+	p.AutomaticVPNPolicy.TrustedHTTPSServerList = []TrustedHTTPSServer{
 		{
 			Address:         "tnd1.mycompany.com",
 			Port:            "443",
@@ -179,8 +175,7 @@ func TestProfileGetTNDHTTPSServers(t *testing.T) {
 
 // TestProfileGetAlwaysOn tests GetAlwaysOn of Profile
 func TestProfileGetAlwaysOn(t *testing.T) {
-	p := NewXMLProfile("does not exist")
-	p.Parse()
+	p := NewProfile()
 
 	want := false
 	got := p.GetAlwaysOn()
@@ -189,56 +184,47 @@ func TestProfileGetAlwaysOn(t *testing.T) {
 	}
 }
 
-// TestProfileParse tests Parse of Profile
-func TestProfileParse(t *testing.T) {
-	empty := &AnyConnectProfile{}
+// TestNewProfile tests NewProfile
+func TestNewProfile(t *testing.T) {
+	p := NewProfile()
+	if p == nil {
+		t.Errorf("got nil, want != nil")
+	}
+}
+
+// TestLoadProfile tests LoadProfile
+func TestLoadProfile(t *testing.T) {
+	empty := NewProfile()
 
 	// test not existing file
-	p := NewXMLProfile("does not exist")
-	p.Parse()
-	if !reflect.DeepEqual(p.profile, empty) {
-		t.Errorf("got %v, want %v", p.profile, empty)
+	if _, err := LoadProfile("does not exists"); err == nil {
+		t.Error("got err == nil, want err != nil")
 	}
 
 	// test empty file
-	f := createWatchTestFile()
-	defer os.Remove(f)
-
-	p = NewXMLProfile(f)
-	p.Parse()
-	if !reflect.DeepEqual(p.profile, empty) {
-		t.Errorf("got %v, want %v", p.profile, empty)
+	f, err := os.CreateTemp("", "xmlprofile-test")
+	if err != nil {
+		t.Error(err)
 	}
-}
+	defer func() { _ = os.Remove(f.Name()) }()
 
-// TestProfileStartStop tests Start and Stop of Profile
-func TestProfileStartStop(t *testing.T) {
-	f := createWatchTestFile()
-	defer os.Remove(f)
-
-	p := NewXMLProfile(f)
-	p.Start()
-	p.Stop()
-}
-
-// TestProfileUpdates tests Updates of Profile
-func TestProfileUpdates(t *testing.T) {
-	p := NewXMLProfile("profile.xml")
-	want := p.watch.updates
-	got := p.Updates()
-	if got != want {
-		t.Errorf("got %p, want %p", got, want)
+	if _, err := LoadProfile(f.Name()); err == nil {
+		t.Error("got err == nil, want err != nil")
 	}
-}
 
-// TestNewXMLProfile tests NewXMLProfile
-func TestNewXMLProfile(t *testing.T) {
-	f := "some file"
-	p := NewXMLProfile(f)
-	if p.file != f {
-		t.Errorf("got %s, want %s", p.file, f)
+	// test empty config in file
+	b, err := xml.Marshal(empty)
+	if err != nil {
+		t.Error(err)
 	}
-	if p.watch == nil {
-		t.Errorf("got nil, want != nil")
+	if _, err := f.Write(b); err != nil {
+		t.Error(err)
+	}
+	p, err := LoadProfile(f.Name())
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(p, empty) {
+		t.Errorf("got %v, want %v", p, empty)
 	}
 }

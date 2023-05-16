@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/daemon"
-	"github.com/T-Systems-MMS/oc-daemon/internal/xmlprofile"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/xmlprofile"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -206,8 +206,10 @@ func parseCommandLine() {
 
 // listServers lists the (d)tls servers in the xml profile
 func listServers() {
-	p := xmlprofile.NewXMLProfile(xmlProfile)
-	p.Parse()
+	p := xmlprofile.LoadSystemProfile()
+	if p == nil {
+		log.Fatal("Could not read XML profile")
+	}
 	for _, s := range p.GetVPNServerHostNames() {
 		log.Printf("Server: %#v", s)
 	}
