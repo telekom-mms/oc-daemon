@@ -17,20 +17,12 @@ const (
 // connectVPN connects to the VPN if necessary
 func connectVPN() {
 	// create client
-	c := client.NewClient()
+	c := client.NewClient(config)
 
 	// try to read current xml profile
 	pre := xmlprofile.LoadSystemProfile()
 
 	// authenticate
-	c.ClientCertificate = config.ClientCertificate
-	c.ClientKey = config.ClientKey
-	c.CACertificate = config.CACertificate
-	c.XMLProfile = xmlprofile.SystemProfile
-	c.VPNServer = config.VPNServer
-	c.User = config.User
-	c.Password = config.Password
-
 	if err := c.Authenticate(); err != nil {
 		log.WithError(err).Fatal("error authenticating user for VPN")
 	}
@@ -54,7 +46,7 @@ func connectVPN() {
 // disconnectVPN disconnects the VPN
 func disconnectVPN() {
 	// create client
-	c := client.NewClient()
+	c := client.NewClient(config)
 
 	// disconnect
 	err := c.Disconnect()
@@ -66,7 +58,7 @@ func disconnectVPN() {
 // reconnectVPN reconnects to the VPN
 func reconnectVPN() {
 	// create client
-	client := client.NewClient()
+	client := client.NewClient(config)
 
 	// check status
 	status, err := client.Query()
@@ -110,7 +102,7 @@ func reconnectVPN() {
 
 // getStatus gets the VPN status from the daemon
 func getStatus() {
-	c := client.NewClient()
+	c := client.NewClient(config)
 	status, err := c.Query()
 	if err != nil {
 		log.Fatal(err)

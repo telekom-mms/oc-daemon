@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/client"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,15 +32,17 @@ func main() {
 		log.Fatal("OC-Runner got neither authenticate nor connect from command line")
 	}
 
+	// create config
+	config := client.NewConfig()
+	config.ClientCertificate = *cert
+	config.ClientKey = *key
+	config.CACertificate = *ca
+	config.XMLProfile = *profile
+	config.VPNServer = *server
+
 	// authenticate client
-	a := ocrunner.NewAuthenticate()
+	a := client.NewClient(config)
 	if *authenticate {
-		a.Certificate = *cert
-		a.Key = *key
-		a.CA = *ca
-		a.XMLProfile = *profile
-		a.Script = *script
-		a.Server = *server
 		err := a.Authenticate()
 		if err != nil {
 			log.Error(err)
@@ -60,7 +63,7 @@ func main() {
 		done <- struct{}{}
 	}()
 	if *connect {
-		c.Connect(&a.Login, []string{})
+		c.Connect(a.Login, []string{})
 	}
 
 	// disconnect client
