@@ -543,7 +543,7 @@ func (d *Daemon) handleProfileUpdate() {
 	d.stopTrafPol()
 	d.checkTrafPol()
 	d.checkTND()
-	d.setStatusServers(d.profile.GetVPNServers())
+	d.setStatusServers(d.profile.GetVPNServerHostNames())
 }
 
 // cleanup cleans up after a failed shutdown
@@ -752,7 +752,7 @@ func (d *Daemon) start() {
 
 	// set initial status
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
-	d.setStatusServers(d.profile.GetVPNServers())
+	d.setStatusServers(d.profile.GetVPNServerHostNames())
 
 	// run main loop
 	for {
