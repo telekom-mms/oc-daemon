@@ -13,12 +13,14 @@ import (
 	"github.com/T-Systems-MMS/oc-daemon/internal/dbusapi"
 	"github.com/T-Systems-MMS/oc-daemon/internal/dnsproxy"
 	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
+	"github.com/T-Systems-MMS/oc-daemon/internal/profilemon"
 	"github.com/T-Systems-MMS/oc-daemon/internal/sleepmon"
 	"github.com/T-Systems-MMS/oc-daemon/internal/splitrt"
 	"github.com/T-Systems-MMS/oc-daemon/internal/trafpol"
-	"github.com/T-Systems-MMS/oc-daemon/internal/xmlprofile"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/xmlprofile"
 	"github.com/T-Systems-MMS/tnd/pkg/trustnet"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -70,6 +72,7 @@ type Daemon struct {
 
 	// profile is the xml profile
 	profile *xmlprofile.Profile
+	profmon *profilemon.ProfileMon
 
 	// disableTrafPol determines if traffic policing should be disabled,
 	// overrides other traffic policing settings
@@ -178,7 +181,7 @@ func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 }
 
 // connectVPN connects to the VPN using login info from client request
-func (d *Daemon) connectVPN(login *ocrunner.LoginInfo) {
+func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	// allow only one connection
 	if d.status.OCRunning {
 		return
@@ -393,7 +396,7 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 	switch request.Type() {
 	case api.TypeVPNConnect:
 		// parse login info
-		login, err := ocrunner.LoginInfoFromJSON(request.Data())
+		login, err := logininfo.LoginInfoFromJSON(request.Data())
 		if err != nil {
 			log.WithError(err).Error("Daemon could not parse login info JSON")
 			request.Error("invalid login info in connect message")
@@ -431,7 +434,7 @@ func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 		fingerprint := request.Parameters[3].(string)
 		resolve := request.Parameters[4].(string)
 
-		login := &ocrunner.LoginInfo{
+		login := &logininfo.LoginInfo{
 			Cookie:      cookie,
 			Host:        host,
 			ConnectURL:  connectURL,
@@ -521,15 +524,26 @@ func (d *Daemon) handleSleepMonEvent(sleep bool) {
 	}
 }
 
+// readXMLProfile reads the XML profile from file
+func readXMLProfile() *xmlprofile.Profile {
+	profile, err := xmlprofile.LoadProfile(xmlProfile)
+	if err != nil {
+		// invalid config, use empty config
+		log.WithError(err).Error("Could not read XML profile")
+		profile = xmlprofile.NewProfile()
+	}
+	return profile
+}
+
 // handleProfileUpdate handles a xml profile update
 func (d *Daemon) handleProfileUpdate() {
 	log.Debug("Daemon handling XML profile update")
-	d.profile.Parse()
+	d.profile = readXMLProfile()
 	d.stopTND()
 	d.stopTrafPol()
 	d.checkTrafPol()
 	d.checkTND()
-	d.setStatusServers(d.profile.GetVPNServers())
+	d.setStatusServers(d.profile.GetVPNServerHostNames())
 }
 
 // cleanup cleans up after a failed shutdown
@@ -731,12 +745,14 @@ func (d *Daemon) start() {
 	// start dbus api service
 	d.dbus.Start()
 	defer d.dbus.Stop()
-	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
-	d.setStatusServers(d.profile.GetVPNServers())
 
-	// start xml profile watching
-	d.profile.Start()
-	defer d.profile.Stop()
+	// start xml profile monitor
+	d.profmon.Start()
+	defer d.profmon.Stop()
+
+	// set initial status
+	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusServers(d.profile.GetVPNServerHostNames())
 
 	// run main loop
 	for {
@@ -759,7 +775,7 @@ func (d *Daemon) start() {
 		case e := <-d.sleepmon.Events():
 			d.handleSleepMonEvent(e)
 
-		case <-d.profile.Updates():
+		case <-d.profmon.Updates():
 			d.handleProfileUpdate()
 
 		case <-d.done:
@@ -782,10 +798,6 @@ func (d *Daemon) Stop() {
 
 // NewDaemon returns a new Daemon
 func NewDaemon() *Daemon {
-	// parse xml profile
-	profile := xmlprofile.NewXMLProfile(xmlProfile)
-	profile.Parse()
-
 	return &Daemon{
 		server: api.NewServer(sockFile),
 		dbus:   dbusapi.NewService(),
@@ -801,6 +813,7 @@ func NewDaemon() *Daemon {
 		done:   make(chan struct{}),
 		closed: make(chan struct{}),
 
-		profile: profile,
+		profile: readXMLProfile(),
+		profmon: profilemon.NewProfileMon(xmlProfile),
 	}
 }

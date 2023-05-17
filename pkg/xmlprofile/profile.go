@@ -4,21 +4,23 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// Profile is an xml Profile
-type Profile struct {
-	file    string
-	profile *AnyConnectProfile
-	watch   *Watch
-}
+var (
+	// SystemProfile is the file path of the system XML profile
+	SystemProfile = "/var/lib/oc-daemon/profile.xml"
+)
+
+// Profile is an XML Profile
+type Profile AnyConnectProfile
 
 // GetAllowedHosts returns the allowed hosts in the XML profile
 func (p *Profile) GetAllowedHosts() (hosts []string) {
-	hs := p.profile.AutomaticVPNPolicy.AlwaysOn.AllowedHosts
+	hs := p.AutomaticVPNPolicy.AlwaysOn.AllowedHosts
 	for _, h := range strings.Split(hs, ",") {
 		if h == "" {
 			continue
@@ -31,7 +33,7 @@ func (p *Profile) GetAllowedHosts() (hosts []string) {
 
 // GetVPNServers returns the VPN servers in the XML profile
 func (p *Profile) GetVPNServers() (servers []string) {
-	for _, h := range p.profile.ServerList.HostEntry {
+	for _, h := range p.ServerList.HostEntry {
 		// skip ipsec servers
 		if strings.HasPrefix(h.PrimaryProtocol.Flag, "IPsec") {
 			continue
@@ -51,7 +53,7 @@ func (p *Profile) GetVPNServers() (servers []string) {
 
 // GetVPNServerHostNames returns the VPN server hostnames in the xml profile
 func (p *Profile) GetVPNServerHostNames() (servers []string) {
-	for _, s := range p.profile.ServerList.HostEntry {
+	for _, s := range p.ServerList.HostEntry {
 		if strings.HasPrefix(s.PrimaryProtocol.Flag, "IPsec") {
 			continue
 		}
@@ -62,7 +64,7 @@ func (p *Profile) GetVPNServerHostNames() (servers []string) {
 
 // GetTNDServers returns the TND servers in the XML profile
 func (p *Profile) GetTNDServers() (servers []string) {
-	for _, s := range p.profile.AutomaticVPNPolicy.TrustedHTTPSServerList {
+	for _, s := range p.AutomaticVPNPolicy.TrustedHTTPSServerList {
 		log.WithField("server", s).Debug("Getting TND server from Profile")
 		servers = append(servers, s.Address)
 	}
@@ -71,7 +73,7 @@ func (p *Profile) GetTNDServers() (servers []string) {
 
 // GetTNDHTTPSServers gets the TND HTTPS server URLs and their hashes in the XML profile
 func (p *Profile) GetTNDHTTPSServers() (urls, hashes []string) {
-	for _, s := range p.profile.AutomaticVPNPolicy.TrustedHTTPSServerList {
+	for _, s := range p.AutomaticVPNPolicy.TrustedHTTPSServerList {
 		url := fmt.Sprintf("https://%s:%s", s.Address, s.Port)
 		urls = append(urls, url)
 		hashes = append(hashes, s.CertificateHash)
@@ -84,48 +86,41 @@ func (p *Profile) GetTNDHTTPSServers() (urls, hashes []string) {
 
 // GetAlwaysOn returns the always on flag in the XML profile
 func (p *Profile) GetAlwaysOn() bool {
-	return p.profile.AutomaticVPNPolicy.AlwaysOn.Flag
+	return p.AutomaticVPNPolicy.AlwaysOn.Flag
 }
 
-// Parse parses the xml profile
-func (p *Profile) Parse() {
-	// initialize to empty profile in case file is invalid
-	p.profile = &AnyConnectProfile{}
+// Equal returns whether the profile and other are equal
+func (p *Profile) Equal(other *Profile) bool {
+	return reflect.DeepEqual(p, other)
+}
 
-	b, err := os.ReadFile(p.file)
+// NewProfile returns a new Profile
+func NewProfile() *Profile {
+	return &Profile{}
+}
+
+// LoadProfile loads the XML profile from file
+func LoadProfile(file string) (*Profile, error) {
+	// try to read file
+	b, err := os.ReadFile(file)
 	if err != nil {
-		log.WithError(err).Error("Could not read xml profile")
-		return
+		return nil, err
 	}
 
-	profile := &AnyConnectProfile{}
-	if err := xml.Unmarshal(b, profile); err != nil {
-		log.WithError(err).Error("Could not parse xml profile")
-		return
+	// try to parse file contents
+	p := NewProfile()
+	if err := xml.Unmarshal(b, p); err != nil {
+		return nil, err
 	}
 
-	p.profile = profile
+	return p, nil
 }
 
-// Start starts watching the profile for changes
-func (p *Profile) Start() {
-	p.watch.Start()
-}
-
-// Stop stops watching the profile
-func (p *Profile) Stop() {
-	p.watch.Stop()
-}
-
-// Updates returns the channel for xml profile updates
-func (p *Profile) Updates() chan struct{} {
-	return p.watch.updates
-}
-
-// NewXMLProfile returns a new Profile
-func NewXMLProfile(xmlProfile string) *Profile {
-	return &Profile{
-		file:  xmlProfile,
-		watch: NewWatch(xmlProfile),
+// LoadSystemProfile loads the XML profile from the default system location
+func LoadSystemProfile() *Profile {
+	profile, err := LoadProfile(SystemProfile)
+	if err != nil {
+		return nil
 	}
+	return profile
 }

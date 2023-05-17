@@ -1,21 +1,28 @@
-package api
+package client
 
 import (
 	"log"
 	"reflect"
 	"testing"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
+	"github.com/T-Systems-MMS/oc-daemon/internal/api"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
+)
+
+const (
+	// testSockFile is a socket file for testing
+	testSockFile = "test.sock"
 )
 
 // initTestClientServer returns a client an server for testing;
 // the server simply closes client requests
-func initTestClientServer() (*Client, *Server) {
-	server := NewServer("test.sock")
-	client := NewClient(server.sockFile)
+func initTestClientServer() (*Client, *api.Server) {
+	server := api.NewServer(testSockFile)
+	client := NewClient(NewConfig())
+	client.Config.SocketFile = testSockFile
 	go func() {
-		for r := range server.requests {
+		for r := range server.Requests() {
 			log.Println(r)
 			r.Close()
 		}
@@ -27,7 +34,7 @@ func initTestClientServer() (*Client, *Server) {
 func TestClientRequest(t *testing.T) {
 	client, server := initTestClientServer()
 	server.Start()
-	reply, _ := client.Request(NewMessage(TypeVPNQuery, nil))
+	reply, _ := client.Request(api.NewMessage(api.TypeVPNQuery, nil))
 	server.Stop()
 
 	log.Println(reply)
@@ -35,11 +42,12 @@ func TestClientRequest(t *testing.T) {
 
 // TestClientQuery tests Query of Client
 func TestClientQuery(t *testing.T) {
-	server := NewServer("test.sock")
-	client := NewClient(server.sockFile)
+	server := api.NewServer(testSockFile)
+	client := NewClient(NewConfig())
+	client.Config.SocketFile = testSockFile
 	status := vpnstatus.New()
 	go func() {
-		for r := range server.requests {
+		for r := range server.Requests() {
 			// handle query requests only,
 			// reply with status
 			log.Println(r)
@@ -62,22 +70,23 @@ func TestClientQuery(t *testing.T) {
 	}
 }
 
-// TestClientConnect tests Connect of Client
+// TestClientConnect tests connect of Client
 func TestClientConnect(t *testing.T) {
 	client, server := initTestClientServer()
 	server.Start()
-	err := client.Connect(&ocrunner.LoginInfo{})
+	client.Login = &logininfo.LoginInfo{}
+	err := client.connect()
 	if err != nil {
 		t.Error(err)
 	}
 	server.Stop()
 }
 
-// TestClientDisconnect tests Disconnect of Client
+// TestClientDisconnect tests disconnect of Client
 func TestClientDisconnect(t *testing.T) {
 	client, server := initTestClientServer()
 	server.Start()
-	err := client.Disconnect()
+	err := client.disconnect()
 	if err != nil {
 		t.Error(err)
 	}
@@ -86,11 +95,11 @@ func TestClientDisconnect(t *testing.T) {
 
 // TestNewClient tests NewClient
 func TestNewClient(t *testing.T) {
-	sockFile := "test.sock"
-	client := NewClient(sockFile)
-	got := client.sockFile
-	want := sockFile
+	config := NewConfig()
+	client := NewClient(config)
+	want := config
+	got := client.Config
 	if got != want {
-		t.Errorf("got %s, want %s", got, want)
+		t.Errorf("got %p, want %p", got, want)
 	}
 }
