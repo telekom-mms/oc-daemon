@@ -49,6 +49,15 @@ type Config struct {
 	RequestTimeout    time.Duration
 }
 
+// Copy returns a copy of Config
+func (c *Config) Copy() *Config {
+	if c == nil {
+		return nil
+	}
+	cp := *c
+	return &cp
+}
+
 // Empty returns if the config is empty
 func (c *Config) Empty() bool {
 	if c == nil {
