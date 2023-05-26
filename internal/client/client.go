@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/T-Systems-MMS/oc-daemon/pkg/client"
+	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/xmlprofile"
 	log "github.com/sirupsen/logrus"
 )
@@ -134,22 +135,8 @@ func reconnectVPN() {
 
 }
 
-// getStatus gets the VPN status from the daemon
-func getStatus() {
-	// create client
-	c, err := client.NewClient(config)
-	if err != nil {
-		log.WithError(err).Fatal("error creating client")
-	}
-	defer func() { _ = c.Close() }()
-
-	// get status
-	status, err := c.Query()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// print status
+// printStatus prints status on the command line
+func printStatus(status *vpnstatus.Status) {
 	fmt.Printf("Trusted Network:  %s\n", status.TrustedNetwork)
 	fmt.Printf("Connection State: %s\n", status.ConnectionState)
 	fmt.Printf("IP:               %s\n", status.IP)
@@ -169,4 +156,43 @@ func getStatus() {
 
 	fmt.Printf("OC Running:       %s\n", status.OCRunning)
 	fmt.Printf("VPN Config:       %+v\n", status.VPNConfig)
+}
+
+// getStatus gets the VPN status from the daemon
+func getStatus() {
+	// create client
+	c, err := client.NewClient(config)
+	if err != nil {
+		log.WithError(err).Fatal("error creating client")
+	}
+	defer func() { _ = c.Close() }()
+
+	// get status
+	status, err := c.Query()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// print status
+	printStatus(status)
+}
+
+// monitor subscribes to VPN status updates from the daemon and displays them
+func monitor() {
+	// create client
+	c, err := client.NewClient(config)
+	if err != nil {
+		log.WithError(err).Fatal("error creating client")
+	}
+	defer func() { _ = c.Close() }()
+
+	// get status updates
+	updates, err := c.Subscribe()
+	if err != nil {
+		log.WithError(err).Fatal("error subscribing to status updates")
+	}
+	for u := range updates {
+		log.Println("Got status update:")
+		printStatus(u)
+	}
 }
