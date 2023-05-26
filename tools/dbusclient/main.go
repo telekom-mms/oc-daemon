@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	// connect to session bus
+	// connect to system bus
 	conn, err := dbus.ConnectSystemBus()
 	if err != nil {
 		log.Fatal(err)
@@ -33,6 +33,8 @@ func main() {
 	device := dbusapi.DeviceInvalid
 	connectedAt := dbusapi.ConnectedAtInvalid
 	servers := dbusapi.ServersInvalid
+	ocRunning := dbusapi.OCRunningUnknown
+	vpnConfig := dbusapi.VPNConfigInvalid
 
 	getProperty := func(name string, val any) {
 		err = conn.Object(dbusapi.Interface, dbusapi.Path).
@@ -47,6 +49,8 @@ func main() {
 	getProperty(dbusapi.PropertyDevice, &device)
 	getProperty(dbusapi.PropertyConnectedAt, &connectedAt)
 	getProperty(dbusapi.PropertyServers, &servers)
+	getProperty(dbusapi.PropertyOCRunning, &ocRunning)
+	getProperty(dbusapi.PropertyVPNConfig, &vpnConfig)
 
 	log.Println("TrustedNetwork:", trustedNetwork)
 	log.Println("ConnectionState:", connectionState)
@@ -54,6 +58,8 @@ func main() {
 	log.Println("Device:", device)
 	log.Println("ConnectedAt:", connectedAt)
 	log.Println("Servers:", servers)
+	log.Println("OCRunning:", ocRunning)
+	log.Println("VPNConfig:", vpnConfig)
 
 	// handle signals
 	c := make(chan *dbus.Signal, 10)
@@ -111,6 +117,16 @@ func main() {
 					log.Fatal(err)
 				}
 				fmt.Println(servers)
+			case dbusapi.PropertyOCRunning:
+				if err := value.Store(&ocRunning); err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println(ocRunning)
+			case dbusapi.PropertyVPNConfig:
+				if err := value.Store(&vpnConfig); err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println(vpnConfig)
 			}
 		}
 
@@ -118,6 +134,7 @@ func main() {
 		invalid, ok := s.Body[2].([]string)
 		if !ok {
 			log.Error("Invalid invalidated properties in properties changed signal")
+			continue
 		}
 		for _, name := range invalid {
 			// not expected to happen currently, but handle it anyway
@@ -134,6 +151,10 @@ func main() {
 				connectedAt = dbusapi.ConnectedAtInvalid
 			case dbusapi.PropertyServers:
 				servers = dbusapi.ServersInvalid
+			case dbusapi.PropertyOCRunning:
+				ocRunning = dbusapi.OCRunningUnknown
+			case dbusapi.PropertyVPNConfig:
+				vpnConfig = dbusapi.VPNConfigInvalid
 			}
 			fmt.Printf("Invalidated property: %s\n", name)
 		}
