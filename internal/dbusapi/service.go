@@ -61,6 +61,12 @@ var (
 	ServersInvalid []string
 )
 
+// Methods
+const (
+	MethodConnect    = Interface + ".Connect"
+	MethodDisconnect = Interface + ".Disconnect"
+)
+
 // Request Names
 const (
 	RequestConnect    = "Connect"
