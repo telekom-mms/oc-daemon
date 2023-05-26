@@ -326,6 +326,16 @@ func (s *Service) start() {
 
 		case <-s.done:
 			log.Debug("D-Bus service stopping")
+			// set properties values to unknown/invalid to emit
+			// properties changed signal and inform clients
+			props.SetMust(Interface, PropertyTrustedNetwork, TrustedNetworkUnknown)
+			props.SetMust(Interface, PropertyConnectionState, ConnectionStateUnknown)
+			props.SetMust(Interface, PropertyIP, IPInvalid)
+			props.SetMust(Interface, PropertyDevice, DeviceInvalid)
+			props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
+			props.SetMust(Interface, PropertyServers, ServersInvalid)
+			props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)
+			props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
 			return
 		}
 	}
