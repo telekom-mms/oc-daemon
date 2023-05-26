@@ -62,9 +62,6 @@ func (s *Server) handleRequest(conn net.Conn) {
 
 	// check if its a known message type
 	switch msg.Type {
-	case TypeVPNConnect:
-	case TypeVPNDisconnect:
-	case TypeVPNQuery:
 	case TypeVPNConfigUpdate:
 	default:
 		// send Error and disconnect
@@ -120,8 +117,8 @@ func (s *Server) Start() {
 	}
 	s.listen = listen
 
-	// make sure everyone can access the sock file
-	if err := os.Chmod(s.sockFile, 0777); err != nil {
+	// make sure only we can access the sock file
+	if err := os.Chmod(s.sockFile, 0700); err != nil {
 		log.WithError(err).Error("Daemon could not set permissions of sock file")
 	}
 

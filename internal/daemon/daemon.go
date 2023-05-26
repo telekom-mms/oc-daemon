@@ -232,16 +232,6 @@ func (d *Daemon) disconnectVPN() {
 	d.runner.Disconnect()
 }
 
-// sendVPNStatus sends the VPN status back to the client
-func (d *Daemon) sendVPNStatus(request *api.Request) {
-	// send OK with VPN status
-	b, err := d.status.JSON()
-	if err != nil {
-		log.WithError(err).Fatal("Daemon could not convert status to JSON")
-	}
-	request.Reply(b)
-}
-
 // setupRouting sets up routing using config
 // TODO: move somewhere else?
 func (d *Daemon) setupRouting(config *vpnconfig.Config) {
@@ -412,26 +402,6 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 	log.Debug("Daemon handling client request")
 
 	switch request.Type() {
-	case api.TypeVPNConnect:
-		// parse login info
-		login, err := logininfo.LoginInfoFromJSON(request.Data())
-		if err != nil {
-			log.WithError(err).Error("Daemon could not parse login info JSON")
-			request.Error("invalid login info in connect message")
-			break
-		}
-
-		// connect VPN
-		d.connectVPN(login)
-
-	case api.TypeVPNDisconnect:
-		// diconnect VPN
-		d.disconnectVPN()
-
-	case api.TypeVPNQuery:
-		// send vpn status
-		d.sendVPNStatus(request)
-
 	case api.TypeVPNConfigUpdate:
 		// update VPN config
 		d.updateVPNConfig(request)
