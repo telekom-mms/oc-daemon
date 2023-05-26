@@ -102,10 +102,7 @@ func (c *Config) Save(file string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(file, b, 0600); err != nil {
-		return err
-	}
-	return nil
+	return os.WriteFile(file, b, 0600)
 }
 
 // NewConfig returns a new Config
