@@ -183,6 +183,19 @@ func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 
 	// config changed
 	d.status.VPNConfig = config
+
+	if config == nil {
+		// remove config
+		d.dbus.SetProperty(dbusapi.PropertyVPNConfig, dbusapi.VPNConfigInvalid)
+		return
+	}
+
+	// update json config
+	b, err := config.JSON()
+	if err != nil {
+		log.WithError(err).Fatal("Daemon could not convert status to JSON")
+	}
+	d.dbus.SetProperty(dbusapi.PropertyVPNConfig, string(b))
 }
 
 // connectVPN connects to the VPN using login info from client request

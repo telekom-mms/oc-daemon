@@ -24,6 +24,7 @@ const (
 	PropertyConnectedAt     = "ConnectedAt"
 	PropertyServers         = "Servers"
 	PropertyOCRunning       = "OCRunning"
+	PropertyVPNConfig       = "VPNConfig"
 )
 
 // Property "Trusted Network" states
@@ -67,6 +68,11 @@ const (
 	OCRunningUnknown uint32 = iota
 	OCRunningNotRunning
 	OCRunningRunning
+)
+
+// Property "VPNConfig" values
+const (
+	VPNConfigInvalid = ""
 )
 
 // Methods
@@ -264,6 +270,12 @@ func (s *Service) start() {
 				Emit:     prop.EmitTrue,
 				Callback: nil,
 			},
+			PropertyVPNConfig: {
+				Value:    VPNConfigInvalid,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
 		},
 	}
 	props, err := propExport(conn, Path, propsSpec)
@@ -299,6 +311,7 @@ func (s *Service) start() {
 	props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
 	props.SetMust(Interface, PropertyServers, ServersInvalid)
 	props.SetMust(Interface, PropertyOCRunning, OCRunningNotRunning)
+	props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
 
 	// main loop
 	for {
