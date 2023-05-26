@@ -1,105 +1,158 @@
 package client
 
 import (
-	"log"
 	"reflect"
 	"testing"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/api"
+	"github.com/T-Systems-MMS/oc-daemon/internal/dbusapi"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
 	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
+	"github.com/godbus/dbus/v5"
 )
 
-const (
-	// testSockFile is a socket file for testing
-	testSockFile = "test.sock"
-)
-
-// initTestClientServer returns a client an server for testing;
-// the server simply closes client requests
-func initTestClientServer() (*Client, *api.Server) {
-	server := api.NewServer(testSockFile)
-	client := NewClient(NewConfig())
-	client.Config.SocketFile = testSockFile
-	go func() {
-		for r := range server.Requests() {
-			log.Println(r)
-			r.Close()
-		}
-	}()
-	return client, server
-}
-
-// TestClientRequest tests Request of Client
-func TestClientRequest(t *testing.T) {
-	client, server := initTestClientServer()
-	server.Start()
-	reply, _ := client.Request(api.NewMessage(api.TypeVPNQuery, nil))
-	server.Stop()
-
-	log.Println(reply)
-}
-
-// TestClientQuery tests Query of Client
-func TestClientQuery(t *testing.T) {
-	server := api.NewServer(testSockFile)
-	client := NewClient(NewConfig())
-	client.Config.SocketFile = testSockFile
-	status := vpnstatus.New()
-	go func() {
-		for r := range server.Requests() {
-			// handle query requests only,
-			// reply with status
-			log.Println(r)
-			b, err := status.JSON()
-			if err != nil {
-				log.Fatal(err)
-			}
-			r.Reply(b)
-			r.Close()
-		}
-	}()
-	server.Start()
-	want := status
-	got, _ := client.Query()
-	server.Stop()
-
-	log.Println(got)
+// TestDBusClientSetGetConfig tests SetConfig and GetConfig of DBusClient
+func TestDBusClientSetGetConfig(t *testing.T) {
+	client := &DBusClient{}
+	want := NewConfig()
+	client.SetConfig(want)
+	got := client.GetConfig()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
-// TestClientConnect tests connect of Client
-func TestClientConnect(t *testing.T) {
-	client, server := initTestClientServer()
-	server.Start()
-	client.Login = &logininfo.LoginInfo{}
-	err := client.connect()
-	if err != nil {
-		t.Error(err)
+// TestDBusClientSetGetEnv tests SetEnv and GetEnv of DBusClient
+func TestDBusClientSetGetEnv(t *testing.T) {
+	client := &DBusClient{}
+	want := []string{"test=test"}
+	client.SetEnv(want)
+	got := client.GetEnv()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
-	server.Stop()
 }
 
-// TestClientDisconnect tests disconnect of Client
-func TestClientDisconnect(t *testing.T) {
-	client, server := initTestClientServer()
-	server.Start()
-	err := client.disconnect()
+// TestDBusClientSetGetLogin tests SetLogin and GetLogin of DBusClient
+func TestDBusClientSetGetLogin(t *testing.T) {
+	client := &DBusClient{}
+	want := &logininfo.LoginInfo{}
+	client.SetLogin(want)
+	got := client.GetLogin()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestDBusClientQuery tests Query of DBusClient
+func TestDBusClientQuery(t *testing.T) {
+	client := &DBusClient{}
+	want := vpnstatus.New()
+	query = func(*DBusClient) (map[string]dbus.Variant, error) {
+		return nil, nil
+	}
+	got, err := client.Query()
 	if err != nil {
 		t.Error(err)
 	}
-	server.Stop()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %p, want %p", got, want)
+	}
+}
+
+// TestDBusClientAuthenticate tests Authenticate of DBusClient
+func TestDBusClientAuthenticate(t *testing.T) {
+	client := &DBusClient{}
+	query = func(*DBusClient) (map[string]dbus.Variant, error) {
+		return nil, nil
+	}
+	want := &logininfo.LoginInfo{
+		Cookie: "TestCookie",
+	}
+	authenticate = func(d *DBusClient) error {
+		d.login = want
+		return nil
+	}
+	err := client.Authenticate()
+	if err != nil {
+		t.Error(err)
+	}
+	got := client.GetLogin()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestDBusClientConnect tests Connect of DBusClient
+func TestDBusClientConnect(t *testing.T) {
+	client := &DBusClient{}
+	query = func(*DBusClient) (map[string]dbus.Variant, error) {
+		return nil, nil
+	}
+	connect = func(d *DBusClient) error {
+		return nil
+	}
+	err := client.Connect()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// TestDBusClientDisconnect tests Disconnect of DBusClient
+func TestDBusClientDisconnect(t *testing.T) {
+	client := &DBusClient{}
+	status := vpnstatus.New()
+	status.OCRunning = vpnstatus.OCRunningRunning
+	query = func(*DBusClient) (map[string]dbus.Variant, error) {
+		props := map[string]dbus.Variant{
+			dbusapi.PropertyOCRunning: dbus.MakeVariant(dbusapi.OCRunningRunning),
+		}
+		return props, nil
+	}
+	disconnect = func(d *DBusClient) error {
+		return nil
+	}
+	err := client.Disconnect()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// TestNewDBusClient tests NewDBusClient
+func TestNewDBusClient(t *testing.T) {
+	dbusConnectSystemBus = func() (*dbus.Conn, error) {
+		return nil, nil
+	}
+	config := NewConfig()
+	client, err := NewDBusClient(config)
+	if err != nil {
+		t.Error(err)
+	}
+	want := config
+	got := client.GetConfig()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+	if err := client.Close(); err != nil {
+		t.Error(err)
+	}
 }
 
 // TestNewClient tests NewClient
 func TestNewClient(t *testing.T) {
+	dbusConnectSystemBus = func() (*dbus.Conn, error) {
+		return nil, nil
+	}
 	config := NewConfig()
-	client := NewClient(config)
+	client, err := NewClient(config)
+	if err != nil {
+		t.Error(err)
+	}
 	want := config
-	got := client.Config
-	if got != want {
-		t.Errorf("got %p, want %p", got, want)
+	got := client.GetConfig()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+	if err := client.Close(); err != nil {
+		t.Error(err)
 	}
 }
