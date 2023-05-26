@@ -68,6 +68,34 @@ func (c ConnectionState) String() string {
 	return ""
 }
 
+// OCRunning is the current state of the openconnect client
+type OCRunning uint32
+
+// OCRunning states
+const (
+	OCRunningUnknown OCRunning = iota
+	OCRunningNotRunning
+	OCRunningRunning
+)
+
+// Running returns whether OCRunning is in state "running"
+func (o OCRunning) Running() bool {
+	return o == OCRunningRunning
+}
+
+// String returns OCRunning as string
+func (o OCRunning) String() string {
+	switch o {
+	case OCRunningUnknown:
+		return "unknown"
+	case OCRunningNotRunning:
+		return "not running"
+	case OCRunningRunning:
+		return "running"
+	}
+	return ""
+}
+
 // Status is a VPN status
 type Status struct {
 	TrustedNetwork  TrustedNetwork
@@ -76,7 +104,7 @@ type Status struct {
 	Device          string
 	ConnectedAt     int64
 	Servers         []string
-	OCRunning       bool
+	OCRunning       OCRunning
 	VPNConfig       *vpnconfig.Config
 }
 

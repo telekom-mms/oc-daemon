@@ -23,6 +23,7 @@ const (
 	PropertyDevice          = "Device"
 	PropertyConnectedAt     = "ConnectedAt"
 	PropertyServers         = "Servers"
+	PropertyOCRunning       = "OCRunning"
 )
 
 // Property "Trusted Network" states
@@ -59,6 +60,13 @@ const (
 // Property "Servers" values
 var (
 	ServersInvalid []string
+)
+
+// Property "OCRunning" values
+const (
+	OCRunningUnknown uint32 = iota
+	OCRunningNotRunning
+	OCRunningRunning
 )
 
 // Methods
@@ -250,6 +258,12 @@ func (s *Service) start() {
 				Emit:     prop.EmitTrue,
 				Callback: nil,
 			},
+			PropertyOCRunning: {
+				Value:    OCRunningUnknown,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
 		},
 	}
 	props, err := propExport(conn, Path, propsSpec)
@@ -284,6 +298,7 @@ func (s *Service) start() {
 	props.SetMust(Interface, PropertyDevice, DeviceInvalid)
 	props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
 	props.SetMust(Interface, PropertyServers, ServersInvalid)
+	props.SetMust(Interface, PropertyOCRunning, OCRunningNotRunning)
 
 	// main loop
 	for {
