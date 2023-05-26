@@ -226,3 +226,19 @@ func TestNew(t *testing.T) {
 		t.Errorf("got nil, want != nil")
 	}
 }
+
+// TestNewFromJSON tests NewFromJSON
+func TestNewFromJSON(t *testing.T) {
+	want := getValidTestConfig()
+	b, err := want.JSON()
+	if err != nil {
+		t.Error(err)
+	}
+	got, err := NewFromJSON(b)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}

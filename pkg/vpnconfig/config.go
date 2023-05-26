@@ -239,3 +239,12 @@ func (c *Config) JSON() ([]byte, error) {
 func New() *Config {
 	return &Config{}
 }
+
+// NewFromJSON returns a new config parsed from the json in b
+func NewFromJSON(b []byte) (*Config, error) {
+	c := New()
+	if err := json.Unmarshal(b, c); err != nil {
+		return nil, err
+	}
+	return c, nil
+}
