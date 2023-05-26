@@ -108,6 +108,23 @@ type Status struct {
 	VPNConfig       *vpnconfig.Config
 }
 
+// Copy returns a copy of Status
+func (s *Status) Copy() *Status {
+	if s == nil {
+		return nil
+	}
+	return &Status{
+		TrustedNetwork:  s.TrustedNetwork,
+		ConnectionState: s.ConnectionState,
+		IP:              s.IP,
+		Device:          s.Device,
+		ConnectedAt:     s.ConnectedAt,
+		Servers:         append(s.Servers[:0:0], s.Servers...),
+		OCRunning:       s.OCRunning,
+		VPNConfig:       s.VPNConfig.Copy(),
+	}
+}
+
 // JSON returns the Status as JSON
 func (s *Status) JSON() ([]byte, error) {
 	b, err := json.Marshal(s)
