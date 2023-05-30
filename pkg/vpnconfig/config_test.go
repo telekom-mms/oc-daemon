@@ -87,6 +87,16 @@ func TestSplitDNSExcludes(t *testing.T) {
 	}
 }
 
+// TestConfigCopy tests Copy of Config
+func TestConfigCopy(t *testing.T) {
+	want := getValidTestConfig()
+	got := want.Copy()
+
+	if !got.Equal(want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 // TestConfigEmpty tests Empty of Config
 func TestConfigEmpty(t *testing.T) {
 	// test empty
@@ -214,5 +224,21 @@ func TestNew(t *testing.T) {
 	c := New()
 	if c == nil {
 		t.Errorf("got nil, want != nil")
+	}
+}
+
+// TestNewFromJSON tests NewFromJSON
+func TestNewFromJSON(t *testing.T) {
+	want := getValidTestConfig()
+	b, err := want.JSON()
+	if err != nil {
+		t.Error(err)
+	}
+	got, err := NewFromJSON(b)
+	if err != nil {
+		t.Error(err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }

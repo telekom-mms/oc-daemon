@@ -8,6 +8,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TestConfigCopy tests Copy of Config
+func TestConfigCopy(t *testing.T) {
+	want := NewConfig()
+	got := want.Copy()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 // TestConfigEmpty tests Empty of Config
 func TestConfigEmpty(t *testing.T) {
 	// test empty

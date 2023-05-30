@@ -22,6 +22,15 @@ func getTestLoginInfo() *LoginInfo {
 	}
 }
 
+// TestLoginInfoCopy tests Copy of LoginInfo
+func TestLoginInfoCopy(t *testing.T) {
+	want := getTestLoginInfo()
+	got := want.Copy()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 // TestLoginInfoValid tests Valid of LoginInfo
 func TestLoginInfoValid(t *testing.T) {
 	// test invalid

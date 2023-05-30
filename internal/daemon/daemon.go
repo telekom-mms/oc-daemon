@@ -160,13 +160,18 @@ func (d *Daemon) setStatusServers(servers []string) {
 
 // setStatusOCRunning sets the openconnect running state in status
 func (d *Daemon) setStatusOCRunning(running bool) {
-	if d.status.OCRunning == running {
+	ocrunning := vpnstatus.OCRunningNotRunning
+	if running {
+		ocrunning = vpnstatus.OCRunningRunning
+	}
+	if d.status.OCRunning == ocrunning {
 		// OC running state not changed
 		return
 	}
 
 	// OC running state changed
-	d.status.OCRunning = running
+	d.status.OCRunning = ocrunning
+	d.dbus.SetProperty(dbusapi.PropertyOCRunning, ocrunning)
 }
 
 // setStatusVPNConfig sets the VPN config in status
@@ -178,12 +183,25 @@ func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 
 	// config changed
 	d.status.VPNConfig = config
+
+	if config == nil {
+		// remove config
+		d.dbus.SetProperty(dbusapi.PropertyVPNConfig, dbusapi.VPNConfigInvalid)
+		return
+	}
+
+	// update json config
+	b, err := config.JSON()
+	if err != nil {
+		log.WithError(err).Fatal("Daemon could not convert status to JSON")
+	}
+	d.dbus.SetProperty(dbusapi.PropertyVPNConfig, string(b))
 }
 
 // connectVPN connects to the VPN using login info from client request
 func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	// allow only one connection
-	if d.status.OCRunning {
+	if d.status.OCRunning.Running() {
 		return
 	}
 
@@ -212,16 +230,6 @@ func (d *Daemon) disconnectVPN() {
 		return
 	}
 	d.runner.Disconnect()
-}
-
-// sendVPNStatus sends the VPN status back to the client
-func (d *Daemon) sendVPNStatus(request *api.Request) {
-	// send OK with VPN status
-	b, err := d.status.JSON()
-	if err != nil {
-		log.WithError(err).Fatal("Daemon could not convert status to JSON")
-	}
-	request.Reply(b)
 }
 
 // setupRouting sets up routing using config
@@ -282,7 +290,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	}
 
 	// check if vpn is flagged as running
-	if !d.status.OCRunning {
+	if !d.status.OCRunning.Running() {
 		log.WithField("error", "vpn not running").
 			Error("Daemon config up error")
 		return
@@ -327,7 +335,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	// or potentially calling this twice is better than not at all?
 
 	// check if vpn is still flagged as running
-	if d.status.OCRunning {
+	if d.status.OCRunning.Running() {
 		log.WithField("error", "vpn still running").
 			Error("Daemon config down error")
 		return
@@ -394,26 +402,6 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 	log.Debug("Daemon handling client request")
 
 	switch request.Type() {
-	case api.TypeVPNConnect:
-		// parse login info
-		login, err := logininfo.LoginInfoFromJSON(request.Data())
-		if err != nil {
-			log.WithError(err).Error("Daemon could not parse login info JSON")
-			request.Error("invalid login info in connect message")
-			break
-		}
-
-		// connect VPN
-		d.connectVPN(login)
-
-	case api.TypeVPNDisconnect:
-		// diconnect VPN
-		d.disconnectVPN()
-
-	case api.TypeVPNQuery:
-		// send vpn status
-		d.sendVPNStatus(request)
-
 	case api.TypeVPNConfigUpdate:
 		// update VPN config
 		d.updateVPNConfig(request)
@@ -455,7 +443,7 @@ func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 func (d *Daemon) handleDNSReport(r *dnsproxy.Report) {
 	log.WithField("report", r).Debug("Daemon handling DNS report")
 
-	if !d.status.OCRunning { // TODO: fix connected state and change to connected?
+	if !d.status.OCRunning.Running() { // TODO: fix connected state and change to connected?
 		return
 	}
 	if d.splitrt == nil {
@@ -472,7 +460,7 @@ func (d *Daemon) handleDNSReport(r *dnsproxy.Report) {
 // checkDisconnectVPN checks if we need to disconnect the VPN when handling a
 // TND result
 func (d *Daemon) checkDisconnectVPN() {
-	if d.status.TrustedNetwork.Trusted() && d.status.OCRunning {
+	if d.status.TrustedNetwork.Trusted() && d.status.OCRunning.Running() {
 		// disconnect VPN when switching from untrusted network with
 		// active VPN connection to a trusted network
 		log.Info("Daemon detected trusted network, disconnecting VPN connection")
@@ -519,7 +507,7 @@ func (d *Daemon) handleSleepMonEvent(sleep bool) {
 	log.WithField("sleep", sleep).Debug("Daemon handling SleepMon event")
 
 	// disconnect vpn on resume
-	if !sleep && d.status.OCRunning {
+	if !sleep && d.status.OCRunning.Running() {
 		d.disconnectVPN()
 	}
 }

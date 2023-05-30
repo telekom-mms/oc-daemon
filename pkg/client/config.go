@@ -49,6 +49,15 @@ type Config struct {
 	RequestTimeout    time.Duration
 }
 
+// Copy returns a copy of Config
+func (c *Config) Copy() *Config {
+	if c == nil {
+		return nil
+	}
+	cp := *c
+	return &cp
+}
+
 // Empty returns if the config is empty
 func (c *Config) Empty() bool {
 	if c == nil {
@@ -93,10 +102,7 @@ func (c *Config) Save(file string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(file, b, 0600); err != nil {
-		return err
-	}
-	return nil
+	return os.WriteFile(file, b, 0600)
 }
 
 // NewConfig returns a new Config

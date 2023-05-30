@@ -41,7 +41,11 @@ func main() {
 	config.VPNServer = *server
 
 	// authenticate client
-	a := client.NewClient(config)
+	a, err := client.NewClient(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() { _ = a.Close() }()
 	if *authenticate {
 		err := a.Authenticate()
 		if err != nil {
@@ -63,7 +67,7 @@ func main() {
 		done <- struct{}{}
 	}()
 	if *connect {
-		c.Connect(a.Login, []string{})
+		c.Connect(a.GetLogin(), []string{})
 	}
 
 	// disconnect client

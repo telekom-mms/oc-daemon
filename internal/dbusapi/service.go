@@ -23,6 +23,8 @@ const (
 	PropertyDevice          = "Device"
 	PropertyConnectedAt     = "ConnectedAt"
 	PropertyServers         = "Servers"
+	PropertyOCRunning       = "OCRunning"
+	PropertyVPNConfig       = "VPNConfig"
 )
 
 // Property "Trusted Network" states
@@ -59,6 +61,24 @@ const (
 // Property "Servers" values
 var (
 	ServersInvalid []string
+)
+
+// Property "OCRunning" values
+const (
+	OCRunningUnknown uint32 = iota
+	OCRunningNotRunning
+	OCRunningRunning
+)
+
+// Property "VPNConfig" values
+const (
+	VPNConfigInvalid = ""
+)
+
+// Methods
+const (
+	MethodConnect    = Interface + ".Connect"
+	MethodDisconnect = Interface + ".Disconnect"
 )
 
 // Request Names
@@ -244,6 +264,18 @@ func (s *Service) start() {
 				Emit:     prop.EmitTrue,
 				Callback: nil,
 			},
+			PropertyOCRunning: {
+				Value:    OCRunningUnknown,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
+			PropertyVPNConfig: {
+				Value:    VPNConfigInvalid,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
 		},
 	}
 	props, err := propExport(conn, Path, propsSpec)
@@ -278,6 +310,8 @@ func (s *Service) start() {
 	props.SetMust(Interface, PropertyDevice, DeviceInvalid)
 	props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
 	props.SetMust(Interface, PropertyServers, ServersInvalid)
+	props.SetMust(Interface, PropertyOCRunning, OCRunningNotRunning)
+	props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
 
 	// main loop
 	for {
@@ -292,6 +326,16 @@ func (s *Service) start() {
 
 		case <-s.done:
 			log.Debug("D-Bus service stopping")
+			// set properties values to unknown/invalid to emit
+			// properties changed signal and inform clients
+			props.SetMust(Interface, PropertyTrustedNetwork, TrustedNetworkUnknown)
+			props.SetMust(Interface, PropertyConnectionState, ConnectionStateUnknown)
+			props.SetMust(Interface, PropertyIP, IPInvalid)
+			props.SetMust(Interface, PropertyDevice, DeviceInvalid)
+			props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
+			props.SetMust(Interface, PropertyServers, ServersInvalid)
+			props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)
+			props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
 			return
 		}
 	}

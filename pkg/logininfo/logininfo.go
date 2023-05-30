@@ -14,6 +14,15 @@ type LoginInfo struct {
 	Resolve     string
 }
 
+// Copy returns a copy of LoginInfo
+func (l *LoginInfo) Copy() *LoginInfo {
+	if l == nil {
+		return nil
+	}
+	cp := *l
+	return &cp
+}
+
 // Valid returns if the login information is valid
 func (l *LoginInfo) Valid() bool {
 	if l == nil ||

@@ -16,9 +16,6 @@ const (
 	TypeNone = iota
 	TypeOK
 	TypeError
-	TypeVPNConnect
-	TypeVPNDisconnect
-	TypeVPNQuery
 	TypeVPNConfigUpdate
 	TypeUndefined
 )

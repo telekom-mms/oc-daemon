@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+// TestStatusCopy tests Copy of Status
+func TestStatusCopy(t *testing.T) {
+	want := New()
+	got := want.Copy()
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 // TestJSON tests JSON and NewFromJSON of Status
 func TestJSON(t *testing.T) {
 	s := New()

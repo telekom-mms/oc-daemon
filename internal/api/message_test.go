@@ -13,8 +13,6 @@ func TestNewMessage(t *testing.T) {
 		TypeNone,
 		TypeOK,
 		TypeError,
-		TypeVPNConnect,
-		TypeVPNQuery,
 		TypeVPNConfigUpdate,
 		TypeUndefined,
 	} {

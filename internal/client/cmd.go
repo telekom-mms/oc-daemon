@@ -69,6 +69,8 @@ func parseCommandLine() {
 		usage("        list VPN servers in XML Profile\n")
 		usage("  status\n")
 		usage("        show VPN status\n")
+		usage("  monitor\n")
+		usage("        monitor VPN status updates\n")
 		usage("  save\n")
 		usage("        save current settings to user configuration\n")
 		usage("\nExamples:\n")
@@ -161,6 +163,8 @@ func Run() {
 		reconnectVPN()
 	case "status":
 		getStatus()
+	case "monitor":
+		monitor()
 	case "save":
 		saveConfig()
 	default:
