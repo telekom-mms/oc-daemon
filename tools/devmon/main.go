@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/T-Systems-MMS/oc-daemon/internal/devmon"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/devmon"
 )
 
 func main() {

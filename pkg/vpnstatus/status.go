@@ -3,7 +3,7 @@ package vpnstatus
 import (
 	"encoding/json"
 
-	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
 // TrustedNetwork is the current trusted network state

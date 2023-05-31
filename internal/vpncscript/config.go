@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/daemon"
-	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemon"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
 // createConfigGeneral creates the general configuration in config from env

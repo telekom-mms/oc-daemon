@@ -1,6 +1,6 @@
 package main
 
-import "github.com/T-Systems-MMS/oc-daemon/internal/client"
+import "github.com/telekom-mms/oc-daemon/internal/client"
 
 func main() {
 	client.Run()

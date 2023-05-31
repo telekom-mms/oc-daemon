@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/splitrt"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 )
 
 // runNft runs nft and passes s to it via stdin

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/daemon"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemon"
 )
 
 // Run is the main entry point of vpnc script

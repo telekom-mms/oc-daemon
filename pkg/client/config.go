@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/T-Systems-MMS/oc-daemon/pkg/xmlprofile"
+	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
 )
 
 var (

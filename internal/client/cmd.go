@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/daemon"
-	"github.com/T-Systems-MMS/oc-daemon/pkg/client"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemon"
+	"github.com/telekom-mms/oc-daemon/pkg/client"
 )
 
 var (

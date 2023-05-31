@@ -1,4 +1,4 @@
-module github.com/T-Systems-MMS/oc-daemon
+module github.com/telekom-mms/oc-daemon
 
 go 1.18
 

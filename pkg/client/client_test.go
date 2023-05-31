@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/dbusapi"
-	"github.com/T-Systems-MMS/oc-daemon/pkg/logininfo"
-	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
 	"github.com/godbus/dbus/v5"
+	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
+	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 )
 
 // TestDBusClientSetGetConfig tests SetConfig and GetConfig of DBusClient

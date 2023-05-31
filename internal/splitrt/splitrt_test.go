@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/addrmon"
-	"github.com/T-Systems-MMS/oc-daemon/internal/devmon"
-	"github.com/T-Systems-MMS/oc-daemon/internal/dnsproxy"
-	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
+	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/devmon"
+	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/vishvananda/netlink"
 )
 

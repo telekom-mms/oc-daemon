@@ -1,7 +1,7 @@
 package splitrt
 
 import (
-	"github.com/T-Systems-MMS/oc-daemon/internal/devmon"
+	"github.com/telekom-mms/oc-daemon/internal/devmon"
 )
 
 // Devices is a set of devices

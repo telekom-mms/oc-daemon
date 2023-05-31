@@ -1,10 +1,10 @@
 package trafpol
 
 import (
-	"github.com/T-Systems-MMS/oc-daemon/internal/cpd"
-	"github.com/T-Systems-MMS/oc-daemon/internal/devmon"
-	"github.com/T-Systems-MMS/oc-daemon/internal/dnsmon"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/cpd"
+	"github.com/telekom-mms/oc-daemon/internal/devmon"
+	"github.com/telekom-mms/oc-daemon/internal/dnsmon"
 )
 
 // TrafPol is a traffic policing component

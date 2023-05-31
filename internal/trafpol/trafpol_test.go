@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/cpd"
-	"github.com/T-Systems-MMS/oc-daemon/internal/devmon"
+	"github.com/telekom-mms/oc-daemon/internal/cpd"
+	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/vishvananda/netlink"
 )
 
