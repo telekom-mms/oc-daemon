@@ -3,11 +3,11 @@ module github.com/telekom-mms/oc-daemon
 go 1.18
 
 require (
-	github.com/T-Systems-MMS/tnd v0.0.0-20230404085219-434ecc2a5379
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/godbus/dbus/v5 v5.1.0
 	github.com/miekg/dns v1.1.53
 	github.com/sirupsen/logrus v1.9.0
+	github.com/telekom-mms/tnd v0.0.0-20230531180948-b1baa08c638b
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/sys v0.6.0
 )

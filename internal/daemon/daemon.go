@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/T-Systems-MMS/tnd/pkg/trustnet"
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/api"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
@@ -23,6 +22,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
+	"github.com/telekom-mms/tnd/pkg/trustnet"
 	"golang.org/x/sys/unix"
 )
 
