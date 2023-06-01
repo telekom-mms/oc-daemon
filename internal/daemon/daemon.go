@@ -708,6 +708,7 @@ func (d *Daemon) start() {
 
 	// start sleep monitor
 	d.sleepmon.Start()
+	defer d.sleepmon.Stop()
 
 	// start traffic policing
 	d.checkTrafPol()
