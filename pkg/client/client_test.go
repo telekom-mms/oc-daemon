@@ -43,6 +43,18 @@ func TestDBusClientSetGetLogin(t *testing.T) {
 	}
 }
 
+// TestDBusClientPing tests Ping of DBusClient
+func TestDBusClientPing(t *testing.T) {
+	client := &DBusClient{}
+	ping = func(*DBusClient) error {
+		return nil
+	}
+	err := client.Ping()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 // TestDBusClientQuery tests Query of DBusClient
 func TestDBusClientQuery(t *testing.T) {
 	client := &DBusClient{}
