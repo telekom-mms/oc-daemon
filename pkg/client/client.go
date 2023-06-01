@@ -27,6 +27,7 @@ type Client interface {
 	SetLogin(login *logininfo.LoginInfo)
 	GetLogin() *logininfo.LoginInfo
 
+	Ping() error
 	Query() (*vpnstatus.Status, error)
 	Subscribe() (chan *vpnstatus.Status, error)
 
@@ -165,6 +166,17 @@ func updateStatusFromProperties(status *vpnstatus.Status, props map[string]dbus.
 	}
 
 	return nil
+}
+
+// ping calls the ping method to check if OC-Daemon is running
+var ping = func(d *DBusClient) error {
+	return d.conn.Object(dbusapi.Interface, dbusapi.Path).
+		Call("org.freedesktop.DBus.Peer.Ping", 0).Err
+}
+
+// Ping pings the OC-Daemon to check if it is running
+func (d *DBusClient) Ping() error {
+	return ping(d)
 }
 
 // query retrieves the D-Bus properties from the daemon
@@ -306,6 +318,15 @@ func (d *DBusClient) Subscribe() (chan *vpnstatus.Status, error) {
 	// handle properties
 	go func() {
 		defer close(d.updates)
+
+		// send initial status
+		select {
+		case d.updates <- status.Copy():
+		case <-d.done:
+			return
+		}
+
+		// handle signals
 		for s := range c {
 			// get status update from signal
 			update := handlePropertiesChanged(s, status.Copy())
