@@ -4,8 +4,8 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/dnsproxy"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 )
 
 var (

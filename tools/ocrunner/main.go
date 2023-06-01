@@ -4,9 +4,9 @@ import (
 	"flag"
 	"time"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/ocrunner"
-	"github.com/T-Systems-MMS/oc-daemon/pkg/client"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
+	"github.com/telekom-mms/oc-daemon/pkg/client"
 )
 
 func main() {

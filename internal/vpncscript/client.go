@@ -3,9 +3,9 @@ package vpncscript
 import (
 	"net"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/api"
-	"github.com/T-Systems-MMS/oc-daemon/internal/daemon"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/api"
+	"github.com/telekom-mms/oc-daemon/internal/daemon"
 )
 
 const (

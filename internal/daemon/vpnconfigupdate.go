@@ -3,7 +3,7 @@ package daemon
 import (
 	"encoding/json"
 
-	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
 // VPNConfigUpdate is a VPN configuration update

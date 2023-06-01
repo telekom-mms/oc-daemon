@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/T-Systems-MMS/oc-daemon/pkg/client"
-	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnstatus"
-	"github.com/T-Systems-MMS/oc-daemon/pkg/xmlprofile"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/pkg/client"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
+	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
 // TestCreateConfigSplit tests createConfigSplit

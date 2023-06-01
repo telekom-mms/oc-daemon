@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 )
 
 // getTestAddrMonUpdate returns an AddrMon update for testing

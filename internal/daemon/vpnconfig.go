@@ -5,8 +5,8 @@ import (
 	"net"
 	"os/exec"
 
-	"github.com/T-Systems-MMS/oc-daemon/pkg/vpnconfig"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/vishvananda/netlink"
 )
 

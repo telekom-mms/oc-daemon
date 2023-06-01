@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/devmon"
+	"github.com/telekom-mms/oc-daemon/internal/devmon"
 )
 
 // getTestDevMonUpdate returns a DevMon Update for testing

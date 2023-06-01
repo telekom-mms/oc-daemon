@@ -3,7 +3,7 @@ package splitrt
 import (
 	"net"
 
-	"github.com/T-Systems-MMS/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 )
 
 // Addresses is a set of addresses
