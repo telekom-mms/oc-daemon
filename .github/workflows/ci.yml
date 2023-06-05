@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   lint:
@@ -25,6 +26,8 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
+          # https://github.com/golangci/golangci-lint-action/issues/135
+          skip-pkg-cache: true
   test:
     runs-on: ubuntu-22.04
     steps:
@@ -36,7 +39,19 @@ jobs:
         with:
           go-version: stable
 
-      - name: Test and Build
+      - name: Run test
+        run: go test -v -coverprofile cover.out ./... | tee test.out
+        shell: bash
+
+      - name: Process results
+        if: always()
+        uses: malaupa/go-test-coverage-summary-action@v1.0.0
+        with:
+          test_results: "test.out"
+          coverage_profile: "cover.out"
+          with_archive: true
+
+      - name: Test Build
         uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
