@@ -26,6 +26,18 @@ jobs:
         with:
           go-version: stable
 
+      - name: Run test
+        run: go test -v -coverprofile cover.out ./... | tee test.out
+        shell: bash
+
+      - name: Process results
+        if: always()
+        uses: malaupa/go-test-coverage-summary-action@v1.0.0
+        with:
+          test_results: "test.out"
+          coverage_profile: "cover.out"
+          with_archive: true
+
       - name: Release
         uses: goreleaser/goreleaser-action@v4
         with:

@@ -1,7 +1,6 @@
 before:
   hooks:
     - go mod tidy
-    - go test ./...
 builds:
   - id: oc-client
     env:
