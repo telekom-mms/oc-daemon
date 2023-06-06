@@ -45,7 +45,7 @@ jobs:
 
       - name: Process results
         if: always()
-        uses: malaupa/go-test-coverage-summary-action@v1.0.0
+        uses: malaupa/go-test-coverage-summary-action@v1.0.1
         with:
           test_results: "test.out"
           coverage_profile: "cover.out"
