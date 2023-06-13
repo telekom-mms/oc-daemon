@@ -394,6 +394,9 @@ var authenticate = func(d *DBusClient) error {
 
 	parameters := []string{
 		"--protocol=anyconnect",
+		// some VPN servers reject connections from other clients,
+		// set user agent to AnyConnect
+		"--useragent=AnyConnect",
 		certificate,
 		sslKey,
 		xmlConfig,
