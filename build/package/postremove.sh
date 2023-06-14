@@ -1,13 +1,10 @@
 #!/bin/sh -e
-# taken from https://github.com/Debian/debhelper/blob/master/dh
+# taken from https://git.launchpad.net/ubuntu/+source/debhelper/tree/autoscripts/postrm-systemd?h=applied/13.6ubuntu1 and
 
 UNIT='oc-daemon.service'
 
 case "$1" in
   'remove')
-    if [ -d /run/systemd/system ] ; then
-      systemctl --system daemon-reload >/dev/null || true
-    fi
     if [ -x "/usr/bin/deb-systemd-helper" ]; then
       deb-systemd-helper mask $UNIT >/dev/null || true
     fi

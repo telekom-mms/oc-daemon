@@ -74,6 +74,7 @@ nfpms:
     dependencies:
       - "nftables"
       - "openconnect"
+      - "init-system-helpers (>= 1.62)"
     bindir: /usr/bin
     section: net
     # important: this makes the package non native
