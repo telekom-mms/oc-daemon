@@ -1,10 +1,10 @@
 #!/bin/sh -e
-# taken from https://github.com/Debian/debhelper/blob/master/dh
+# taken from https://git.launchpad.net/ubuntu/+source/debhelper/tree/autoscripts/postinst-systemd-enable?h=applied/13.6ubuntu1
 
 UNIT='oc-daemon.service'
 
 case "$1" in
-	'configure' |	'abort-upgrade' | 'abort-deconfigure' | 'abort-remove')
+	'configure' | 'abort-upgrade' | 'abort-deconfigure' | 'abort-remove')
     # This will only remove masks created by d-s-h on package removal.
     deb-systemd-helper unmask $UNIT >/dev/null || true
 

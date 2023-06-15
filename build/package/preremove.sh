@@ -1,5 +1,5 @@
 #!/bin/sh -e
-# taken from https://github.com/Debian/debhelper/blob/master/dh
+# taken from https://git.launchpad.net/ubuntu/+source/debhelper/tree/autoscripts/preinst-systemd-stop?h=applied/13.6ubuntu1
 
 UNIT='oc-daemon.service'
 
