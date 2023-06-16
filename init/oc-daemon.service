@@ -1,9 +1,11 @@
 [Unit]
 Description=OpenConnect Daemon
-After=network.target
+Requires=dbus.service
+After=network.target dbus.service
 
 [Service]
-Type=simple
+Type=dbus
+BusName=com.telekom_mms.oc_daemon.Daemon
 Restart=on-failure
 ExecStart=/usr/bin/oc-daemon
 KillSignal=SIGINT
