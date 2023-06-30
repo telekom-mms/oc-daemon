@@ -18,9 +18,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch Tags
-        run: git fetch --force --tags
-
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
@@ -48,6 +45,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy:
+    needs: release
     runs-on: ubuntu-22.04
     strategy:
       matrix:
