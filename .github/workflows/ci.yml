@@ -28,11 +28,13 @@ jobs:
           version: latest
           # https://github.com/golangci/golangci-lint-action/issues/135
           skip-pkg-cache: true
-  test:
+  testAndBuild:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v4
@@ -56,5 +58,14 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: build --snapshot --clean
+          args: release --snapshot --clean
+
+      - name: Store package
+        uses: actions/upload-artifact@v3
+        with:
+          name: deb-package
+          path: |
+            dist/*.deb
+            dist/checksums.txt
+          retention-days: 10
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
