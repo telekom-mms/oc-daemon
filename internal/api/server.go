@@ -3,21 +3,17 @@ package api
 import (
 	"net"
 	"os"
+	"os/user"
+	"strconv"
 	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	// serverTimeout is the timeout for an entire request/response exchange
-	// initiated by a client
-	serverTimeout = 30 * time.Second
-)
-
 // Server is a Daemon API server
 type Server struct {
-	sockFile string
+	config   *Config
 	listen   net.Listener
 	requests chan *Request
 
@@ -45,7 +41,7 @@ func (s *Server) isStopping() bool {
 // handleRequest handles a request from the client
 func (s *Server) handleRequest(conn net.Conn) {
 	// set timeout for entire request/response exchange
-	deadline := time.Now().Add(serverTimeout)
+	deadline := time.Now().Add(s.config.RequestTimeout)
 	if err := conn.SetDeadline(deadline); err != nil {
 		log.WithError(err).Error("Daemon error setting deadline")
 		_ = conn.Close()
@@ -103,24 +99,95 @@ func (s *Server) handleClients() {
 	}
 }
 
+// setSocketOwner sets the owner of the socket file
+func (s *Server) setSocketOwner() {
+	if s.config.SocketOwner == "" {
+		// do not change owner
+		return
+	}
+
+	user, err := user.Lookup(s.config.SocketOwner)
+	if err != nil {
+		log.WithError(err).Error("Daemon could not get UID of socket file owner")
+		return
+	}
+
+	uid, err := strconv.Atoi(user.Uid)
+	if err != nil {
+		log.WithError(err).Error("Daemon could not convert UID of socket file owner to int")
+		return
+	}
+
+	if err := os.Chown(s.config.SocketFile, uid, -1); err != nil {
+		log.WithError(err).Error("Daemon could not change owner of socket file")
+	}
+}
+
+// setSocketGroup sets the group of the socket file
+func (s *Server) setSocketGroup() {
+	if s.config.SocketGroup == "" {
+		// do not change group
+		return
+	}
+
+	group, err := user.LookupGroup(s.config.SocketGroup)
+	if err != nil {
+		log.WithError(err).Error("Daemon could not get GID of socket file group")
+		return
+	}
+
+	gid, err := strconv.Atoi(group.Gid)
+	if err != nil {
+		log.WithError(err).Error("Daemon could not convert GID of socket file group to int")
+		return
+	}
+
+	if err := os.Chown(s.config.SocketFile, -1, gid); err != nil {
+		log.WithError(err).Error("Daemon could not change group of socket file")
+	}
+}
+
+// setSocketPermissions sets the file permissions of the socket file
+func (s *Server) setSocketPermissions() {
+	if s.config.SocketPermissions == "" {
+		// do not change permissions
+		return
+	}
+
+	perm, err := strconv.ParseUint(s.config.SocketPermissions, 8, 32)
+	if err != nil {
+		log.WithError(err).Error("Daemon could not convert permissions of sock file to uint")
+		return
+	}
+
+	if err := os.Chmod(s.config.SocketFile, os.FileMode(perm)); err != nil {
+		log.WithError(err).Error("Daemon could not set permissions of sock file")
+	}
+
+}
+
 // Start starts the API server
 func (s *Server) Start() {
 	// cleanup existing sock file, this should normally fail
-	if err := os.Remove(s.sockFile); err == nil {
+	if err := os.Remove(s.config.SocketFile); err == nil {
 		log.Warn("Removed existing unix socket file")
 	}
 
 	// start listener
-	listen, err := net.Listen("unix", s.sockFile)
+	listen, err := net.Listen("unix", s.config.SocketFile)
 	if err != nil {
 		log.WithError(err).Fatal("Daemon could not start unix listener")
 	}
 	s.listen = listen
 
-	// make sure only we can access the sock file
-	if err := os.Chmod(s.sockFile, 0700); err != nil {
-		log.WithError(err).Error("Daemon could not set permissions of sock file")
-	}
+	// set owner of sock file
+	s.setSocketOwner()
+
+	// set group of sock file
+	s.setSocketGroup()
+
+	// set file permissions of sock file
+	s.setSocketPermissions()
 
 	// handle client connections
 	go s.handleClients()
@@ -145,9 +212,9 @@ func (s *Server) Requests() chan *Request {
 }
 
 // NewServer returns a new API server
-func NewServer(sockFile string) *Server {
+func NewServer(config *Config) *Server {
 	return &Server{
-		sockFile: sockFile,
+		config:   config,
 		requests: make(chan *Request),
 	}
 }

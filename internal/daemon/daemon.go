@@ -788,7 +788,7 @@ func (d *Daemon) Stop() {
 // NewDaemon returns a new Daemon
 func NewDaemon() *Daemon {
 	return &Daemon{
-		server: api.NewServer(sockFile),
+		server: api.NewServer(api.NewConfig()),
 		dbus:   dbusapi.NewService(),
 
 		sleepmon: sleepmon.NewSleepMon(),
