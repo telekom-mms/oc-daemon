@@ -54,7 +54,10 @@ func main() {
 	}
 
 	// connect client
-	c := ocrunner.NewConnect(*profile, *script, "oc-daemon-tun0")
+	ocrConf := ocrunner.NewConfig()
+	ocrConf.XMLProfile = *profile
+	ocrConf.VPNCScript = *script
+	c := ocrunner.NewConnect(ocrConf)
 	done := make(chan struct{})
 	go c.Start()
 	go func() {

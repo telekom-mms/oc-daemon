@@ -536,7 +536,7 @@ func (d *Daemon) handleProfileUpdate() {
 
 // cleanup cleans up after a failed shutdown
 func (d *Daemon) cleanup() {
-	ocrunner.CleanupConnect()
+	ocrunner.CleanupConnect(ocrunner.NewConfig())
 	cleanupVPNConfig(vpnDevice)
 	splitrt.Cleanup()
 	trafpol.Cleanup()
@@ -795,7 +795,7 @@ func NewDaemon() *Daemon {
 
 		dns: dnsproxy.NewProxy(dnsproxy.NewConfig()),
 
-		runner: ocrunner.NewConnect(xmlProfile, vpncScript, vpnDevice),
+		runner: ocrunner.NewConnect(ocrunner.NewConfig()),
 
 		status: vpnstatus.New(),
 
