@@ -793,7 +793,7 @@ func NewDaemon() *Daemon {
 
 		sleepmon: sleepmon.NewSleepMon(),
 
-		dns: dnsproxy.NewProxy(dnsAddr),
+		dns: dnsproxy.NewProxy(dnsproxy.NewConfig()),
 
 		runner: ocrunner.NewConnect(xmlProfile, vpncScript, vpnDevice),
 
