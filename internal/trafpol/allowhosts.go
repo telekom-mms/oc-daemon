@@ -8,24 +8,6 @@ import (
 	"time"
 )
 
-const (
-	// resolveTimeout is the timeout for dns lookups
-	resolveTimeout = 2 * time.Second
-
-	// resolveTries is the number of tries for dns lookups
-	resolveTries = 3
-
-	// resolveTriesSleep is the sleep time between retries
-	resolveTriesSleep = time.Second
-
-	// resolveTimer is the time for periodic resolve update checks,
-	// should be higher than tries * (timeout + sleep)
-	resolveTimer = 30 * time.Second
-
-	// resolveTTL is the lifetime of resolved entries
-	resolveTTL = 300 * time.Second
-)
-
 // allowHost is an allowed hosts entry
 type allowHost struct {
 	host string
@@ -36,7 +18,7 @@ type allowHost struct {
 }
 
 // resolve resolves the allowed host to its IP addresses
-func (a *allowHost) resolve() {
+func (a *allowHost) resolve(config *Config) {
 	// check if host is a network address
 	if _, ipnet, err := net.ParseCIDR(a.host); err == nil {
 		a.lastUpdate = time.Now()
@@ -54,14 +36,14 @@ func (a *allowHost) resolve() {
 
 	// try to resolve ip addresses of host
 	tries := 0
-	for tries < resolveTries {
+	for tries < config.ResolveTries {
 		tries++
 
 		// sleep before (re)tries
-		time.Sleep(resolveTriesSleep)
+		time.Sleep(config.ResolveTriesSleep)
 
 		// resolve ips
-		ctx, cancel := context.WithTimeout(context.TODO(), resolveTimeout)
+		ctx, cancel := context.WithTimeout(context.TODO(), config.ResolveTimeout)
 		defer cancel()
 		resolver := &net.Resolver{}
 		ips, err := resolver.LookupIP(ctx, "ip", a.host)
@@ -116,7 +98,8 @@ func (a *allowHost) resolve() {
 // AllowHosts contains allowed hosts
 type AllowHosts struct {
 	sync.Mutex
-	m map[string]*allowHost
+	config *Config
+	m      map[string]*allowHost
 
 	updates chan struct{}
 	done    chan struct{}
@@ -155,7 +138,7 @@ func (a *AllowHosts) resolveAll() {
 		wg.Add(1)
 		go func(host *allowHost) {
 			defer wg.Done()
-			host.resolve()
+			host.resolve(a.config)
 		}(h)
 	}
 	wg.Wait()
@@ -214,13 +197,13 @@ func (a *AllowHosts) resolvePeriodic() {
 	now := time.Now()
 	var wg sync.WaitGroup
 	for _, h := range a.m {
-		if now.Sub(h.lastUpdate) < resolveTTL && len(h.ips) != 0 {
+		if now.Sub(h.lastUpdate) < a.config.ResolveTTL && len(h.ips) != 0 {
 			continue
 		}
 		wg.Add(1)
 		go func(host *allowHost) {
 			defer wg.Done()
-			host.resolve()
+			host.resolve(a.config)
 		}(h)
 	}
 	wg.Wait()
@@ -239,7 +222,7 @@ func (a *AllowHosts) updatePeriodic() {
 func (a *AllowHosts) start() {
 	defer close(a.closed)
 
-	timer := time.NewTimer(resolveTimer)
+	timer := time.NewTimer(a.config.ResolveTimer)
 	for {
 		select {
 		case <-a.updates:
@@ -248,11 +231,11 @@ func (a *AllowHosts) start() {
 			if !timer.Stop() {
 				<-timer.C
 			}
-			timer.Reset(resolveTimer)
+			timer.Reset(a.config.ResolveTimer)
 		case <-timer.C:
 			// periodic update and reset timer
 			a.updatePeriodic()
-			timer.Reset(resolveTimer)
+			timer.Reset(a.config.ResolveTimer)
 		case <-a.done:
 			// stop timer
 			if !timer.Stop() {
@@ -281,10 +264,11 @@ func (a *AllowHosts) Update() {
 	a.updates <- struct{}{}
 }
 
-// NewAllowHosts returns new allowHosts
-func NewAllowHosts() *AllowHosts {
+// NewAllowHosts returns new AllowHosts
+func NewAllowHosts(config *Config) *AllowHosts {
 	return &AllowHosts{
-		m: make(map[string]*allowHost),
+		config: config,
+		m:      make(map[string]*allowHost),
 
 		updates: make(chan struct{}),
 		done:    make(chan struct{}),

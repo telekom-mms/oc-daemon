@@ -553,16 +553,13 @@ func (d *Daemon) initToken() {
 	d.token = base64.RawURLEncoding.EncodeToString(b)
 }
 
-// getAllowedHosts returns the allowed hosts
-func (d *Daemon) getAllowedHosts() (hosts []string) {
+// getProfileAllowedHosts returns the allowed hosts
+func (d *Daemon) getProfileAllowedHosts() (hosts []string) {
 	// add vpn servers to allowed hosts
 	hosts = append(hosts, d.profile.GetVPNServers()...)
 
 	// add tnd servers to allowed hosts
 	hosts = append(hosts, d.profile.GetTNDServers()...)
-
-	// add cpd servers to allowed hosts
-	hosts = append(hosts, cpdServers...)
 
 	// add allowed hosts from xml profile to allowed hosts
 	hosts = append(hosts, d.profile.GetAllowedHosts()...)
@@ -659,8 +656,12 @@ func (d *Daemon) startTrafPol() {
 	if d.trafpol != nil {
 		return
 	}
-	d.trafpol = trafpol.NewTrafPol(d.getAllowedHosts())
+	c := trafpol.NewConfig()
+	c.AllowedHosts = append(c.AllowedHosts, d.getProfileAllowedHosts()...)
+	c.FirewallMark = splitrt.FirewallMark
+	d.trafpol = trafpol.NewTrafPol(c)
 	d.trafpol.Start()
+
 }
 
 // stopTrafPol stops traffic policing if it's running

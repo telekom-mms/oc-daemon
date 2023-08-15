@@ -9,6 +9,7 @@ import (
 
 // TrafPol is a traffic policing component
 type TrafPol struct {
+	config *Config
 	devmon *devmon.DevMon
 	dnsmon *dnsmon.DNSMon
 	cpd    *cpd.CPD
@@ -77,7 +78,7 @@ func (t *TrafPol) start() {
 	defer close(t.loopDone)
 
 	// set firewall config
-	setFilterRules()
+	setFilterRules(t.config.FirewallMark)
 	defer unsetFilterRules()
 
 	// add CPD hosts to allowed hosts
@@ -141,12 +142,13 @@ func (t *TrafPol) Stop() {
 }
 
 // NewTrafPol returns a new traffic policing component
-func NewTrafPol(allowedHosts []string) *TrafPol {
-	allowHosts := NewAllowHosts()
-	for _, h := range allowedHosts {
+func NewTrafPol(config *Config) *TrafPol {
+	allowHosts := NewAllowHosts(config)
+	for _, h := range config.AllowedHosts {
 		allowHosts.Add(h)
 	}
 	return &TrafPol{
+		config: config,
 		devmon: devmon.NewDevMon(),
 		dnsmon: dnsmon.NewDNSMon(dnsmon.NewConfig()),
 		cpd:    cpd.NewCPD(cpd.NewConfig()),

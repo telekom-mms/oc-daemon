@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 )
 
 // runNft runs nft and passes s to it via stdin
@@ -22,7 +21,7 @@ var runNft = func(s string) {
 }
 
 // setFilterRules sets the filter rules
-func setFilterRules() {
+func setFilterRules(fwMark string) {
 	const filterRules = `
 table inet oc-daemon-filter {
         # set for allowed devices
@@ -163,7 +162,7 @@ table inet oc-daemon-filter {
         }
 }
 `
-	r := strings.NewReplacer("$FWMARK", splitrt.FirewallMark)
+	r := strings.NewReplacer("$FWMARK", fwMark)
 	rules := r.Replace(filterRules)
 	runNft(rules)
 }
