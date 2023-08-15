@@ -5,25 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
-)
-
-var (
-	// xmlProfile is the AnyConnect Profile
-	xmlProfile = configDir + "/profile.xml"
-
-	// runDir is the directory for runtime files
-	runDir = "/run/oc-daemon"
-
-	// sockFile is the unix socket file
-	sockFile = runDir + "/daemon.sock"
-
-	// vpncScript is the vpnc-script
-	vpncScript = "/usr/bin/oc-daemon-vpncscript"
-
-	// vpnDevice is the vpn network device name
-	vpnDevice = "oc-daemon-tun0"
 )
 
 var (
@@ -31,21 +15,47 @@ var (
 	Version = "unknown"
 )
 
+// command line argument names
+const (
+	argConfig  = "config"
+	argVerbose = "verbose"
+	argVersion = "version"
+)
+
 // prepareFolders prepares directories used by the daemon
-func prepareFolders() {
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		log.WithError(err).Fatal("Daemon could not create config dir")
+func prepareFolders(config *Config) {
+	for _, file := range []string{
+		config.Config,
+		config.SocketServer.SocketFile,
+		config.OpenConnect.XMLProfile,
+		config.OpenConnect.PIDFile,
+	} {
+		dir := filepath.Dir(file)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			log.WithError(err).WithField("dir", dir).
+				Fatal("Daemon could not create dir")
+		}
 	}
-	if err := os.MkdirAll(runDir, 0755); err != nil {
-		log.WithError(err).Fatal("Daemon could not create run dir")
-	}
+}
+
+// flagIsSet returns whether flag with name is set as command line argument
+func flagIsSet(name string) bool {
+	isSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if name == f.Name {
+			isSet = true
+		}
+	})
+	return isSet
 }
 
 // Run is the main entry point for the daemon
 func Run() {
 	// parse command line arguments
-	verbose := flag.Bool("verbose", false, "enable verbose output")
-	version := flag.Bool("version", false, "print version")
+	defaults := NewConfig()
+	cfgFile := flag.String(argConfig, defaults.Config, "set config `file`")
+	verbose := flag.Bool(argVerbose, defaults.Verbose, "enable verbose output")
+	version := flag.Bool(argVersion, false, "print version")
 	flag.Parse()
 
 	// print version?
@@ -54,16 +64,34 @@ func Run() {
 		os.Exit(0)
 	}
 
+	// load config
+	config := NewConfig()
+	if flagIsSet(argConfig) {
+		config.Config = *cfgFile
+	}
+	if err := config.Load(); err != nil {
+		log.WithError(err).Warn("Daemon could not load config, using default config")
+	}
+	if !config.Valid() {
+		config = NewConfig()
+		log.Warn("Daemon loaded invalid config, using default config")
+	}
+
+	// overwrite config settings with command line arguments
+	if flagIsSet(argVerbose) {
+		config.Verbose = *verbose
+	}
+
 	// set verbose log level
-	if *verbose {
+	if config.Verbose {
 		log.SetLevel(log.DebugLevel)
 	}
 
 	// prepare directories
-	prepareFolders()
+	prepareFolders(config)
 
 	// start daemon
-	daemon := NewDaemon()
+	daemon := NewDaemon(config)
 	daemon.Start()
 
 	// catch interrupt and clean up

@@ -26,28 +26,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const (
-	// dnsAddr is the DNS listen address
-	dnsAddr = "127.0.0.1:4253" // TODO: change?
-
-	// defaultDNSServer is the default DNS server address
-	// TODO: check if ok. use variable?
-	defaultDNSServer = "127.0.0.53:53"
-)
-
-var (
-	// cpdServers is a list of CPD servers, e.g., used by browsers
-	cpdServers = []string{
-		"connectivity-check.ubuntu.com", // ubuntu
-		"detectportal.firefox.com",      // firefox
-		"www.gstatic.com",               // chrome
-		"clients3.google.com",           // chromium
-		"nmcheck.gnome.org",             // gnome
-	}
-)
-
 // Daemon is used to run the daemon
 type Daemon struct {
+	config *Config
+
 	server *api.Server
 	dbus   *dbusapi.Service
 
@@ -215,7 +197,11 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
 
 	// connect using runner
-	env := []string{"oc_daemon_token=" + d.token}
+	env := []string{
+		"oc_daemon_token=" + d.token,
+		"oc_daemon_socket_file=" + d.config.SocketServer.SocketFile,
+		"oc_daemon_verbose=" + strconv.FormatBool(d.config.Verbose),
+	}
 	d.runner.Connect(login, env)
 }
 
@@ -238,7 +224,7 @@ func (d *Daemon) setupRouting(vpnconf *vpnconfig.Config) {
 	if d.splitrt != nil {
 		return
 	}
-	d.splitrt = splitrt.NewSplitRouting(splitrt.NewConfig(), vpnconf)
+	d.splitrt = splitrt.NewSplitRouting(d.config.SplitRouting, vpnconf)
 	d.splitrt.Start()
 }
 
@@ -267,13 +253,13 @@ func (d *Daemon) setupDNS(config *vpnconfig.Config) {
 	d.dns.SetWatches(excludes)
 
 	// update dns configuration of host
-	setVPNDNS(config, dnsAddr)
+	setVPNDNS(config, d.config.DNSProxy.Address)
 }
 
 // teardownDNS tears down the DNS configuration
 func (d *Daemon) teardownDNS() {
 	remotes := map[string][]string{
-		".": {defaultDNSServer},
+		".": {d.config.DefaultDNSServer},
 	}
 	d.dns.SetRemotes(remotes)
 	d.dns.SetWatches([]string{})
@@ -513,7 +499,7 @@ func (d *Daemon) handleSleepMonEvent(sleep bool) {
 }
 
 // readXMLProfile reads the XML profile from file
-func readXMLProfile() *xmlprofile.Profile {
+func readXMLProfile(xmlProfile string) *xmlprofile.Profile {
 	profile, err := xmlprofile.LoadProfile(xmlProfile)
 	if err != nil {
 		// invalid config, use empty config
@@ -526,7 +512,7 @@ func readXMLProfile() *xmlprofile.Profile {
 // handleProfileUpdate handles a xml profile update
 func (d *Daemon) handleProfileUpdate() {
 	log.Debug("Daemon handling XML profile update")
-	d.profile = readXMLProfile()
+	d.profile = readXMLProfile(d.config.OpenConnect.XMLProfile)
 	d.stopTND()
 	d.stopTrafPol()
 	d.checkTrafPol()
@@ -536,9 +522,9 @@ func (d *Daemon) handleProfileUpdate() {
 
 // cleanup cleans up after a failed shutdown
 func (d *Daemon) cleanup() {
-	ocrunner.CleanupConnect(ocrunner.NewConfig())
-	cleanupVPNConfig(vpnDevice)
-	splitrt.Cleanup(splitrt.NewConfig())
+	ocrunner.CleanupConnect(d.config.OpenConnect)
+	cleanupVPNConfig(d.config.OpenConnect.VPNDevice)
+	splitrt.Cleanup(d.config.SplitRouting)
 	trafpol.Cleanup()
 }
 
@@ -578,7 +564,7 @@ func (d *Daemon) initTNDServers() {
 // setTNDDialer sets a custom dialer for TND
 func (d *Daemon) setTNDDialer() {
 	// get mark to be set on socket
-	mark, err := strconv.Atoi(splitrt.FirewallMark)
+	mark, err := strconv.Atoi(d.config.SplitRouting.FirewallMark)
 	if err != nil {
 		log.WithError(err).Error("Daemon could not convert FWMark to int")
 		return
@@ -658,10 +644,9 @@ func (d *Daemon) startTrafPol() {
 	}
 	c := trafpol.NewConfig()
 	c.AllowedHosts = append(c.AllowedHosts, d.getProfileAllowedHosts()...)
-	c.FirewallMark = splitrt.FirewallMark
+	c.FirewallMark = d.config.SplitRouting.FirewallMark
 	d.trafpol = trafpol.NewTrafPol(c)
 	d.trafpol.Start()
-
 }
 
 // stopTrafPol stops traffic policing if it's running
@@ -787,23 +772,25 @@ func (d *Daemon) Stop() {
 }
 
 // NewDaemon returns a new Daemon
-func NewDaemon() *Daemon {
+func NewDaemon(config *Config) *Daemon {
 	return &Daemon{
-		server: api.NewServer(api.NewConfig()),
+		config: config,
+
+		server: api.NewServer(config.SocketServer),
 		dbus:   dbusapi.NewService(),
 
 		sleepmon: sleepmon.NewSleepMon(),
 
-		dns: dnsproxy.NewProxy(dnsproxy.NewConfig()),
+		dns: dnsproxy.NewProxy(config.DNSProxy),
 
-		runner: ocrunner.NewConnect(ocrunner.NewConfig()),
+		runner: ocrunner.NewConnect(config.OpenConnect),
 
 		status: vpnstatus.New(),
 
 		done:   make(chan struct{}),
 		closed: make(chan struct{}),
 
-		profile: readXMLProfile(),
-		profmon: profilemon.NewProfileMon(xmlProfile),
+		profile: readXMLProfile(config.OpenConnect.XMLProfile),
+		profmon: profilemon.NewProfileMon(config.OpenConnect.XMLProfile),
 	}
 }
