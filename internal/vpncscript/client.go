@@ -8,15 +8,10 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/daemon"
 )
 
-const (
-	runDir   = "/run/oc-daemon"
-	sockFile = runDir + "/daemon.sock"
-)
-
 // runClient interacts with the daemon over the api
-func runClient(configUpdate *daemon.VPNConfigUpdate) {
+func runClient(socketFile string, configUpdate *daemon.VPNConfigUpdate) {
 	// connect to daemon
-	conn, err := net.Dial("unix", sockFile)
+	conn, err := net.Dial("unix", socketFile)
 	if err != nil {
 		log.WithError(err).Fatal("VPNCScript could not connect to Daemon")
 	}

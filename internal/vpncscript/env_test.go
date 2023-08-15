@@ -342,7 +342,8 @@ func TestParseEnvironment(t *testing.T) {
 		"CISCO_IPV6_SPLITEXCC":       "0",
 		"CISCO_CSTP_OPTIONS": `X-CSTP-Post-Auth-XML=<?xml version="1.0" encoding="UTF-8"?><config-auth client="vpn" type="complete" aggregate-auth-version="2"><config client="vpn" type="private"><opaque is-for="vpn-client"><custom-attr><dynamic-split-exclude-domains><![CDATA[some.example.com,other.example.com,www.example.com]]></dynamic-split-exclude-domains><BypassVirtualSubnetsOnlyV4><![CDATA[true]]></BypassVirtualSubnetsOnlyV4></custom-attr></opaque></config></config-auth>
 X-CSTP-Disable-Always-On-VPN=true`,
-		"oc_daemon_token": "some token",
+		"oc_daemon_token":       "some token",
+		"oc_daemon_socket_file": "/run/oc-daemon/test.socket",
 	} {
 		os.Setenv(k, v)
 	}
@@ -375,6 +376,7 @@ X-CSTP-Disable-Always-On-VPN=true`,
 		bypassVirtualSubnetsOnlyV4: true,
 		disableAlwaysOnVPN:         true,
 		token:                      "some token",
+		socketFile:                 "/run/oc-daemon/test.socket",
 	}
 
 	// run test

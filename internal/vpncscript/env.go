@@ -118,8 +118,9 @@ type env struct {
 	bypassVirtualSubnetsOnlyV4 bool
 	disableAlwaysOnVPN         bool
 
-	// openconnect daemon token
-	token string
+	// openconnect daemon token, socket file
+	token      string
+	socketFile string
 }
 
 // parseEnvironmentSplit parses split include/exclude parameters identified by
@@ -375,8 +376,9 @@ func parseEnvironment() *env {
 	// parse Disable Always On VPN
 	e.disableAlwaysOnVPN = parseDisableAlwaysOnVPN(e.ciscoCSTPOptions)
 
-	// parse openconnect daemon token
+	// parse openconnect daemon token, socket file
 	e.token = os.Getenv("oc_daemon_token")
+	e.socketFile = os.Getenv("oc_daemon_socket_file")
 
 	return e
 }
