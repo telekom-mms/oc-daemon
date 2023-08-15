@@ -386,6 +386,10 @@ var authenticate = func(d *DBusClient) error {
 	//   "$SERVER"
 	//
 	config := d.GetConfig()
+	protocol := fmt.Sprintf("--protocol=%s", config.Protocol)
+	// some VPN servers reject connections from other clients,
+	// set default user agent to AnyConnect
+	userAgent := fmt.Sprintf("--useragent=%s", config.UserAgent)
 	certificate := fmt.Sprintf("--certificate=%s", config.ClientCertificate)
 	sslKey := fmt.Sprintf("--sslkey=%s", config.ClientKey)
 	caFile := fmt.Sprintf("--cafile=%s", config.CACertificate)
@@ -393,16 +397,18 @@ var authenticate = func(d *DBusClient) error {
 	user := fmt.Sprintf("--user=%s", config.User)
 
 	parameters := []string{
-		"--protocol=anyconnect",
-		// some VPN servers reject connections from other clients,
-		// set user agent to AnyConnect
-		"--useragent=AnyConnect",
+		protocol,
+		userAgent,
 		certificate,
 		sslKey,
 		xmlConfig,
 		"--authenticate",
-		"--quiet",
-		"--no-proxy",
+	}
+	if config.Quiet {
+		parameters = append(parameters, "--quiet")
+	}
+	if config.NoProxy {
+		parameters = append(parameters, "--no-proxy")
 	}
 	if config.CACertificate != "" {
 		parameters = append(parameters, caFile)
@@ -415,6 +421,7 @@ var authenticate = func(d *DBusClient) error {
 		parameters = append(parameters, "--passwd-on-stdin")
 		parameters = append(parameters, "--non-inter")
 	}
+	parameters = append(parameters, config.ExtraArgs...)
 	parameters = append(parameters, config.VPNServer)
 
 	command := exec.Command("openconnect", parameters...)
@@ -428,7 +435,8 @@ var authenticate = func(d *DBusClient) error {
 	}
 	command.Stdout = &b
 	command.Stderr = os.Stderr
-	command.Env = append(os.Environ(), d.GetEnv()...)
+	command.Env = append(os.Environ(), config.ExtraEnv...)
+	command.Env = append(command.Env, d.GetEnv()...)
 	if err := command.Run(); err != nil {
 		// TODO: handle failed program start?
 		return err
