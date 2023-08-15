@@ -44,6 +44,34 @@ func TestConfigEmpty(t *testing.T) {
 	}
 }
 
+// TestConfigValid tests Valid of Config
+func TestConfigValid(t *testing.T) {
+	// test invalid
+	for _, invalid := range []*Config{
+		nil,
+		{},
+	} {
+		want := false
+		got := invalid.Valid()
+
+		if got != want {
+			t.Errorf("got %t, want %t for %v", got, want, invalid)
+		}
+	}
+
+	// test valid
+	valid := NewConfig()
+	valid.ClientCertificate = "test-cert"
+	valid.ClientKey = "test-key"
+	valid.VPNServer = "test-server"
+	want := true
+	got := valid.Valid()
+
+	if got != want {
+		t.Errorf("got %t, want %t for %v", got, want, valid)
+	}
+}
+
 // TestNewConfig tests NewConfig
 func TestNewConfig(t *testing.T) {
 	c := NewConfig()
@@ -59,13 +87,16 @@ func TestLoadConfig(t *testing.T) {
 		ClientCertificate: "/some/cert",
 		ClientKey:         "/some/key",
 		CACertificate:     "/some/ca",
+		XMLProfile:        "/some/profile",
 		VPNServer:         "server.example.com",
 		User:              "user1",
-		Password:          "passwd1",
 
-		SocketFile:        SocketFile,
-		ConnectionTimeout: ConnectionTimeout,
-		RequestTimeout:    RequestTimeout,
+		Protocol:  "test",
+		UserAgent: "agent",
+		Quiet:     true,
+		NoProxy:   true,
+		ExtraEnv:  []string{"oc_daemon_var_is_not=used"},
+		ExtraArgs: []string{"--arg-does-not=exist"},
 	}
 
 	// create temporary file

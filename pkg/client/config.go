@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
 )
@@ -23,15 +22,23 @@ var (
 	// of the system configuration is stored
 	SystemConfigDirPath = "/var/lib"
 
-	// SocketFile is the socket file of the OC-Daemon
-	SocketFile = "/run/oc-daemon/daemon.sock"
+	// Protocol is the protocol used by openconnect
+	Protocol = "anyconnect"
 
-	// ConnectionTimeout is the timeout for the client connection attempt
-	ConnectionTimeout = 30 * time.Second
+	// UserAgent is the user agent used by openconnect
+	UserAgent = "AnyConnect"
 
-	// RequestTimeout is the timeout for the entire request/response
-	// exchange initiated by the client after a successful connection
-	RequestTimeout = 30 * time.Second
+	// Quiet specifies whether the quiet flag is set in openconnect
+	Quiet = true
+
+	// NoProxy specifies whether the no proxy flag is set in openconnect
+	NoProxy = true
+
+	// ExtraEnv are extra environment variables used by openconnect
+	ExtraEnv = []string{}
+
+	// ExtraArgs are extra command line arguments used by openconnect
+	ExtraArgs = []string{}
 )
 
 // Config is a configuration for the OC client
@@ -42,11 +49,14 @@ type Config struct {
 	XMLProfile        string
 	VPNServer         string
 	User              string
-	Password          string
+	Password          string `json:"-"`
 
-	SocketFile        string
-	ConnectionTimeout time.Duration
-	RequestTimeout    time.Duration
+	Protocol  string
+	UserAgent string
+	Quiet     bool
+	NoProxy   bool
+	ExtraEnv  []string
+	ExtraArgs []string
 }
 
 // Copy returns a copy of Config
@@ -66,6 +76,22 @@ func (c *Config) Empty() bool {
 
 	empty := &Config{}
 	return reflect.DeepEqual(c, empty)
+}
+
+// Valid returns whether the config is valid
+func (c *Config) Valid() bool {
+	if c.Empty() ||
+		c.ClientCertificate == "" ||
+		c.ClientKey == "" ||
+		c.XMLProfile == "" ||
+		c.VPNServer == "" ||
+		c.Protocol == "" ||
+		c.UserAgent == "" {
+		// invalid
+		return false
+	}
+
+	return true
 }
 
 // expandPath expands tilde and environment variables in path
@@ -108,10 +134,13 @@ func (c *Config) Save(file string) error {
 // NewConfig returns a new Config
 func NewConfig() *Config {
 	return &Config{
-		XMLProfile:        xmlprofile.SystemProfile,
-		SocketFile:        SocketFile,
-		ConnectionTimeout: ConnectionTimeout,
-		RequestTimeout:    RequestTimeout,
+		XMLProfile: xmlprofile.SystemProfile,
+		Protocol:   Protocol,
+		UserAgent:  UserAgent,
+		Quiet:      Quiet,
+		NoProxy:    NoProxy,
+		ExtraEnv:   ExtraEnv,
+		ExtraArgs:  ExtraArgs,
 	}
 }
 
