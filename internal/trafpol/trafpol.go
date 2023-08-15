@@ -149,7 +149,7 @@ func NewTrafPol(allowedHosts []string) *TrafPol {
 	return &TrafPol{
 		devmon: devmon.NewDevMon(),
 		dnsmon: dnsmon.NewDNSMon(),
-		cpd:    cpd.NewCPD(),
+		cpd:    cpd.NewCPD(cpd.NewConfig()),
 
 		allowDevs:  NewAllowDevs(),
 		allowHosts: allowHosts,
