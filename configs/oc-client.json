@@ -2,6 +2,13 @@
     "ClientCertificate": "/path/to/file or PKCS11 URI",
     "ClientKey": "/path/to/file or PKCS11 URI",
     "CACertificate": "Empty or additional CA Certificate file(s)",
+    "XMLProfile": "/var/lib/oc-daemon/profile.xml",
     "VPNServer": "My VPN Server Name",
-    "User": "$USER"
+    "User": "$USER",
+    "Protocol": "anyconnect",
+    "UserAgent": "AnyConnect",
+    "Quiet": true,
+    "NoProxy": true,
+    "ExtraEnv": [],
+    "ExtraArgs": []
 }
