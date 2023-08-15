@@ -27,13 +27,13 @@ func Run() {
 		os.Exit(0)
 	}
 
-	// set verbose output
-	if *verbose {
-		log.SetLevel(log.DebugLevel)
-	}
-
 	// parse environment variables
 	e := parseEnvironment()
+
+	// set verbosity from command line or environment
+	if *verbose || e.verbose {
+		log.SetLevel(log.DebugLevel)
+	}
 
 	// set socket file from environment
 	socketFile := socketFile

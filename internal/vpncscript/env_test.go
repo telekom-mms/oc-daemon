@@ -344,6 +344,7 @@ func TestParseEnvironment(t *testing.T) {
 X-CSTP-Disable-Always-On-VPN=true`,
 		"oc_daemon_token":       "some token",
 		"oc_daemon_socket_file": "/run/oc-daemon/test.socket",
+		"oc_daemon_verbose":     "true",
 	} {
 		os.Setenv(k, v)
 	}
@@ -377,6 +378,7 @@ X-CSTP-Disable-Always-On-VPN=true`,
 		disableAlwaysOnVPN:         true,
 		token:                      "some token",
 		socketFile:                 "/run/oc-daemon/test.socket",
+		verbose:                    true,
 	}
 
 	// run test
