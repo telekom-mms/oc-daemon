@@ -5,29 +5,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	// resolv.conf files in /etc and /run/systemd/resolve
-	etc               = "/etc"
-	etcResolvConf     = etc + "/resolv.conf"
-	systemdResolveDir = "/run/systemd/resolve"
-	systemdResolvConf = systemdResolveDir + "/resolv.conf"
-	stubResolvConf    = systemdResolveDir + "/stub-resolv.conf"
-)
-
 // DNSMon is a DNS monitor
 type DNSMon struct {
+	config  *Config
 	updates chan struct{}
 	done    chan struct{}
 }
 
 // isResolvConfEvent checks if event is a resolv.conf file event
-func isResolvConfEvent(event fsnotify.Event) bool {
+func (d *DNSMon) isResolvConfEvent(event fsnotify.Event) bool {
 	switch event.Name {
-	case etcResolvConf:
+	case d.config.ETCResolvConf:
 		return true
-	case stubResolvConf:
+	case d.config.StubResolvConf:
 		return true
-	case systemdResolvConf:
+	case d.config.SystemdResolvConf:
 		return true
 	}
 	return false
@@ -58,11 +50,10 @@ func (d *DNSMon) start() {
 	}()
 
 	// add resolv.conf folders to watcher
-	if err := watcher.Add(etc); err != nil {
-		log.WithError(err).Debug("DNSMon add etc dir error")
-	}
-	if err := watcher.Add(systemdResolveDir); err != nil {
-		log.WithError(err).Debug("DNSMon add systemd dir error")
+	for _, dir := range d.config.resolvConfDirs() {
+		if err := watcher.Add(dir); err != nil {
+			log.WithError(err).WithField("dir", dir).Debug("DNSMon add resolv.conf dir error")
+		}
 	}
 
 	// send initial update
@@ -76,7 +67,7 @@ func (d *DNSMon) start() {
 				log.Error("DNSMon got unexpected close of events channel")
 				return
 			}
-			if isResolvConfEvent(event) {
+			if d.isResolvConfEvent(event) {
 				log.WithFields(log.Fields{
 					"name": event.Name,
 					"op":   event.Op,
@@ -116,8 +107,9 @@ func (d *DNSMon) Updates() chan struct{} {
 }
 
 // NewDNSMon returns a new DNSMon
-func NewDNSMon() *DNSMon {
+func NewDNSMon(config *Config) *DNSMon {
 	return &DNSMon{
+		config:  config,
 		updates: make(chan struct{}),
 		done:    make(chan struct{}),
 	}
