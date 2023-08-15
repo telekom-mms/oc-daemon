@@ -9,10 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	// configDir is the directory for the configuration
-	configDir = "/var/lib/oc-daemon"
-
+var (
 	// xmlProfile is the AnyConnect Profile
 	xmlProfile = configDir + "/profile.xml"
 
