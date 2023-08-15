@@ -7,15 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	// rtTable is the routing table
-	rtTable = "42111"
-
-	// rule preferences
-	rulePref1 = "2111"
-	rulePref2 = "2112"
-)
-
 // runCmd runs the cmd
 var runCmd = func(cmd string) {
 	log.WithField("command", cmd).Debug("Daemon executing command")
@@ -29,15 +20,15 @@ var runCmd = func(cmd string) {
 }
 
 // addDefaultRouteIPv4 adds default routing for IPv4
-func addDefaultRouteIPv4(device string) {
+func addDefaultRouteIPv4(device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
 	// set default route and routing rules
 	for _, r := range []string{
 		fmt.Sprintf("ip -4 route add 0.0.0.0/0 dev %s table %s",
 			device, rtTable),
 		fmt.Sprintf("ip -4 rule add iif %s table main pref %s",
-			device, rulePref1),
+			device, rulePrio1),
 		fmt.Sprintf("ip -4 rule add not fwmark %s table %s pref %s",
-			FWMark, rtTable, rulePref2),
+			fwMark, rtTable, rulePrio2),
 	} {
 		runCmd(r)
 	}
@@ -48,22 +39,22 @@ func addDefaultRouteIPv4(device string) {
 }
 
 // addDefaultRouteIPv6 adds default routing for IPv6
-func addDefaultRouteIPv6(device string) {
+func addDefaultRouteIPv6(device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
 	// set default route and routing rules
 	for _, r := range []string{
 		fmt.Sprintf("ip -6 route add ::/0 dev %s table %s", device,
 			rtTable),
 		fmt.Sprintf("ip -6 rule add iif %s table main pref %s",
-			device, rulePref1),
+			device, rulePrio1),
 		fmt.Sprintf("ip -6 rule add not fwmark %s table %s pref %s",
-			FWMark, rtTable, rulePref2),
+			fwMark, rtTable, rulePrio2),
 	} {
 		runCmd(r)
 	}
 }
 
 // deleteDefaultRouteIPv4 removes default routing for IPv4
-func deleteDefaultRouteIPv4(device string) {
+func deleteDefaultRouteIPv4(device, rtTable string) {
 	// delete routing rules
 	for _, r := range []string{
 		fmt.Sprintf("ip -4 rule delete table %s", rtTable),
@@ -74,7 +65,7 @@ func deleteDefaultRouteIPv4(device string) {
 }
 
 // deleteDefaultRouteIPv6 removes default routing for IPv6
-func deleteDefaultRouteIPv6(device string) {
+func deleteDefaultRouteIPv6(device, rtTable string) {
 	// delete routing rules
 	for _, r := range []string{
 		fmt.Sprintf("ip -6 rule delete table %s", rtTable),
@@ -95,13 +86,13 @@ var runCleanupCmd = func(cmd string) {
 }
 
 // cleanupRouting cleans up the routing configuration after a failed shutdown
-func cleanupRouting() {
+func cleanupRouting(rtTable, rulePrio1, rulePrio2 string) {
 	// delete routing rules
 	for _, r := range []string{
-		fmt.Sprintf("ip -4 rule delete pref %s", rulePref1),
-		fmt.Sprintf("ip -4 rule delete pref %s", rulePref2),
-		fmt.Sprintf("ip -6 rule delete pref %s", rulePref1),
-		fmt.Sprintf("ip -6 rule delete pref %s", rulePref2),
+		fmt.Sprintf("ip -4 rule delete pref %s", rulePrio1),
+		fmt.Sprintf("ip -4 rule delete pref %s", rulePrio2),
+		fmt.Sprintf("ip -6 rule delete pref %s", rulePrio1),
+		fmt.Sprintf("ip -6 rule delete pref %s", rulePrio2),
 		fmt.Sprintf("ip -4 route flush table %s", rtTable),
 		fmt.Sprintf("ip -6 route flush table %s", rtTable),
 	} {

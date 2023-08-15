@@ -10,11 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	// FWMark is the firewall mark
-	FWMark = rtTable
-)
-
 // runNft runs nft and passes s to it via stdin
 var runNft = func(s string) {
 	cmd := "nft -f -"
@@ -26,7 +21,7 @@ var runNft = func(s string) {
 }
 
 // setRoutingRules sets the basic nftables rules for routing
-func setRoutingRules() {
+func setRoutingRules(fwMark string) {
 	const routeRules = `
 table inet oc-daemon-routing {
 	# set for ipv4 excludes
@@ -116,7 +111,7 @@ table inet oc-daemon-routing {
 	}
 }
 `
-	r := strings.NewReplacer("$FWMARK", FWMark)
+	r := strings.NewReplacer("$FWMARK", fwMark)
 	rules := r.Replace(routeRules)
 	runNft(rules)
 }

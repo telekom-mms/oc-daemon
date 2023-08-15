@@ -234,11 +234,11 @@ func (d *Daemon) disconnectVPN() {
 
 // setupRouting sets up routing using config
 // TODO: move somewhere else?
-func (d *Daemon) setupRouting(config *vpnconfig.Config) {
+func (d *Daemon) setupRouting(vpnconf *vpnconfig.Config) {
 	if d.splitrt != nil {
 		return
 	}
-	d.splitrt = splitrt.NewSplitRouting(config)
+	d.splitrt = splitrt.NewSplitRouting(splitrt.NewConfig(), vpnconf)
 	d.splitrt.Start()
 }
 
@@ -538,7 +538,7 @@ func (d *Daemon) handleProfileUpdate() {
 func (d *Daemon) cleanup() {
 	ocrunner.CleanupConnect(ocrunner.NewConfig())
 	cleanupVPNConfig(vpnDevice)
-	splitrt.Cleanup()
+	splitrt.Cleanup(splitrt.NewConfig())
 	trafpol.Cleanup()
 }
 
@@ -581,7 +581,7 @@ func (d *Daemon) initTNDServers() {
 // setTNDDialer sets a custom dialer for TND
 func (d *Daemon) setTNDDialer() {
 	// get mark to be set on socket
-	mark, err := strconv.Atoi(splitrt.FWMark)
+	mark, err := strconv.Atoi(splitrt.FirewallMark)
 	if err != nil {
 		log.WithError(err).Error("Daemon could not convert FWMark to int")
 		return

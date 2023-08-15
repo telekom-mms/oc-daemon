@@ -163,7 +163,7 @@ table inet oc-daemon-filter {
         }
 }
 `
-	r := strings.NewReplacer("$FWMARK", splitrt.FWMark)
+	r := strings.NewReplacer("$FWMARK", splitrt.FirewallMark)
 	rules := r.Replace(filterRules)
 	runNft(rules)
 }
