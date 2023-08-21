@@ -17,8 +17,21 @@ type allowHost struct {
 	lastUpdate time.Time
 }
 
+// sleepResolveTry is used to sleep before resolve (re)tries, can be canceled
+func (a *allowHost) sleepResolveTry(ctx context.Context, config *Config) {
+	timer := time.NewTimer(config.ResolveTriesSleep)
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
+		// stop timer
+		if !timer.Stop() {
+			<-timer.C
+		}
+	}
+}
+
 // resolve resolves the allowed host to its IP addresses
-func (a *allowHost) resolve(config *Config) {
+func (a *allowHost) resolve(ctx context.Context, config *Config) {
 	// check if host is a network address
 	if _, ipnet, err := net.ParseCIDR(a.host); err == nil {
 		a.lastUpdate = time.Now()
@@ -40,10 +53,10 @@ func (a *allowHost) resolve(config *Config) {
 		tries++
 
 		// sleep before (re)tries
-		time.Sleep(config.ResolveTriesSleep)
+		a.sleepResolveTry(ctx, config)
 
 		// resolve ips
-		ctx, cancel := context.WithTimeout(context.TODO(), config.ResolveTimeout)
+		ctx, cancel := context.WithTimeout(ctx, config.ResolveTimeout)
 		defer cancel()
 		resolver := &net.Resolver{}
 		ips, err := resolver.LookupIP(ctx, "ip", a.host)
@@ -129,7 +142,7 @@ func (a *AllowHosts) Remove(host string) {
 }
 
 // resolveAll resolves the IP addresses of all allowed hosts
-func (a *AllowHosts) resolveAll() {
+func (a *AllowHosts) resolveAll(ctx context.Context) {
 	a.Lock()
 	defer a.Unlock()
 
@@ -138,7 +151,7 @@ func (a *AllowHosts) resolveAll() {
 		wg.Add(1)
 		go func(host *allowHost) {
 			defer wg.Done()
-			host.resolve(a.config)
+			host.resolve(ctx, a.config)
 		}(h)
 	}
 	wg.Wait()
@@ -181,16 +194,17 @@ func (a *AllowHosts) setFilter() {
 }
 
 // update updates all allowed hosts
-func (a *AllowHosts) update() {
-	a.resolveAll()
+func (a *AllowHosts) update(ctx context.Context, upDone chan<- struct{}) {
+	a.resolveAll(ctx)
 	if a.getAndClearUpdates() {
 		a.setFilter()
 	}
+	upDone <- struct{}{}
 }
 
 // resolvePeriodic resolves the IP addresses of all allowed hosts with old or
 // no ip addresses, called periodically
-func (a *AllowHosts) resolvePeriodic() {
+func (a *AllowHosts) resolvePeriodic(ctx context.Context) {
 	a.Lock()
 	defer a.Unlock()
 
@@ -203,7 +217,7 @@ func (a *AllowHosts) resolvePeriodic() {
 		wg.Add(1)
 		go func(host *allowHost) {
 			defer wg.Done()
-			host.resolve(a.config)
+			host.resolve(ctx, a.config)
 		}(h)
 	}
 	wg.Wait()
@@ -211,11 +225,12 @@ func (a *AllowHosts) resolvePeriodic() {
 
 // updatePeriodic updates old entries and entries without ip addresses,
 // called periodically
-func (a *AllowHosts) updatePeriodic() {
-	a.resolvePeriodic()
+func (a *AllowHosts) updatePeriodic(ctx context.Context, upDone chan<- struct{}) {
+	a.resolvePeriodic(ctx)
 	if a.getAndClearUpdates() {
 		a.setFilter()
 	}
+	upDone <- struct{}{}
 }
 
 // start starts the allowed hosts
@@ -223,20 +238,52 @@ func (a *AllowHosts) start() {
 	defer close(a.closed)
 
 	timer := time.NewTimer(a.config.ResolveTimer)
+	updating := false
+	upAgain := false
+	upDone := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
 	for {
 		select {
 		case <-a.updates:
-			// update all and reset timer
-			a.update()
-			if !timer.Stop() {
-				<-timer.C
+			if updating {
+				// update already in progress, queue another
+				upAgain = true
+				break
 			}
-			timer.Reset(a.config.ResolveTimer)
+
+			// update all
+			updating = true
+			go a.update(ctx, upDone)
+
+		case <-upDone:
+			if upAgain {
+				// trigger another update
+				upAgain = false
+				go a.update(ctx, upDone)
+				break
+			}
+			updating = false
+
 		case <-timer.C:
-			// periodic update and reset timer
-			a.updatePeriodic()
+			// reset periodic timer
 			timer.Reset(a.config.ResolveTimer)
+
+			if updating {
+				// update already in progress, skip periodic
+				break
+			}
+
+			// periodic update
+			updating = true
+			go a.updatePeriodic(ctx, upDone)
+
 		case <-a.done:
+			// cancel and wait for ongoing update
+			cancel()
+			if updating {
+				<-upDone
+			}
+
 			// stop timer
 			if !timer.Stop() {
 				<-timer.C
