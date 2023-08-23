@@ -424,7 +424,7 @@ var authenticate = func(d *DBusClient) error {
 	parameters = append(parameters, config.ExtraArgs...)
 	parameters = append(parameters, config.VPNServer)
 
-	command := exec.Command("openconnect", parameters...)
+	command := exec.Command(config.OpenConnect, parameters...)
 
 	// run command: allow user input, show stderr, buffer stdout
 	var b bytes.Buffer

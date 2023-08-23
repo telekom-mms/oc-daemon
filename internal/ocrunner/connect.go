@@ -160,7 +160,7 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 		parameters = append(parameters, device)
 	}
 	parameters = append(parameters, c.config.ExtraArgs...)
-	c.command = exec.Command("openconnect", parameters...)
+	c.command = exec.Command(c.config.OpenConnect, parameters...)
 
 	// run command, pass login info to stdin
 	b := bytes.NewBufferString(e.login.Cookie)
@@ -316,7 +316,7 @@ func CleanupConnect(config *Config) {
 		return
 	}
 
-	if !strings.HasPrefix(string(cmdLine), "openconnect") {
+	if !strings.HasPrefix(string(cmdLine), config.OpenConnect) {
 		return
 	}
 

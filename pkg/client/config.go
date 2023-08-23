@@ -22,6 +22,9 @@ var (
 	// of the system configuration is stored
 	SystemConfigDirPath = "/var/lib"
 
+	// OpenConnect is the openconnect executable
+	OpenConnect = "openconnect"
+
 	// Protocol is the protocol used by openconnect
 	Protocol = "anyconnect"
 
@@ -51,12 +54,13 @@ type Config struct {
 	User              string
 	Password          string `json:"-"`
 
-	Protocol  string
-	UserAgent string
-	Quiet     bool
-	NoProxy   bool
-	ExtraEnv  []string
-	ExtraArgs []string
+	OpenConnect string
+	Protocol    string
+	UserAgent   string
+	Quiet       bool
+	NoProxy     bool
+	ExtraEnv    []string
+	ExtraArgs   []string
 }
 
 // Copy returns a copy of Config
@@ -87,6 +91,7 @@ func (c *Config) Valid() bool {
 		c.ClientKey == "" ||
 		c.XMLProfile == "" ||
 		c.VPNServer == "" ||
+		c.OpenConnect == "" ||
 		c.Protocol == "" ||
 		c.UserAgent == "" {
 		// invalid
@@ -136,13 +141,14 @@ func (c *Config) Save(file string) error {
 // NewConfig returns a new Config
 func NewConfig() *Config {
 	return &Config{
-		XMLProfile: xmlprofile.SystemProfile,
-		Protocol:   Protocol,
-		UserAgent:  UserAgent,
-		Quiet:      Quiet,
-		NoProxy:    NoProxy,
-		ExtraEnv:   ExtraEnv,
-		ExtraArgs:  ExtraArgs,
+		XMLProfile:  xmlprofile.SystemProfile,
+		OpenConnect: OpenConnect,
+		Protocol:    Protocol,
+		UserAgent:   UserAgent,
+		Quiet:       Quiet,
+		NoProxy:     NoProxy,
+		ExtraEnv:    ExtraEnv,
+		ExtraArgs:   ExtraArgs,
 	}
 }
 

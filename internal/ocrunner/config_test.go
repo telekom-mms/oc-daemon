@@ -12,6 +12,7 @@ func TestConfigValid(t *testing.T) {
 		nil,
 		{},
 		{
+			OpenConnect:    "openconnect",
 			XMLProfile:     "/test/profile",
 			VPNCScript:     "/test/vpncscript",
 			VPNDevice:      "test-device",
@@ -19,6 +20,7 @@ func TestConfigValid(t *testing.T) {
 			PIDPermissions: "invalid",
 		},
 		{
+			OpenConnect:    "openconnect",
 			XMLProfile:     "/test/profile",
 			VPNCScript:     "/test/vpncscript",
 			VPNDevice:      "test-device",
@@ -38,6 +40,7 @@ func TestConfigValid(t *testing.T) {
 	for _, valid := range []*Config{
 		NewConfig(),
 		{
+			OpenConnect:    "openconnect",
 			XMLProfile:     "/test/profile",
 			VPNCScript:     "/test/vpncscript",
 			VPNDevice:      "test-device",
@@ -57,6 +60,8 @@ func TestConfigValid(t *testing.T) {
 // TestNewConfig tests NewConfig
 func TestNewConfig(t *testing.T) {
 	want := &Config{
+		OpenConnect: OpenConnect,
+
 		XMLProfile: XMLProfile,
 		VPNCScript: VPNCScript,
 		VPNDevice:  VPNDevice,

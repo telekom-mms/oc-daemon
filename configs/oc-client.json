@@ -5,6 +5,7 @@
     "XMLProfile": "/var/lib/oc-daemon/profile.xml",
     "VPNServer": "My VPN Server Name",
     "User": "$USER",
+    "OpenConnect": "openconnect",
     "Protocol": "anyconnect",
     "UserAgent": "AnyConnect",
     "Quiet": true,
