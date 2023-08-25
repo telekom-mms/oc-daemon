@@ -1,17 +1,19 @@
 package dnsmon
 
-import "testing"
+import (
+	"testing"
+)
 
 // TestDNSMonStartStop tests Start and Stop of DNSMon
 func TestDNSMonStartStop(t *testing.T) {
-	dnsMon := NewDNSMon()
+	dnsMon := NewDNSMon(NewConfig())
 	dnsMon.Start()
 	dnsMon.Stop()
 }
 
 // TestDNSMonUpdates tests Updates of DNSMon
 func TestDNSMonUpdates(t *testing.T) {
-	dnsMon := NewDNSMon()
+	dnsMon := NewDNSMon(NewConfig())
 	got := dnsMon.Updates()
 	want := dnsMon.updates
 	if got != want {
@@ -21,7 +23,11 @@ func TestDNSMonUpdates(t *testing.T) {
 
 // TestNewDNSMon tests NewDNSMon
 func TestNewDNSMon(t *testing.T) {
-	dnsMon := NewDNSMon()
+	config := NewConfig()
+	dnsMon := NewDNSMon(config)
+	if dnsMon.config != config {
+		t.Errorf("got %v, want %v", dnsMon.config, config)
+	}
 	if dnsMon.updates == nil ||
 		dnsMon.done == nil {
 

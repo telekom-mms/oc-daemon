@@ -8,26 +8,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	// host is the host address used for probing
-	// TODO: add chrome, android, firefox URLs?
-	host = "connectivity-check.ubuntu.com"
-
-	// httpTimeout is the timeout for http requests in seconds
-	httpTimeout = 5
-
-	// numProbes is the number of probes to run
-	numProbes = 3
-
-	// detectedTimer is the probe timer in case of a detected portal
-	// in seconds
-	detectedTimer = 15
-
-	// regularTimer is the probe timer in case of no detected portal
-	// in seconds
-	regularTimer = 300
-)
-
 // Report is a captive portal detection report
 type Report struct {
 	Detected bool
@@ -36,6 +16,7 @@ type Report struct {
 
 // CPD is a captive portal detection instance
 type CPD struct {
+	config  *Config
 	reports chan *Report
 	probes  chan struct{}
 	done    chan struct{}
@@ -45,12 +26,12 @@ type CPD struct {
 func (c *CPD) check() *Report {
 	// send http request
 	client := &http.Client{
-		Timeout: httpTimeout * time.Second,
+		Timeout: c.config.HTTPTimeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
-	resp, err := client.Get("http://" + host)
+	resp, err := client.Get("http://" + c.config.Host)
 	if err != nil {
 		log.WithError(err).Debug("CPD GET error")
 		return &Report{}
@@ -96,7 +77,7 @@ func (c *CPD) start() {
 	probeFunc := func() {
 		// TODO: improve this?
 		r := &Report{}
-		for i := 0; i < numProbes; i++ {
+		for i := 0; i < c.config.ProbeCount; i++ {
 			r = c.check()
 			if r.Detected {
 				break
@@ -117,12 +98,12 @@ func (c *CPD) start() {
 	runAgain := false
 
 	// set timer for periodic checks
-	timer := time.NewTimer(regularTimer * time.Second)
+	timer := time.NewTimer(c.config.ProbeTimer)
 	resetTimer := func() {
 		if detected {
-			timer.Reset(detectedTimer * time.Second)
+			timer.Reset(c.config.ProbeTimerDetected)
 		} else {
-			timer.Reset(regularTimer * time.Second)
+			timer.Reset(c.config.ProbeTimer)
 		}
 	}
 
@@ -214,7 +195,7 @@ func (c *CPD) Stop() {
 
 // Hosts returns the host addresses used for captive protal detection
 func (c *CPD) Hosts() []string {
-	return []string{host}
+	return []string{c.config.Host}
 }
 
 // Probe triggers the captive portal detection
@@ -228,8 +209,9 @@ func (c *CPD) Results() chan *Report {
 }
 
 // NewCPD returns a new CPD
-func NewCPD() *CPD {
+func NewCPD(config *Config) *CPD {
 	return &CPD{
+		config:  config,
 		reports: make(chan *Report),
 		probes:  make(chan struct{}),
 		done:    make(chan struct{}),

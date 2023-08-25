@@ -4,7 +4,8 @@ import "testing"
 
 // TestAllowHostsAdd tests Add of AllowHosts
 func TestAllowHostsAdd(t *testing.T) {
-	a := NewAllowHosts()
+	config := NewConfig()
+	a := NewAllowHosts(config)
 	want := "example.com"
 	a.Add(want)
 	got := a.m[want].host
@@ -15,7 +16,8 @@ func TestAllowHostsAdd(t *testing.T) {
 
 // TestAllowHostsRemove tests Add of AllowHosts
 func TestAllowHostsRemove(t *testing.T) {
-	a := NewAllowHosts()
+	config := NewConfig()
+	a := NewAllowHosts(config)
 	host := "example.com"
 	a.Add(host)
 	a.Remove(host)
@@ -26,14 +28,16 @@ func TestAllowHostsRemove(t *testing.T) {
 
 // TestAllowHostsStartStop tests Start and Stop of AllowHosts
 func TestAllowHostsStartStop(t *testing.T) {
-	a := NewAllowHosts()
+	config := NewConfig()
+	a := NewAllowHosts(config)
 	a.Start()
 	a.Stop()
 }
 
 // TestAllowHostsUpdate tests Update of AllowHosts
 func TestAllowHostsUpdate(t *testing.T) {
-	a := NewAllowHosts()
+	config := NewConfig()
+	a := NewAllowHosts(config)
 	host := "example.com"
 	a.Add(host)
 	a.Start()
@@ -43,7 +47,8 @@ func TestAllowHostsUpdate(t *testing.T) {
 
 // TestNewAllowHosts tests NewAllowHosts
 func TestNewAllowHosts(t *testing.T) {
-	a := NewAllowHosts()
+	config := NewConfig()
+	a := NewAllowHosts(config)
 	if a.m == nil ||
 		a.updates == nil ||
 		a.done == nil ||

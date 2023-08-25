@@ -14,8 +14,7 @@ import (
 
 // TestSplitRoutingHandleDeviceUpdate tests handleDeviceUpdate of SplitRouting
 func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
-	config := vpnconfig.New()
-	s := NewSplitRouting(config)
+	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 
 	want := []string{"nothing else"}
 	got := []string{"nothing else"}
@@ -40,14 +39,14 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 
 // TestSplitRoutingHandleAddressUpdate tests handleAddressUpdate of SplitRouting
 func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
-	config := vpnconfig.New()
-	config.Split.ExcludeIPv4 = []*net.IPNet{
+	vpnconf := vpnconfig.New()
+	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
 		{
 			IP:   net.IPv4(0, 0, 0, 0),
 			Mask: net.CIDRMask(32, 32),
 		},
 	}
-	s := NewSplitRouting(config)
+	s := NewSplitRouting(NewConfig(), vpnconf)
 	s.devices.Add(getTestDevMonUpdate())
 
 	got := []string{}
@@ -80,8 +79,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 
 // TestSplitRoutingHandleDNSReport tests handleDNSReport of SplitRouting
 func TestSplitRoutingHandleDNSReport(t *testing.T) {
-	config := vpnconfig.New()
-	s := NewSplitRouting(config)
+	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 
 	got := []string{}
 	runNft = func(s string) {
@@ -109,8 +107,7 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 
 // TestSplitRoutingStartStop tests Start and Stop of SplitRouting
 func TestSplitRoutingStartStop(t *testing.T) {
-	config := vpnconfig.New()
-	s := NewSplitRouting(config)
+	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 
 	// set dummy low level functions for testing
 	cmd := func(s string) {}
@@ -129,8 +126,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 
 // TestSplitRoutingDNSReports tests DNSReports of SplitRouting
 func TestSplitRoutingDNSReports(t *testing.T) {
-	config := vpnconfig.New()
-	s := NewSplitRouting(config)
+	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 	want := s.dnsreps
 	got := s.DNSReports()
 	if got != want {
@@ -140,10 +136,14 @@ func TestSplitRoutingDNSReports(t *testing.T) {
 
 // TestNewSplitRouting tests NewSplitRouting
 func TestNewSplitRouting(t *testing.T) {
-	config := vpnconfig.New()
-	s := NewSplitRouting(config)
+	config := NewConfig()
+	vpnconf := vpnconfig.New()
+	s := NewSplitRouting(config, vpnconf)
 	if s.config != config {
 		t.Errorf("got %p, want %p", s.config, config)
+	}
+	if s.vpnconfig != vpnconf {
+		t.Errorf("got %p, want %p", s.vpnconfig, vpnconf)
 	}
 	if s.devmon == nil ||
 		s.addrmon == nil ||
@@ -166,7 +166,7 @@ func TestCleanup(t *testing.T) {
 	}
 	runCleanupCmd = cmd
 	runCleanupNft = cmd
-	Cleanup()
+	Cleanup(NewConfig())
 	want := []string{
 		"ip -4 rule delete pref 2111",
 		"ip -4 rule delete pref 2112",

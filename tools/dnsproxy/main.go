@@ -68,7 +68,11 @@ func parseCommandLine() {
 func main() {
 	log.SetLevel(log.DebugLevel)
 	parseCommandLine()
-	p := dnsproxy.NewProxy(address)
+	c := dnsproxy.NewConfig()
+	c.Address = address
+	c.ListenUDP = true
+	c.ListenTCP = true
+	p := dnsproxy.NewProxy(c)
 	p.SetRemotes(remotes)
 	p.SetWatches(watches)
 	go p.Start()

@@ -1,17 +1,20 @@
 package ocrunner
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 // TestConnectStartStop tests Start and Stop of Connect
 func TestConnectStartStop(t *testing.T) {
-	c := NewConnect("", "", "")
+	c := NewConnect(NewConfig())
 	c.Start()
 	c.Stop()
 }
 
 // TestConnectDisconnect tests Disconnect of Connect
 func TestConnectDisconnect(t *testing.T) {
-	c := NewConnect("", "", "")
+	c := NewConnect(NewConfig())
 	c.Start()
 	c.Disconnect()
 	c.Stop()
@@ -19,7 +22,7 @@ func TestConnectDisconnect(t *testing.T) {
 
 // TestConnectEvents tests Events of Connect
 func TestConnectEvents(t *testing.T) {
-	c := NewConnect("", "", "")
+	c := NewConnect(NewConfig())
 
 	want := c.events
 	got := c.Events()
@@ -30,18 +33,13 @@ func TestConnectEvents(t *testing.T) {
 
 // TestNewConnect tests NewConnect
 func TestNewConnect(t *testing.T) {
-	profile := "/some/profile/file"
-	script := "/some/vpnc/script"
-	device := "tun999"
-	c := NewConnect(profile, script, device)
-	if c.profile != profile {
-		t.Errorf("got %s, want %s", c.profile, profile)
-	}
-	if c.script != script {
-		t.Errorf("got %s, want %s", c.script, script)
-	}
-	if c.device != device {
-		t.Errorf("got %s, want %s", c.script, script)
+	config := NewConfig()
+	config.XMLProfile = "/some/profile/file"
+	config.VPNCScript = "/some/vpnc/script"
+	config.VPNDevice = "tun999"
+	c := NewConnect(config)
+	if !reflect.DeepEqual(c.config, config) {
+		t.Errorf("got %v, want %v", c.config, config)
 	}
 	if c.exits == nil ||
 		c.commands == nil ||

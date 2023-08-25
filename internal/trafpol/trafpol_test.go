@@ -12,8 +12,7 @@ import (
 
 // TestTrafPolHandleDeviceUpdate tests handleDeviceUpdate of TrafPol
 func TestTrafPolHandleDeviceUpdate(t *testing.T) {
-	allowedHosts := []string{"example.com"}
-	tp := NewTrafPol(allowedHosts)
+	tp := NewTrafPol(NewConfig())
 
 	// test adding
 	update := &devmon.Update{
@@ -28,8 +27,7 @@ func TestTrafPolHandleDeviceUpdate(t *testing.T) {
 
 // TestTrafPolHandleDNSUpdate tests handleDNSUpdate of TrafPol
 func TestTrafPolHandleDNSUpdate(t *testing.T) {
-	allowedHosts := []string{"example.com"}
-	tp := NewTrafPol(allowedHosts)
+	tp := NewTrafPol(NewConfig())
 
 	tp.allowHosts.Start()
 	defer tp.allowHosts.Stop()
@@ -41,8 +39,7 @@ func TestTrafPolHandleDNSUpdate(t *testing.T) {
 
 // TestTrafPolHandleCPDReport tests handleCPDReport of TrafPol
 func TestTrafPolHandleCPDReport(t *testing.T) {
-	allowedHosts := []string{"example.com"}
-	tp := NewTrafPol(allowedHosts)
+	tp := NewTrafPol(NewConfig())
 
 	tp.allowHosts.Start()
 	defer tp.allowHosts.Stop()
@@ -98,8 +95,7 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 
 // TestTrafPolStartStop tests Start and Stop of TrafPol
 func TestTrafPolStartStop(t *testing.T) {
-	allowedHosts := []string{"example.com"}
-	tp := NewTrafPol(allowedHosts)
+	tp := NewTrafPol(NewConfig())
 
 	// set dummy low level function for devmon
 	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
@@ -112,8 +108,7 @@ func TestTrafPolStartStop(t *testing.T) {
 
 // TestNewTrafPol tests NewTrafPol
 func TestNewTrafPol(t *testing.T) {
-	allowedHosts := []string{"example.com"}
-	tp := NewTrafPol(allowedHosts)
+	tp := NewTrafPol(NewConfig())
 	if tp.devmon == nil ||
 		tp.dnsmon == nil ||
 		tp.cpd == nil ||

@@ -16,6 +16,7 @@ const (
 
 // Proxy is a DNS proxy
 type Proxy struct {
+	config  *Config
 	udp     *dns.Server
 	tcp     *dns.Server
 	remotes *Remotes
@@ -136,6 +137,10 @@ func (p *Proxy) cleanTempWatches() {
 
 // startDNSServer starts the dns server
 func (p *Proxy) startDNSServer(server *dns.Server) {
+	if server == nil {
+		return
+	}
+
 	log.WithFields(log.Fields{
 		"addr": server.Addr,
 		"net":  server.Net,
@@ -148,6 +153,10 @@ func (p *Proxy) startDNSServer(server *dns.Server) {
 
 // stopDNSServer stops the dns server
 func (p *Proxy) stopDNSServer(server *dns.Server) {
+	if server == nil {
+		return
+	}
+
 	err := server.Shutdown()
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -219,16 +228,25 @@ func (p *Proxy) SetWatches(watches []string) {
 }
 
 // NewProxy returns a new Proxy that listens on address
-func NewProxy(address string) *Proxy {
-	return &Proxy{
-		udp: &dns.Server{
-			Addr: address,
+func NewProxy(config *Config) *Proxy {
+	var udp *dns.Server
+	if config.ListenUDP {
+		udp = &dns.Server{
+			Addr: config.Address,
 			Net:  "udp",
-		},
-		tcp: &dns.Server{
-			Addr: address,
+		}
+	}
+	var tcp *dns.Server
+	if config.ListenTCP {
+		tcp = &dns.Server{
+			Addr: config.Address,
 			Net:  "tcp",
-		},
+		}
+	}
+	return &Proxy{
+		config:  config,
+		udp:     udp,
+		tcp:     tcp,
 		remotes: NewRemotes(),
 		watches: NewWatches(),
 		reports: make(chan *Report),

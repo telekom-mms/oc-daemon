@@ -31,13 +31,15 @@ func saveConfig() {
 	}
 }
 
-// parseCommandLine parses the command line
-func parseCommandLine() {
+// setConfig sets the config from config files and the command line
+func setConfig() {
 	// define command line arguments
+	cfgFile := flag.String("config", "", "set config `file`")
 	cert := flag.String("cert", "", "set client certificate `file` or "+
 		"PKCS11 URI")
 	key := flag.String("key", "", "set client key `file` or PKCS11 URI")
 	ca := flag.String("ca", "", "set additional CA certificate `file`")
+	profile := flag.String("profile", "", "set XML profile `file`")
 	srv := flag.String("server", "", "set server `address`")
 	usr := flag.String("user", "", "set `username`")
 	sys := flag.Bool("system-settings", false, "use system settings "+
@@ -98,6 +100,26 @@ func parseCommandLine() {
 	// set command
 	command = flag.Arg(0)
 
+	// set config
+	if *cfgFile != "" {
+		// load config from command line
+		c, err := client.LoadConfig(*cfgFile)
+		if err != nil {
+			log.WithError(err).WithField("config", *cfgFile).
+				Fatal("Client could not load config")
+		}
+		c.Expand()
+		config = c
+	} else {
+		// load user or system configuration
+		config = client.LoadUserSystemConfig()
+		if config == nil {
+			// fall back to default config
+			log.Warn("Client could not load user or system config, using default config")
+			config = client.NewConfig()
+		}
+	}
+
 	// set client certificate
 	if *cert != "" {
 		config.ClientCertificate = *cert
@@ -111,6 +133,11 @@ func parseCommandLine() {
 	// set ca certificate
 	if *ca != "" {
 		config.CACertificate = *ca
+	}
+
+	// set xml profile
+	if *profile != "" {
+		config.XMLProfile = *profile
 	}
 
 	// set vpn server
@@ -138,17 +165,15 @@ func parseCommandLine() {
 
 // Run is the main entry point of the oc client
 func Run() {
-	// load configuration
-	config = client.LoadUserSystemConfig()
-
-	// parse command line arguments
-	parseCommandLine()
+	// load configs and parse command line arguments
+	setConfig()
 
 	// make sure config is not empty
-	if config.Empty() {
-		log.Fatal("Cannot run with empty configuration. You need to " +
+	if !config.Valid() {
+		log.Fatal("Client got invalid configuration. Make sure you " +
 			"configure client certificate, client key and vpn " +
-			"server first. See -help for command line arguments")
+			"server as a minimum. See -help for command line " +
+			"arguments")
 	}
 
 	// handle command
