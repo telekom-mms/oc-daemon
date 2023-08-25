@@ -15,6 +15,22 @@ func TestConfigCopy(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test slice manipulation after copy
+	src := NewConfig()
+	src.ExtraEnv = append(src.ExtraEnv, "TestEnv=Before")
+	src.ExtraArgs = append(src.ExtraArgs, "--TestArg=Before")
+
+	dst := src.Copy()
+	if !reflect.DeepEqual(dst, src) {
+		t.Errorf("%v and %v should still match", dst, src)
+	}
+
+	dst.ExtraEnv[0] = "TestEnv=After"
+	dst.ExtraArgs[0] = "--TestArg=After"
+	if reflect.DeepEqual(dst, src) {
+		t.Errorf("%v and %v should not match anymore", dst, src)
+	}
 }
 
 // TestConfigEmpty tests Empty of Config

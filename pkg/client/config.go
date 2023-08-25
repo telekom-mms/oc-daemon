@@ -65,6 +65,8 @@ func (c *Config) Copy() *Config {
 		return nil
 	}
 	cp := *c
+	cp.ExtraEnv = append(c.ExtraEnv[:0:0], c.ExtraEnv...)
+	cp.ExtraArgs = append(c.ExtraArgs[:0:0], c.ExtraArgs...)
 	return &cp
 }
 
