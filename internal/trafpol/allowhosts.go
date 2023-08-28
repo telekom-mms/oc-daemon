@@ -173,7 +173,7 @@ func (a *AllowHosts) getAndClearUpdates() bool {
 }
 
 // setFilter sets the allowed hosts in the traffic filter
-func (a *AllowHosts) setFilter() {
+func (a *AllowHosts) setFilter(ctx context.Context) {
 	a.Lock()
 	defer a.Unlock()
 
@@ -190,14 +190,14 @@ func (a *AllowHosts) setFilter() {
 	}
 
 	// set ips in traffic filter
-	setAllowedIPs(ips)
+	setAllowedIPs(ctx, ips)
 }
 
 // update updates all allowed hosts
 func (a *AllowHosts) update(ctx context.Context, upDone chan<- struct{}) {
 	a.resolveAll(ctx)
 	if a.getAndClearUpdates() {
-		a.setFilter()
+		a.setFilter(ctx)
 	}
 	upDone <- struct{}{}
 }
@@ -228,7 +228,7 @@ func (a *AllowHosts) resolvePeriodic(ctx context.Context) {
 func (a *AllowHosts) updatePeriodic(ctx context.Context, upDone chan<- struct{}) {
 	a.resolvePeriodic(ctx)
 	if a.getAndClearUpdates() {
-		a.setFilter()
+		a.setFilter(ctx)
 	}
 	upDone <- struct{}{}
 }
