@@ -12,12 +12,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/api"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
-	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/profilemon"
 	"github.com/telekom-mms/oc-daemon/internal/sleepmon"
-	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/internal/trafpol"
+	"github.com/telekom-mms/oc-daemon/internal/vpnsetup"
 	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
@@ -33,11 +32,10 @@ type Daemon struct {
 	server *api.Server
 	dbus   *dbusapi.Service
 
-	dns *dnsproxy.Proxy
 	tnd *trustnet.TND
 
-	splitrt *splitrt.SplitRouting
-	trafpol *trafpol.TrafPol
+	vpnsetup *vpnsetup.VPNSetup
+	trafpol  *trafpol.TrafPol
 
 	sleepmon *sleepmon.SleepMon
 
@@ -218,54 +216,6 @@ func (d *Daemon) disconnectVPN() {
 	d.runner.Disconnect()
 }
 
-// setupRouting sets up routing using config
-// TODO: move somewhere else?
-func (d *Daemon) setupRouting(vpnconf *vpnconfig.Config) {
-	if d.splitrt != nil {
-		return
-	}
-	d.splitrt = splitrt.NewSplitRouting(d.config.SplitRouting, vpnconf)
-	d.splitrt.Start()
-}
-
-// teardownRouting tears down the routing configuration
-func (d *Daemon) teardownRouting() {
-	if d.splitrt == nil {
-		return
-	}
-	d.splitrt.Stop()
-	d.splitrt = nil
-}
-
-// setupDNS sets up DNS using config
-// TODO: move somewhere else?
-func (d *Daemon) setupDNS(config *vpnconfig.Config) {
-	// configure dns proxy
-	// TODO: improve this
-
-	// set remotes
-	remotes := config.DNS.Remotes()
-	d.dns.SetRemotes(remotes)
-
-	// set watches
-	excludes := config.Split.DNSExcludes()
-	log.WithField("excludes", excludes).Debug("Daemon setting DNS Split Excludes")
-	d.dns.SetWatches(excludes)
-
-	// update dns configuration of host
-	setVPNDNS(config, d.config.DNSProxy.Address)
-}
-
-// teardownDNS tears down the DNS configuration
-func (d *Daemon) teardownDNS() {
-	remotes := map[string][]string{
-		".": {d.config.DefaultDNSServer},
-	}
-	d.dns.SetRemotes(remotes)
-	d.dns.SetWatches([]string{})
-	unsetVPNDNS(d.status.VPNConfig)
-}
-
 // updateVPNConfigUp updates the VPN config for VPN connect
 func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	// check if old and new config differ
@@ -291,9 +241,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 
 	// connecting, set up configuration
 	log.Info("Daemon setting up vpn configuration")
-	setupVPNDevice(config)
-	d.setupRouting(config)
-	d.setupDNS(config)
+	d.vpnsetup.Setup(config)
 
 	// set traffic policing setting from Disable Always On VPN setting
 	// in configuration
@@ -301,8 +249,6 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 
 	// save config
 	d.setStatusVPNConfig(config)
-	d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
-	d.setStatusConnectedAt(time.Now().Unix())
 	ip := ""
 	for _, addr := range []net.IP{config.IPv4.Address, config.IPv6.Address} {
 		// this assumes either a single IPv4 or a single IPv6 address
@@ -337,9 +283,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	// disconnecting, tear down configuration
 	log.Info("Daemon tearing down vpn configuration")
 	if d.status.VPNConfig != nil {
-		teardownVPNDevice(d.status.VPNConfig)
-		d.teardownRouting()
-		d.teardownDNS()
+		d.vpnsetup.Teardown(d.status.VPNConfig)
 	}
 
 	// save config
@@ -425,24 +369,6 @@ func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 	}
 }
 
-// handleDNSReport handles a DNS report
-func (d *Daemon) handleDNSReport(r *dnsproxy.Report) {
-	log.WithField("report", r).Debug("Daemon handling DNS report")
-
-	if !d.status.OCRunning.Running() { // TODO: fix connected state and change to connected?
-		return
-	}
-	if d.splitrt == nil {
-		return
-	}
-
-	// forward report to split routing
-	select {
-	case d.splitrt.DNSReports() <- r:
-	case <-d.done:
-	}
-}
-
 // checkDisconnectVPN checks if we need to disconnect the VPN when handling a
 // TND result
 func (d *Daemon) checkDisconnectVPN() {
@@ -488,6 +414,18 @@ func (d *Daemon) handleRunnerEvent(e *ocrunner.ConnectEvent) {
 	d.handleRunnerDisconnect()
 }
 
+// handleVPNSetupEvent handles a VPN setup event
+func (d *Daemon) handleVPNSetupEvent(event *vpnsetup.Event) {
+	switch event.Type {
+	case vpnsetup.EventSetupOK:
+		d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
+		d.setStatusConnectedAt(time.Now().Unix())
+		log.Info("Daemon configured VPN connection")
+	case vpnsetup.EventTeardownOK:
+		log.Info("Daemon unconfigured VPN connection")
+	}
+}
+
 // handleSleepMonEvent handles a suspend/resume event from SleepMon
 func (d *Daemon) handleSleepMonEvent(sleep bool) {
 	log.WithField("sleep", sleep).Debug("Daemon handling SleepMon event")
@@ -523,8 +461,7 @@ func (d *Daemon) handleProfileUpdate() {
 // cleanup cleans up after a failed shutdown
 func (d *Daemon) cleanup() {
 	ocrunner.CleanupConnect(d.config.OpenConnect)
-	cleanupVPNConfig(d.config.OpenConnect.VPNDevice)
-	splitrt.Cleanup(d.config.SplitRouting)
+	vpnsetup.Cleanup(d.config.OpenConnect.VPNDevice, d.config.SplitRouting)
 	trafpol.Cleanup()
 }
 
@@ -704,9 +641,9 @@ func (d *Daemon) start() {
 	d.checkTND()
 	defer d.stopTND()
 
-	// start DNS-Proxy
-	d.dns.Start()
-	defer d.dns.Stop()
+	// start VPN setup
+	d.vpnsetup.Start()
+	defer d.vpnsetup.Stop()
 
 	// start OC runner
 	d.runner.Start()
@@ -738,14 +675,14 @@ func (d *Daemon) start() {
 		case req := <-d.dbus.Requests():
 			d.handleDBusRequest(req)
 
-		case r := <-d.dns.Reports():
-			d.handleDNSReport(r)
-
 		case r := <-d.getTNDResults():
 			d.handleTNDResult(r)
 
 		case e := <-d.runner.Events():
 			d.handleRunnerEvent(e)
+
+		case e := <-d.vpnsetup.Events():
+			d.handleVPNSetupEvent(e)
 
 		case e := <-d.sleepmon.Events():
 			d.handleSleepMonEvent(e)
@@ -781,7 +718,8 @@ func NewDaemon(config *Config) *Daemon {
 
 		sleepmon: sleepmon.NewSleepMon(),
 
-		dns: dnsproxy.NewProxy(config.DNSProxy),
+		vpnsetup: vpnsetup.NewVPNSetup(config.DNSProxy,
+			config.SplitRouting),
 
 		runner: ocrunner.NewConnect(config.OpenConnect),
 

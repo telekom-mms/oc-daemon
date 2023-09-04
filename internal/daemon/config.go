@@ -26,9 +26,8 @@ var (
 
 // Config is an OC-Daemon configuration
 type Config struct {
-	Config           string `json:"-"`
-	DefaultDNSServer string
-	Verbose          bool
+	Config  string `json:"-"`
+	Verbose bool
 
 	SocketServer    *api.Config
 	CPD             *cpd.Config
@@ -41,7 +40,6 @@ type Config struct {
 // Valid returns whether config is valid
 func (c *Config) Valid() bool {
 	if c == nil ||
-		c.DefaultDNSServer == "" ||
 		!c.SocketServer.Valid() ||
 		!c.CPD.Valid() ||
 		!c.DNSProxy.Valid() ||
@@ -73,9 +71,8 @@ func (c *Config) Load() error {
 // NewConfig returns a new Config
 func NewConfig() *Config {
 	return &Config{
-		Config:           ConfigFile,
-		DefaultDNSServer: DefaultDNSServer,
-		Verbose:          false,
+		Config:  ConfigFile,
+		Verbose: false,
 
 		SocketServer:    api.NewConfig(),
 		CPD:             cpd.NewConfig(),
