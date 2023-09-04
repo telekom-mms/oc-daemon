@@ -3,6 +3,9 @@ package ocrunner
 import "strconv"
 
 var (
+	// OpenConnect is the default openconnect executable
+	OpenConnect = "openconnect"
+
 	// XMLProfile is the default AnyConnect Profile
 	XMLProfile = "/var/lib/oc-daemon/profile.xml"
 
@@ -36,6 +39,8 @@ var (
 
 // Config is the configuration for an openconnect connection runner
 type Config struct {
+	OpenConnect string
+
 	XMLProfile string
 	VPNCScript string
 	VPNDevice  string
@@ -53,6 +58,7 @@ type Config struct {
 // Valid returns whether the openconnect configuration is valid
 func (c *Config) Valid() bool {
 	if c == nil ||
+		c.OpenConnect == "" ||
 		c.XMLProfile == "" ||
 		c.VPNCScript == "" ||
 		c.VPNDevice == "" ||
@@ -76,6 +82,8 @@ func (c *Config) Valid() bool {
 // NewConfig returns a new configuration for an openconnect connection runner
 func NewConfig() *Config {
 	return &Config{
+		OpenConnect: OpenConnect,
+
 		XMLProfile: XMLProfile,
 		VPNCScript: VPNCScript,
 		VPNDevice:  VPNDevice,

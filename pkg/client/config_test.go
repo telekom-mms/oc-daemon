@@ -107,12 +107,13 @@ func TestLoadConfig(t *testing.T) {
 		VPNServer:         "server.example.com",
 		User:              "user1",
 
-		Protocol:  "test",
-		UserAgent: "agent",
-		Quiet:     true,
-		NoProxy:   true,
-		ExtraEnv:  []string{"oc_daemon_var_is_not=used"},
-		ExtraArgs: []string{"--arg-does-not=exist"},
+		OpenConnect: "openconnect",
+		Protocol:    "test",
+		UserAgent:   "agent",
+		Quiet:       true,
+		NoProxy:     true,
+		ExtraEnv:    []string{"oc_daemon_var_is_not=used"},
+		ExtraArgs:   []string{"--arg-does-not=exist"},
 	}
 
 	// create temporary file

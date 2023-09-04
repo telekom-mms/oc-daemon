@@ -93,6 +93,7 @@ func TestConfigLoad(t *testing.T) {
 		"ListenTCP": true
 	},
 	"OpenConnect": {
+		"OpenConnect": "openconnect",
 		"XMLProfile": "/var/lib/oc-daemon/profile.xml",
 		"VPNCScript": "/usr/bin/oc-daemon-vpncscript",
 		"VPNDevice": "oc-daemon-tun0",
