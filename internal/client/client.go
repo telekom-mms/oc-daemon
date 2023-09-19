@@ -166,6 +166,11 @@ func printStatus(status *vpnstatus.Status) {
 	}
 
 	fmt.Printf("OC Running:       %s\n", status.OCRunning)
+
+	// verbose output
+	if !verbose {
+		return
+	}
 	if status.VPNConfig == nil {
 		fmt.Printf("VPN Config:\n")
 	} else {

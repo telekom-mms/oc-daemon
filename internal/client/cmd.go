@@ -18,6 +18,9 @@ var (
 	// command line arguments
 	command = ""
 
+	// verbose specifies verbose output
+	verbose = false
+
 	// json specifies whether output should be formatted as json
 	json = false
 )
@@ -38,6 +41,7 @@ func saveConfig() {
 func setConfig() {
 	// status subcommand
 	statusCmd := flag.NewFlagSet("status", flag.ExitOnError)
+	statusCmd.BoolVar(&verbose, "verbose", verbose, "set verbose output")
 	statusCmd.BoolVar(&json, "json", json, "set json output")
 
 	// define command line arguments
