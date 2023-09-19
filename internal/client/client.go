@@ -142,10 +142,10 @@ func printStatus(status *vpnstatus.Status) {
 	fmt.Printf("IP:               %s\n", status.IP)
 	fmt.Printf("Device:           %s\n", status.Device)
 
-	connectedAt := time.Unix(status.ConnectedAt, 0)
-	if connectedAt.IsZero() {
-		fmt.Printf("Connected At:     0\n")
+	if status.ConnectedAt <= 0 {
+		fmt.Printf("Connected At:\n")
 	} else {
+		connectedAt := time.Unix(status.ConnectedAt, 0)
 		fmt.Printf("Connected At:     %s\n", connectedAt)
 	}
 
