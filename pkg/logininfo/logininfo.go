@@ -7,6 +7,7 @@ import (
 
 // LoginInfo is login information for OpenConnect
 type LoginInfo struct {
+	Server      string
 	Cookie      string
 	Host        string
 	ConnectURL  string
@@ -26,6 +27,7 @@ func (l *LoginInfo) Copy() *LoginInfo {
 // Valid returns if the login information is valid
 func (l *LoginInfo) Valid() bool {
 	if l == nil ||
+		l.Server == "" ||
 		l.Cookie == "" ||
 		l.Host == "" ||
 		l.Fingerprint == "" {

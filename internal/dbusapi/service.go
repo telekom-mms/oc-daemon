@@ -21,6 +21,7 @@ const (
 	PropertyConnectionState = "ConnectionState"
 	PropertyIP              = "IP"
 	PropertyDevice          = "Device"
+	PropertyServer          = "Server"
 	PropertyConnectedAt     = "ConnectedAt"
 	PropertyServers         = "Servers"
 	PropertyOCRunning       = "OCRunning"
@@ -51,6 +52,11 @@ const (
 // Property "Device" values
 const (
 	DeviceInvalid = ""
+)
+
+// Property "Server" values
+const (
+	ServerInvalid = ""
 )
 
 // Property "Connected At" values
@@ -119,11 +125,11 @@ type daemon struct {
 }
 
 // Connect is the "Connect" method of the D-Bus interface
-func (d daemon) Connect(sender dbus.Sender, cookie, host, connectURL, fingerprint, resolve string) *dbus.Error {
+func (d daemon) Connect(sender dbus.Sender, server, cookie, host, connectURL, fingerprint, resolve string) *dbus.Error {
 	log.WithField("sender", sender).Debug("Received D-Bus Connect() call")
 	request := &Request{
 		Name:       RequestConnect,
-		Parameters: []any{cookie, host, connectURL, fingerprint, resolve},
+		Parameters: []any{server, cookie, host, connectURL, fingerprint, resolve},
 		wait:       make(chan struct{}),
 		done:       d.done,
 	}
@@ -252,6 +258,12 @@ func (s *Service) start() {
 				Emit:     prop.EmitTrue,
 				Callback: nil,
 			},
+			PropertyServer: {
+				Value:    ServerInvalid,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
 			PropertyConnectedAt: {
 				Value:    ConnectedAtInvalid,
 				Writable: false,
@@ -308,6 +320,7 @@ func (s *Service) start() {
 	props.SetMust(Interface, PropertyConnectionState, ConnectionStateDisconnected)
 	props.SetMust(Interface, PropertyIP, IPInvalid)
 	props.SetMust(Interface, PropertyDevice, DeviceInvalid)
+	props.SetMust(Interface, PropertyServer, ServerInvalid)
 	props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
 	props.SetMust(Interface, PropertyServers, ServersInvalid)
 	props.SetMust(Interface, PropertyOCRunning, OCRunningNotRunning)
@@ -332,6 +345,7 @@ func (s *Service) start() {
 			props.SetMust(Interface, PropertyConnectionState, ConnectionStateUnknown)
 			props.SetMust(Interface, PropertyIP, IPInvalid)
 			props.SetMust(Interface, PropertyDevice, DeviceInvalid)
+			props.SetMust(Interface, PropertyServer, ServerInvalid)
 			props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
 			props.SetMust(Interface, PropertyServers, ServersInvalid)
 			props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)

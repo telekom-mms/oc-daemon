@@ -102,6 +102,7 @@ type Status struct {
 	ConnectionState ConnectionState
 	IP              string
 	Device          string
+	Server          string
 	ConnectedAt     int64
 	Servers         []string
 	OCRunning       OCRunning

@@ -14,6 +14,7 @@ func getTestLoginInfo() *LoginInfo {
 	// FINGERPRINT='469bb424ec8835944d30bc77c77e8fc1d8e23a42'
 	// RESOLVE='vpnserver.example.com:10.0.0.1'
 	return &LoginInfo{
+		Server:      "vpnserver.example.com",
 		Cookie:      "3311180634@13561856@1339425499@B315A0E29D16C6FD92EE...",
 		Host:        "10.0.0.1",
 		ConnectURL:  "https://vpnserver.example.com",
@@ -54,6 +55,7 @@ func TestLoginInfoValid(t *testing.T) {
 func TestLoginInfoParseLine(t *testing.T) {
 	want := getTestLoginInfo()
 	got := &LoginInfo{}
+	got.Server = "vpnserver.example.com"
 
 	// parse lines (should match values returned by getTestLoginInfo)
 	for _, line := range []string{

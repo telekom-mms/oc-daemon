@@ -114,6 +114,18 @@ func (d *Daemon) setStatusDevice(device string) {
 	d.dbus.SetProperty(dbusapi.PropertyDevice, device)
 }
 
+// setStatusServer sets the current server in status
+func (d *Daemon) setStatusServer(server string) {
+	if d.status.Server == server {
+		// connected server not changed
+		return
+	}
+
+	// connected server changed
+	d.status.Server = server
+	d.dbus.SetProperty(dbusapi.PropertyServer, server)
+}
+
 // setStatusConnectedAt sets the connection time in status
 func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
 	if d.status.ConnectedAt == connectedAt {
@@ -192,6 +204,7 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 
 	// update status
 	d.setStatusOCRunning(true)
+	d.setStatusServer(login.Server)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
 
 	// connect using runner
@@ -289,6 +302,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	// save config
 	d.setStatusVPNConfig(nil)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusServer("")
 	d.setStatusConnectedAt(0)
 	d.setStatusIP("")
 	d.setStatusDevice("")
@@ -346,13 +360,15 @@ func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 	switch request.Name {
 	case dbusapi.RequestConnect:
 		// create login info
-		cookie := request.Parameters[0].(string)
-		host := request.Parameters[1].(string)
-		connectURL := request.Parameters[2].(string)
-		fingerprint := request.Parameters[3].(string)
-		resolve := request.Parameters[4].(string)
+		server := request.Parameters[0].(string)
+		cookie := request.Parameters[1].(string)
+		host := request.Parameters[2].(string)
+		connectURL := request.Parameters[3].(string)
+		fingerprint := request.Parameters[4].(string)
+		resolve := request.Parameters[5].(string)
 
 		login := &logininfo.LoginInfo{
+			Server:      server,
 			Cookie:      cookie,
 			Host:        host,
 			ConnectURL:  connectURL,
@@ -394,6 +410,7 @@ func (d *Daemon) handleRunnerDisconnect() {
 	// make sure running and connected are not set
 	d.setStatusOCRunning(false)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusServer("")
 	d.setStatusConnectedAt(0)
 
 	// make sure the vpn config is not active any more

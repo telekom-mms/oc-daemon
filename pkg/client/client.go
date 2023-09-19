@@ -138,6 +138,8 @@ func updateStatusFromProperties(status *vpnstatus.Status, props map[string]dbus.
 				err = v.Store(&dest.IP)
 			case dbusapi.PropertyDevice:
 				err = v.Store(&dest.Device)
+			case dbusapi.PropertyServer:
+				err = v.Store(&dest.Server)
 			case dbusapi.PropertyConnectedAt:
 				err = v.Store(&dest.ConnectedAt)
 			case dbusapi.PropertyServers:
@@ -452,6 +454,7 @@ var authenticate = func(d *DBusClient) error {
 	//
 	s := b.String()
 	login := &logininfo.LoginInfo{}
+	login.Server = config.VPNServer
 	for _, line := range strings.Fields(s) {
 		login.ParseLine(line)
 	}
@@ -477,6 +480,7 @@ var connect = func(d *DBusClient) error {
 	login := d.GetLogin()
 	return d.conn.Object(dbusapi.Interface, dbusapi.Path).
 		Call(dbusapi.MethodConnect, 0,
+			login.Server,
 			login.Cookie,
 			login.Host,
 			login.ConnectURL,
