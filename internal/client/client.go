@@ -155,7 +155,11 @@ func printStatus(status *vpnstatus.Status) {
 	}
 
 	fmt.Printf("OC Running:       %s\n", status.OCRunning)
-	fmt.Printf("VPN Config:       %+v\n", status.VPNConfig)
+	if status.VPNConfig == nil {
+		fmt.Printf("VPN Config:\n")
+	} else {
+		fmt.Printf("VPN Config:       %+v\n", *status.VPNConfig)
+	}
 }
 
 // getStatus gets the VPN status from the daemon
