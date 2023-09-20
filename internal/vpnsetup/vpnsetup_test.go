@@ -1,10 +1,12 @@
-package daemon
+package vpnsetup
 
 import (
 	"net"
 	"reflect"
 	"testing"
 
+	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
+	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/vishvananda/netlink"
 )
@@ -64,7 +66,7 @@ func TestSetupVPNDevice(t *testing.T) {
 	}
 }
 
-// TestTeardownVPNDevice tests teardownDevice
+// TestTeardownVPNDevice tests teardownVPNDevice
 func TestTeardownVPNDevice(t *testing.T) {
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
@@ -91,8 +93,8 @@ func TestTeardownVPNDevice(t *testing.T) {
 	}
 }
 
-// TestSetVPNDNS tests setVPNDNS
-func TestSetVPNDNS(t *testing.T) {
+// TestVPNSetupSetupDNS tests setupDNS of VPNSetup
+func TestVPNSetupSetupDNS(t *testing.T) {
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 	c.DNS.DefaultDomain = "mycompany.com"
@@ -101,7 +103,8 @@ func TestSetVPNDNS(t *testing.T) {
 	runResolvectl = func(cmd string) {
 		got = append(got, cmd)
 	}
-	setVPNDNS(c, "127.0.0.1:4253")
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v.setupDNS(c)
 
 	want := []string{
 		"dns tun0 127.0.0.1:4253",
@@ -115,8 +118,8 @@ func TestSetVPNDNS(t *testing.T) {
 	}
 }
 
-// TestUnsetVPNDNS tests unsetVPNDNS
-func TestUnsetVPNDNS(t *testing.T) {
+// TestVPNSetupTeardownDNS tests teardownDNS of VPNSetup
+func TestVPNSetupTeardownDNS(t *testing.T) {
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 
@@ -124,7 +127,8 @@ func TestUnsetVPNDNS(t *testing.T) {
 	runResolvectl = func(cmd string) {
 		got = append(got, cmd)
 	}
-	unsetVPNDNS(c)
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v.teardownDNS(c)
 
 	want := []string{
 		"revert tun0",
@@ -136,13 +140,46 @@ func TestUnsetVPNDNS(t *testing.T) {
 	}
 }
 
-// TestCleanupVPNConfig tests cleanupVPNConfig
-func TestCleanupVPNConfig(t *testing.T) {
+// TestVPNSetupStartStop tests Start and Stop of VPNSetup
+func TestVPNSetupStartStop(t *testing.T) {
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v.Start()
+	v.Stop()
+}
+
+// TestVPNSetupEvents tests Events of VPNSetup
+func TestVPNSetupEvents(t *testing.T) {
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	want := v.events
+	got := v.Events()
+	if got != want {
+		t.Errorf("got %p, want %p", got, want)
+	}
+}
+
+// TestNewVPNSetup tests NewVPNSetup
+func TestNewVPNSetup(t *testing.T) {
+	dnsConfig := dnsproxy.NewConfig()
+	splitrtConfig := splitrt.NewConfig()
+
+	v := NewVPNSetup(dnsConfig, splitrtConfig)
+	if v == nil ||
+		v.dnsProxyConf != dnsConfig ||
+		v.splitrtConf != splitrtConfig ||
+		v.cmds == nil ||
+		v.events == nil ||
+		v.done == nil {
+		t.Errorf("invalid vpn setup")
+	}
+}
+
+// TestCleanup tests Cleanup
+func TestCleanup(t *testing.T) {
 	got := []string{}
 	runCleanupCmd = func(cmd string) {
 		got = append(got, cmd)
 	}
-	cleanupVPNConfig("tun0")
+	Cleanup("tun0", splitrt.NewConfig())
 	want := []string{
 		"resolvectl revert tun0",
 		"ip link delete tun0",

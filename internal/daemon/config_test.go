@@ -71,7 +71,6 @@ func TestConfigLoad(t *testing.T) {
 	// - partial config with defaults
 	for _, content := range []string{
 		`{
-	"DefaultDNSServer": "127.0.0.53:53",
 	"Verbose": true,
 	"SocketServer": {
 		"SocketFile": "/run/oc-daemon/daemon.sock",
@@ -144,15 +143,14 @@ func TestConfigLoad(t *testing.T) {
 		}
 
 		want := &Config{
-			Config:           valid.Name(),
-			DefaultDNSServer: "127.0.0.53:53",
-			Verbose:          true,
-			SocketServer:     api.NewConfig(),
-			CPD:              cpd.NewConfig(),
-			DNSProxy:         dnsproxy.NewConfig(),
-			OpenConnect:      ocrunner.NewConfig(),
-			SplitRouting:     splitrt.NewConfig(),
-			TrafficPolicing:  trafpol.NewConfig(),
+			Config:          valid.Name(),
+			Verbose:         true,
+			SocketServer:    api.NewConfig(),
+			CPD:             cpd.NewConfig(),
+			DNSProxy:        dnsproxy.NewConfig(),
+			OpenConnect:     ocrunner.NewConfig(),
+			SplitRouting:    splitrt.NewConfig(),
+			TrafficPolicing: trafpol.NewConfig(),
 		}
 		if !reflect.DeepEqual(want.DNSProxy, config.DNSProxy) {
 			t.Errorf("got %v, want %v", config.DNSProxy, want.DNSProxy)
@@ -175,15 +173,14 @@ func TestConfigLoad(t *testing.T) {
 // TestNewConfig tests NewConfig
 func TestNewConfig(t *testing.T) {
 	want := &Config{
-		Config:           "/var/lib/oc-daemon/oc-daemon.json",
-		DefaultDNSServer: "127.0.0.53:53",
-		Verbose:          false,
-		SocketServer:     api.NewConfig(),
-		CPD:              cpd.NewConfig(),
-		DNSProxy:         dnsproxy.NewConfig(),
-		OpenConnect:      ocrunner.NewConfig(),
-		SplitRouting:     splitrt.NewConfig(),
-		TrafficPolicing:  trafpol.NewConfig(),
+		Config:          "/var/lib/oc-daemon/oc-daemon.json",
+		Verbose:         false,
+		SocketServer:    api.NewConfig(),
+		CPD:             cpd.NewConfig(),
+		DNSProxy:        dnsproxy.NewConfig(),
+		OpenConnect:     ocrunner.NewConfig(),
+		SplitRouting:    splitrt.NewConfig(),
+		TrafficPolicing: trafpol.NewConfig(),
 	}
 	got := NewConfig()
 	if !reflect.DeepEqual(got, want) {

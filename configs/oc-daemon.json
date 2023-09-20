@@ -1,5 +1,4 @@
 {
-	"DefaultDNSServer": "127.0.0.53:53",
 	"Verbose": false,
 	"SocketServer": {
 		"SocketFile": "/run/oc-daemon/daemon.sock",
