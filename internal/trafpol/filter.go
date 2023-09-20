@@ -2,6 +2,8 @@ package trafpol
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os/exec"
@@ -11,17 +13,21 @@ import (
 )
 
 // runNft runs nft and passes s to it via stdin
-var runNft = func(s string) {
+var runNft = func(ctx context.Context, s string) {
 	cmd := "nft -f -"
-	c := exec.Command("bash", "-c", cmd)
+	c := exec.CommandContext(ctx, "bash", "-c", cmd)
 	c.Stdin = bytes.NewBufferString(s)
 	if err := c.Run(); err != nil {
+		if errors.Is(err, context.Canceled) {
+			log.WithError(err).Debug("TrafPol nft execution canceled")
+			return
+		}
 		log.WithError(err).Error("TrafPol nft execution error")
 	}
 }
 
 // setFilterRules sets the filter rules
-func setFilterRules(fwMark string) {
+func setFilterRules(ctx context.Context, fwMark string) {
 	const filterRules = `
 table inet oc-daemon-filter {
         # set for allowed devices
@@ -164,59 +170,59 @@ table inet oc-daemon-filter {
 `
 	r := strings.NewReplacer("$FWMARK", fwMark)
 	rules := r.Replace(filterRules)
-	runNft(rules)
+	runNft(ctx, rules)
 }
 
 // unsetFilterRules unsets the filter rules
-func unsetFilterRules() {
-	runNft("delete table inet oc-daemon-filter")
+func unsetFilterRules(ctx context.Context) {
+	runNft(ctx, "delete table inet oc-daemon-filter")
 }
 
 // addAllowedDevice adds device to the allowed devices
-func addAllowedDevice(device string) {
+func addAllowedDevice(ctx context.Context, device string) {
 	nftconf := fmt.Sprintf("add element inet oc-daemon-filter allowdevs { %s }", device)
-	runNft(nftconf)
+	runNft(ctx, nftconf)
 }
 
 // removeAllowedDevice removes device from the allowed devices
-func removeAllowedDevice(device string) {
+func removeAllowedDevice(ctx context.Context, device string) {
 	nftconf := fmt.Sprintf("delete element inet oc-daemon-filter allowdevs { %s }", device)
-	runNft(nftconf)
+	runNft(ctx, nftconf)
 }
 
 // setAllowedIPs set the allowed hosts
-func setAllowedIPs(ips []*net.IPNet) {
+func setAllowedIPs(ctx context.Context, ips []*net.IPNet) {
 	// we perform all nft commands separately here and not as one atomic
 	// operation to avoid issues where the whole update fails because nft
 	// runs into "file exists" errors even though we remove duplicates from
 	// ips before calling this function and we flush the existing entries
 
-	runNft("flush set inet oc-daemon-filter allowhosts4")
-	runNft("flush set inet oc-daemon-filter allowhosts6")
+	runNft(ctx, "flush set inet oc-daemon-filter allowhosts4")
+	runNft(ctx, "flush set inet oc-daemon-filter allowhosts6")
 
 	fmt4 := "add element inet oc-daemon-filter allowhosts4 { %s }"
 	fmt6 := "add element inet oc-daemon-filter allowhosts6 { %s }"
 	for _, ip := range ips {
 		if ip.IP.To4() != nil {
 			// ipv4 address
-			runNft(fmt.Sprintf(fmt4, ip))
+			runNft(ctx, fmt.Sprintf(fmt4, ip))
 		} else {
 			// ipv6 address
-			runNft(fmt.Sprintf(fmt6, ip))
+			runNft(ctx, fmt.Sprintf(fmt6, ip))
 		}
 	}
 }
 
 // addPortalPorts adds ports for a captive portal to the allowed ports
-func addPortalPorts() {
+func addPortalPorts(ctx context.Context) {
 	nftconf := "add element inet oc-daemon-filter allowports { 80, 443 }"
-	runNft(nftconf)
+	runNft(ctx, nftconf)
 }
 
 // removePortalPorts removes ports for a captive portal from the allowed ports
-func removePortalPorts() {
+func removePortalPorts(ctx context.Context) {
 	nftconf := "delete element inet oc-daemon-filter allowports { 80, 443 }"
-	runNft(nftconf)
+	runNft(ctx, nftconf)
 }
 
 // runCleanupNft runs nft for cleanups

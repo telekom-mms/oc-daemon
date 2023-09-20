@@ -1,6 +1,8 @@
 package trafpol
 
 import (
+	"context"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
@@ -25,7 +27,7 @@ type TrafPol struct {
 }
 
 // handleDeviceUpdate handles a device update
-func (t *TrafPol) handleDeviceUpdate(u *devmon.Update) {
+func (t *TrafPol) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
 	// skip physical devices and only allow virtual devices
 	if u.Type == "device" {
 		return
@@ -33,10 +35,10 @@ func (t *TrafPol) handleDeviceUpdate(u *devmon.Update) {
 
 	// add or remove virtual device to/from allowed devices
 	if u.Add {
-		t.allowDevs.Add(u.Device)
+		t.allowDevs.Add(ctx, u.Device)
 		return
 	}
-	t.allowDevs.Remove(u.Device)
+	t.allowDevs.Remove(ctx, u.Device)
 }
 
 // handleDNSUpdate handles a dns config update
@@ -49,7 +51,7 @@ func (t *TrafPol) handleDNSUpdate() {
 }
 
 // handleCPDReport handles a CPD report
-func (t *TrafPol) handleCPDReport(report *cpd.Report) {
+func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 	if !report.Detected {
 		// no captive portal detected
 		// check if there was a portal before
@@ -59,7 +61,7 @@ func (t *TrafPol) handleCPDReport(report *cpd.Report) {
 			t.allowHosts.Update()
 
 			// remove ports from allowed ports
-			removePortalPorts()
+			removePortalPorts(ctx)
 			t.capPortal = false
 		}
 		return
@@ -67,7 +69,7 @@ func (t *TrafPol) handleCPDReport(report *cpd.Report) {
 
 	// add ports to allowed ports
 	if !t.capPortal {
-		addPortalPorts()
+		addPortalPorts(ctx)
 		t.capPortal = true
 	}
 }
@@ -77,9 +79,12 @@ func (t *TrafPol) start() {
 	log.Debug("TrafPol starting")
 	defer close(t.loopDone)
 
+	// create context
+	ctx := context.Background()
+
 	// set firewall config
-	setFilterRules(t.config.FirewallMark)
-	defer unsetFilterRules()
+	setFilterRules(ctx, t.config.FirewallMark)
+	defer unsetFilterRules(ctx)
 
 	// add CPD hosts to allowed hosts
 	for _, h := range t.cpd.Hosts() {
@@ -108,7 +113,7 @@ func (t *TrafPol) start() {
 		case u := <-t.devmon.Updates():
 			// Device Update
 			log.WithField("update", u).Debug("TrafPol got DevMon update")
-			t.handleDeviceUpdate(u)
+			t.handleDeviceUpdate(ctx, u)
 
 		case <-t.dnsmon.Updates():
 			// DNS Update
@@ -118,7 +123,7 @@ func (t *TrafPol) start() {
 		case r := <-t.cpd.Results():
 			// CPD Result
 			log.WithField("result", r).Debug("TrafPol got CPD result")
-			t.handleCPDReport(r)
+			t.handleCPDReport(ctx, r)
 
 		case <-t.done:
 			// shutdown

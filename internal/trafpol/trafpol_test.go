@@ -1,6 +1,7 @@
 package trafpol
 
 import (
+	"context"
 	"reflect"
 	"sync"
 	"testing"
@@ -13,16 +14,17 @@ import (
 // TestTrafPolHandleDeviceUpdate tests handleDeviceUpdate of TrafPol
 func TestTrafPolHandleDeviceUpdate(t *testing.T) {
 	tp := NewTrafPol(NewConfig())
+	ctx := context.Background()
 
 	// test adding
 	update := &devmon.Update{
 		Add: true,
 	}
-	tp.handleDeviceUpdate(update)
+	tp.handleDeviceUpdate(ctx, update)
 
 	// test removing
 	update.Add = false
-	tp.handleDeviceUpdate(update)
+	tp.handleDeviceUpdate(ctx, update)
 }
 
 // TestTrafPolHandleDNSUpdate tests handleDNSUpdate of TrafPol
@@ -40,13 +42,14 @@ func TestTrafPolHandleDNSUpdate(t *testing.T) {
 // TestTrafPolHandleCPDReport tests handleCPDReport of TrafPol
 func TestTrafPolHandleCPDReport(t *testing.T) {
 	tp := NewTrafPol(NewConfig())
+	ctx := context.Background()
 
 	tp.allowHosts.Start()
 	defer tp.allowHosts.Stop()
 
 	var nftMutex sync.Mutex
 	nftCmds := []string{}
-	runNft = func(s string) {
+	runNft = func(ctx context.Context, s string) {
 		nftMutex.Lock()
 		defer nftMutex.Unlock()
 		nftCmds = append(nftCmds, s)
@@ -59,7 +62,7 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 
 	// test not detected
 	report := &cpd.Report{}
-	tp.handleCPDReport(report)
+	tp.handleCPDReport(ctx, report)
 
 	want := []string{}
 	got := getNftCmds()
@@ -69,7 +72,7 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 
 	// test detected
 	report.Detected = true
-	tp.handleCPDReport(report)
+	tp.handleCPDReport(ctx, report)
 
 	want = []string{
 		"add element inet oc-daemon-filter allowports { 80, 443 }",
@@ -81,7 +84,7 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 
 	// test not detected any more
 	report.Detected = false
-	tp.handleCPDReport(report)
+	tp.handleCPDReport(ctx, report)
 
 	want = []string{
 		"add element inet oc-daemon-filter allowports { 80, 443 }",
