@@ -51,13 +51,15 @@ func (c *CPD) check() *Report {
 
 	case http.StatusFound:
 		// 302, redirect, captive portal detected
-		url, err := resp.Location()
-		if err != nil {
+		hostname := ""
+		if url, err := resp.Location(); err != nil {
 			log.WithError(err).Error("CPD could not get location in response")
+		} else {
+			hostname = url.Hostname()
 		}
 		return &Report{
 			Detected: true,
-			Host:     url.Hostname(),
+			Host:     hostname,
 		}
 	default:
 		// other, captive protal detected
