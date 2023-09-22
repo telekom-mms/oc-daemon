@@ -17,6 +17,12 @@ var (
 
 	// command line arguments
 	command = ""
+
+	// verbose specifies verbose output
+	verbose = false
+
+	// json specifies whether output should be formatted as json
+	json = false
 )
 
 // saveConfig saves the user config to the user dir
@@ -33,6 +39,11 @@ func saveConfig() {
 
 // setConfig sets the config from config files and the command line
 func setConfig() {
+	// status subcommand
+	statusCmd := flag.NewFlagSet("status", flag.ExitOnError)
+	statusCmd.BoolVar(&verbose, "verbose", verbose, "set verbose output")
+	statusCmd.BoolVar(&json, "json", json, "set json output")
+
 	// define command line arguments
 	cfgFile := flag.String("config", "", "set config `file`")
 	cert := flag.String("cert", "", "set client certificate `file` or "+
@@ -95,6 +106,13 @@ func setConfig() {
 	if *ver {
 		fmt.Println(daemon.Version)
 		os.Exit(0)
+	}
+
+	// parse subcommands
+	command = flag.Arg(0)
+	switch command {
+	case "status":
+		_ = statusCmd.Parse(os.Args[2:])
 	}
 
 	// set command

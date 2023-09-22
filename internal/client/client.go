@@ -137,15 +137,26 @@ func reconnectVPN() {
 
 // printStatus prints status on the command line
 func printStatus(status *vpnstatus.Status) {
+	if json {
+		// print status as json
+		j, err := status.JSON()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(j))
+		return
+	}
+
+	// print status
 	fmt.Printf("Trusted Network:  %s\n", status.TrustedNetwork)
 	fmt.Printf("Connection State: %s\n", status.ConnectionState)
 	fmt.Printf("IP:               %s\n", status.IP)
 	fmt.Printf("Device:           %s\n", status.Device)
 
-	connectedAt := time.Unix(status.ConnectedAt, 0)
-	if connectedAt.IsZero() {
-		fmt.Printf("Connected At:     0\n")
+	if status.ConnectedAt <= 0 {
+		fmt.Printf("Connected At:\n")
 	} else {
+		connectedAt := time.Unix(status.ConnectedAt, 0)
 		fmt.Printf("Connected At:     %s\n", connectedAt)
 	}
 
@@ -155,7 +166,16 @@ func printStatus(status *vpnstatus.Status) {
 	}
 
 	fmt.Printf("OC Running:       %s\n", status.OCRunning)
-	fmt.Printf("VPN Config:       %+v\n", status.VPNConfig)
+
+	// verbose output
+	if !verbose {
+		return
+	}
+	if status.VPNConfig == nil {
+		fmt.Printf("VPN Config:\n")
+	} else {
+		fmt.Printf("VPN Config:       %+v\n", *status.VPNConfig)
+	}
 }
 
 // getStatus gets the VPN status from the daemon
