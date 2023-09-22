@@ -16,6 +16,13 @@ var (
 		"nmcheck.gnome.org",             // gnome
 	}
 
+	// PortalPorts are the default ports that are allowed to register on a
+	// captive portal
+	PortalPorts = []uint16{
+		80,
+		443,
+	}
+
 	// ResolveTimeout is the timeout for dns lookups
 	ResolveTimeout = 2 * time.Second
 
@@ -36,6 +43,7 @@ var (
 // Config is a TrafPol configuration
 type Config struct {
 	AllowedHosts []string
+	PortalPorts  []uint16
 	FirewallMark string `json:"-"`
 
 	ResolveTimeout    time.Duration
@@ -48,6 +56,7 @@ type Config struct {
 // Valid returns whether the TrafPol configuration is valid
 func (c *Config) Valid() bool {
 	if c == nil ||
+		len(c.PortalPorts) == 0 ||
 		c.ResolveTimeout < 0 ||
 		c.ResolveTries < 1 ||
 		c.ResolveTriesSleep < 0 ||
@@ -63,6 +72,7 @@ func (c *Config) Valid() bool {
 func NewConfig() *Config {
 	return &Config{
 		AllowedHosts: append(AllowedHosts[:0:0], AllowedHosts...),
+		PortalPorts:  append(PortalPorts[:0:0], PortalPorts...),
 
 		ResolveTimeout:    ResolveTimeout,
 		ResolveTries:      ResolveTries,
