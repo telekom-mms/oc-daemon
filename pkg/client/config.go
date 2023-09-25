@@ -147,8 +147,8 @@ func NewConfig() *Config {
 		UserAgent:   UserAgent,
 		Quiet:       Quiet,
 		NoProxy:     NoProxy,
-		ExtraEnv:    ExtraEnv,
-		ExtraArgs:   ExtraArgs,
+		ExtraEnv:    append(ExtraEnv[:0:0], ExtraEnv...),
+		ExtraArgs:   append(ExtraArgs[:0:0], ExtraArgs...),
 	}
 }
 
