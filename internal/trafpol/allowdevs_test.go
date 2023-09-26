@@ -4,6 +4,8 @@ import (
 	"context"
 	"reflect"
 	"testing"
+
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
 // TestAllowDevsAdd tests Add of AllowDevs
@@ -12,8 +14,9 @@ func TestAllowDevsAdd(t *testing.T) {
 	ctx := context.Background()
 
 	got := []string{}
-	runNft = func(ctx context.Context, s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test adding
@@ -39,8 +42,9 @@ func TestAllowDevsRemove(t *testing.T) {
 	ctx := context.Background()
 
 	got := []string{}
-	runNft = func(ctx context.Context, s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test removing device

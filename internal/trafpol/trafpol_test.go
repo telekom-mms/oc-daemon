@@ -8,6 +8,7 @@ import (
 
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/vishvananda/netlink"
 )
 
@@ -49,10 +50,11 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 
 	var nftMutex sync.Mutex
 	nftCmds := []string{}
-	runNft = func(ctx context.Context, s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		nftMutex.Lock()
 		defer nftMutex.Unlock()
 		nftCmds = append(nftCmds, s)
+		return nil
 	}
 	getNftCmds := func() []string {
 		nftMutex.Lock()
@@ -130,8 +132,9 @@ func TestCleanup(t *testing.T) {
 		"delete table inet oc-daemon-filter",
 	}
 	got := []string{}
-	runCleanupNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 	Cleanup()
 	if !reflect.DeepEqual(got, want) {
