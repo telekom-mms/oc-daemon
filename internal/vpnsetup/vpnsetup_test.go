@@ -1,11 +1,14 @@
 package vpnsetup
 
 import (
+	"context"
 	"net"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/vishvananda/netlink"
@@ -100,8 +103,9 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 	c.DNS.DefaultDomain = "mycompany.com"
 
 	got := []string{}
-	runResolvectl = func(cmd string) {
-		got = append(got, cmd)
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
+		return nil
 	}
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.setupDNS(c)
@@ -124,8 +128,9 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 	c.Device.Name = "tun0"
 
 	got := []string{}
-	runResolvectl = func(cmd string) {
-		got = append(got, cmd)
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
+		return nil
 	}
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.teardownDNS(c)
@@ -176,13 +181,25 @@ func TestNewVPNSetup(t *testing.T) {
 // TestCleanup tests Cleanup
 func TestCleanup(t *testing.T) {
 	got := []string{}
-	runCleanupCmd = func(cmd string) {
-		got = append(got, cmd)
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		if s == "" {
+			got = append(got, cmd+" "+strings.Join(arg, " "))
+			return nil
+		}
+		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
+		return nil
 	}
 	Cleanup("tun0", splitrt.NewConfig())
 	want := []string{
 		"resolvectl revert tun0",
 		"ip link delete tun0",
+		"ip -4 rule delete pref 2111",
+		"ip -4 rule delete pref 2112",
+		"ip -6 rule delete pref 2111",
+		"ip -6 rule delete pref 2112",
+		"ip -4 route flush table 42111",
+		"ip -6 route flush table 42111",
+		"nft -f - delete table inet oc-daemon-routing",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
