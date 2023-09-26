@@ -3,13 +3,13 @@ package vpnsetup
 import (
 	"context"
 	"net"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
-	"github.com/vishvananda/netlink"
 )
 
 // command types
@@ -57,51 +57,23 @@ func (v *VPNSetup) sendEvent(event *Event) {
 	}
 }
 
-// runLinkByname is a helper for getting a link by name
-var runLinkByName = func(name string) (netlink.Link, error) {
-	return netlink.LinkByName(name)
-}
-
-// runLinkSetMTU is a helper for setting the mtu of link
-var runLinkSetMTU = func(link netlink.Link, mtu int) error {
-	return netlink.LinkSetMTU(link, mtu)
-}
-
-// runLinkSetUp is a helper for setting link up
-var runLinkSetUp = func(link netlink.Link) error {
-	return netlink.LinkSetUp(link)
-}
-
-// runLinkSetDown is a helper for setting link down
-var runLinkSetDown = func(link netlink.Link) error {
-	return netlink.LinkSetDown(link)
-}
-
-// runAddrAdd is a helper for adding address to link
-var runAddrAdd = func(link netlink.Link, addr *netlink.Addr) error {
-	return netlink.AddrAdd(link, addr)
-}
-
 // setupVPNDevice sets up the vpn device with config
 func setupVPNDevice(c *vpnconfig.Config) {
-	// get link for device
-	link, err := runLinkByName(c.Device.Name)
-	if err != nil {
-		log.WithField("device", c.Device.Name).
-			Error("Daemon could not find device")
-		return
-	}
+	ctx := context.TODO()
 
 	// set mtu on device
-	if err := runLinkSetMTU(link, c.Device.MTU); err != nil {
-		log.WithField("device", c.Device.Name).
-			Error("Daemon could not set mtu on device")
+	mtu := strconv.Itoa(c.Device.MTU)
+	if err := execs.RunIPLink(ctx, "set", c.Device.Name, "mtu", mtu); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"device": c.Device.Name,
+			"mtu":    mtu,
+		}).Error("Daemon could not set mtu on device")
 		return
 	}
 
 	// set device up
-	if err := runLinkSetUp(link); err != nil {
-		log.WithField("device", c.Device.Name).
+	if err := execs.RunIPLink(ctx, "set", c.Device.Name, "up"); err != nil {
+		log.WithError(err).WithField("device", c.Device.Name).
 			Error("Daemon could not set device up")
 		return
 	}
@@ -112,13 +84,12 @@ func setupVPNDevice(c *vpnconfig.Config) {
 			IP:   ip,
 			Mask: mask,
 		}
-		addr := &netlink.Addr{
-			IPNet: ipnet,
-		}
-		if err := runAddrAdd(link, addr); err != nil {
-			log.WithFields(log.Fields{
-				"device": c.Device.Name,
-				"ip":     ip,
+		dev := c.Device.Name
+		addr := ipnet.String()
+		if err := execs.RunIPAddress(ctx, "add", addr, "dev", dev); err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"device": dev,
+				"ip":     addr,
 			}).Error("Daemon could not set ip on device")
 			return
 		}
@@ -134,17 +105,11 @@ func setupVPNDevice(c *vpnconfig.Config) {
 
 // teardownVPNDevice tears down the configured vpn device
 func teardownVPNDevice(c *vpnconfig.Config) {
-	// get link for device
-	link, err := runLinkByName(c.Device.Name)
-	if err != nil {
-		log.WithField("device", c.Device.Name).
-			Error("Daemon could not find device ")
-		return
-	}
+	ctx := context.TODO()
 
 	// set device down
-	if err := runLinkSetDown(link); err != nil {
-		log.WithField("device", c.Device.Name).
+	if err := execs.RunIPLink(ctx, "set", c.Device.Name, "down"); err != nil {
+		log.WithError(err).WithField("device", c.Device.Name).
 			Error("Daemon could not set device down")
 		return
 	}

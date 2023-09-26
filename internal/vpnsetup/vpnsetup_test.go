@@ -11,7 +11,6 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
-	"github.com/vishvananda/netlink"
 )
 
 // TestSetupVPNDevice tests setupVPNDevice
@@ -24,48 +23,23 @@ func TestSetupVPNDevice(t *testing.T) {
 	c.IPv6.Address = net.ParseIP("2001::1")
 	c.IPv6.Netmask = net.CIDRMask(64, 128)
 
-	// overwrite netlink functions
-	device := ""
-	mtu := 0
-	up := false
-	addrs := []*netlink.Addr{}
-	runLinkByName = func(name string) (netlink.Link, error) {
-		device = name
-		return &netlink.Device{}, nil
+	// overwrite RunCmd
+	want := []string{
+		"link set tun0 mtu 1300",
+		"link set tun0 up",
+		"address add 192.168.0.123/24 dev tun0",
+		"address add 2001::1/64 dev tun0",
 	}
-	runLinkSetMTU = func(link netlink.Link, m int) error {
-		mtu = m
-		return nil
-	}
-	runLinkSetUp = func(netlink.Link) error {
-		up = true
-		return nil
-	}
-	runAddrAdd = func(link netlink.Link, addr *netlink.Addr) error {
-		addrs = append(addrs, addr)
+	got := []string{}
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
 
 	// test
 	setupVPNDevice(c)
-	if device != c.Device.Name {
-		t.Errorf("got %s, want %s", device, c.Device.Name)
-	}
-	if mtu != c.Device.MTU {
-		t.Errorf("got %d, want %d", mtu, c.Device.MTU)
-	}
-	if !up {
-		t.Errorf("got %t, want true", up)
-	}
-	a := addrs[0].IPNet
-	if !a.IP.Equal(c.IPv4.Address) ||
-		a.Mask.String() != c.IPv4.Netmask.String() {
-		t.Errorf("got %v, want %v", a, c.IPv4)
-	}
-	a = addrs[1].IPNet
-	if !a.IP.Equal(c.IPv6.Address) ||
-		a.Mask.String() != c.IPv6.Netmask.String() {
-		t.Errorf("got %v, want %v", a, c.IPv6)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
@@ -74,25 +48,20 @@ func TestTeardownVPNDevice(t *testing.T) {
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 
-	// overwrite netlink functions
-	device := ""
-	down := false
-	runLinkByName = func(name string) (netlink.Link, error) {
-		device = name
-		return &netlink.Device{}, nil
+	// overwrite RunCmd
+	want := []string{
+		"link set tun0 down",
 	}
-	runLinkSetDown = func(netlink.Link) error {
-		down = true
+	got := []string{}
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
 
 	// test
 	teardownVPNDevice(c)
-	if device != c.Device.Name {
-		t.Errorf("got %s, want %s", device, c.Device.Name)
-	}
-	if !down {
-		t.Errorf("got %t, want true", down)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
