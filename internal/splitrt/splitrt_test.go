@@ -1,13 +1,16 @@
 package splitrt
 
 import (
+	"context"
 	"net"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/vishvananda/netlink"
 )
@@ -18,8 +21,9 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 
 	want := []string{"nothing else"}
 	got := []string{"nothing else"}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test adding
@@ -50,8 +54,9 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	s.devices.Add(getTestDevMonUpdate())
 
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test adding
@@ -82,8 +87,9 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test ipv4
@@ -110,9 +116,9 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 
 	// set dummy low level functions for testing
-	cmd := func(s string) {}
-	runNft = cmd
-	runCmd = cmd
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		return nil
+	}
 	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) chan netlink.AddrUpdate {
 		return nil
 	}
@@ -161,11 +167,14 @@ func TestNewSplitRouting(t *testing.T) {
 // TestCleanup tests Cleanup
 func TestCleanup(t *testing.T) {
 	got := []string{}
-	cmd := func(s string) {
-		got = append(got, s)
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		if s == "" {
+			got = append(got, cmd+" "+strings.Join(arg, " "))
+			return nil
+		}
+		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
+		return nil
 	}
-	runCleanupCmd = cmd
-	runCleanupNft = cmd
 	Cleanup(NewConfig())
 	want := []string{
 		"ip -4 rule delete pref 2111",
@@ -174,7 +183,7 @@ func TestCleanup(t *testing.T) {
 		"ip -6 rule delete pref 2112",
 		"ip -4 route flush table 42111",
 		"ip -6 route flush table 42111",
-		"delete table inet oc-daemon-routing",
+		"nft -f - delete table inet oc-daemon-routing",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)

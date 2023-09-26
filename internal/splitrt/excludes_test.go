@@ -1,10 +1,13 @@
 package splitrt
 
 import (
+	"context"
 	"log"
 	"net"
 	"reflect"
 	"testing"
+
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
 // getTestExcludes returns excludes for testing
@@ -30,8 +33,9 @@ func TestExcludesAddStatic(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test adding excludes
@@ -62,8 +66,9 @@ func TestExcludesAddDynamic(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test adding excludes
@@ -94,8 +99,9 @@ func TestExcludesRemove(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test removing not existing excludes
@@ -154,8 +160,9 @@ func TestExcludesCleanup(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test without excludes

@@ -1,24 +1,14 @@
 package splitrt
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"net"
-	"os/exec"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
-
-// runNft runs nft and passes s to it via stdin
-var runNft = func(s string) {
-	cmd := "nft -f -"
-	c := exec.Command("bash", "-c", cmd)
-	c.Stdin = bytes.NewBufferString(s)
-	if err := c.Run(); err != nil {
-		log.WithError(err).Error("SplitRouting nft execution error")
-	}
-}
 
 // setRoutingRules sets the basic nftables rules for routing
 func setRoutingRules(fwMark string) {
@@ -113,12 +103,17 @@ table inet oc-daemon-routing {
 `
 	r := strings.NewReplacer("$FWMARK", fwMark)
 	rules := r.Replace(routeRules)
-	runNft(rules)
+	if err := execs.RunNft(context.TODO(), rules); err != nil {
+		log.WithError(err).Error("SplitRouting error setting routing rules")
+	}
 }
 
 // unsetRoutingRules removes the nftables rules for routing
 func unsetRoutingRules() {
-	runNft("delete table inet oc-daemon-routing")
+	if err := execs.RunNft(context.TODO(),
+		"delete table inet oc-daemon-routing"); err != nil {
+		log.WithError(err).Error("SplitRouting error unsetting routing rules")
+	}
 }
 
 // addLocalAddresses adds rules for device and its family (ip, ip6) addresses,
@@ -135,7 +130,9 @@ func addLocalAddresses(device, family string, addresses []*net.IPNet) {
 		nftconf += "fib saddr type != local counter drop\n"
 	}
 
-	runNft(nftconf)
+	if err := execs.RunNft(context.TODO(), nftconf); err != nil {
+		log.WithError(err).Error("SplitRouting error adding local addresses")
+	}
 }
 
 // addLocalAddressesIPv4 adds rules for device and its addresses, that drop
@@ -164,7 +161,9 @@ func rejectIPVersion(device, version string) {
 		nftconf += "counter jump rejectipversion\n"
 	}
 
-	runNft(nftconf)
+	if err := execs.RunNft(context.TODO(), nftconf); err != nil {
+		log.WithError(err).Error("SplitRouting error setting ip version reject rules")
+	}
 }
 
 // rejectIPv6 adds rules for the tunnel device that reject IPv6 traffic on it;
@@ -188,7 +187,9 @@ func addExclude(address *net.IPNet) {
 
 	nftconf := fmt.Sprintf("add element inet oc-daemon-routing %s { %s }",
 		set, address)
-	runNft(nftconf)
+	if err := execs.RunNft(context.TODO(), nftconf); err != nil {
+		log.WithError(err).Error("SplitRouting error adding exclude")
+	}
 }
 
 // setExcludes resets the excludes to addresses in netfilter
@@ -210,22 +211,16 @@ func setExcludes(addresses []*net.IPNet) {
 	}
 
 	// run command
-	runNft(nftconf)
-}
-
-// runCleanupNft runs nft for cleanups
-var runCleanupNft = func(s string) {
-	log.WithField("stdin", s).Debug("SplitRouting executing nft cleanup command")
-	cmd := "nft -f -"
-	c := exec.Command("bash", "-c", cmd)
-	c.Stdin = bytes.NewBufferString(s)
-	if err := c.Run(); err == nil {
-		log.WithField("stdin", s).Debug("SplitRouting cleaned up nft")
+	if err := execs.RunNft(context.TODO(), nftconf); err != nil {
+		log.WithError(err).Error("SplitRouting error setting excludes")
 	}
 }
 
 // cleanupRoutingRules cleans up the nftables rules for routing after a
 // failed shutdown
 func cleanupRoutingRules() {
-	runCleanupNft("delete table inet oc-daemon-routing")
+	if err := execs.RunNft(context.TODO(),
+		"delete table inet oc-daemon-routing"); err == nil {
+		log.Debug("SplitRouting cleaned up nft")
+	}
 }
