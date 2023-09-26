@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/api"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/profilemon"
 	"github.com/telekom-mms/oc-daemon/internal/sleepmon"
@@ -639,6 +640,9 @@ func (d *Daemon) checkTrafPol() {
 // start starts the daemon
 func (d *Daemon) start() {
 	defer close(d.closed)
+
+	// set executables
+	execs.SetExecutables(d.config.Executables)
 
 	// cleanup after a failed shutdown
 	d.cleanup()
