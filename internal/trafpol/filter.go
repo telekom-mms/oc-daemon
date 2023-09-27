@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -213,15 +214,26 @@ func setAllowedIPs(ctx context.Context, ips []*net.IPNet) {
 	}
 }
 
+// portsToString returns ports as string
+func portsToString(ports []uint16) string {
+	s := []string{}
+	for _, port := range ports {
+		s = append(s, strconv.FormatUint(uint64(port), 10))
+	}
+	return strings.Join(s, ", ")
+}
+
 // addPortalPorts adds ports for a captive portal to the allowed ports
-func addPortalPorts(ctx context.Context) {
-	nftconf := "add element inet oc-daemon-filter allowports { 80, 443 }"
+func addPortalPorts(ctx context.Context, ports []uint16) {
+	p := portsToString(ports)
+	nftconf := fmt.Sprintf("add element inet oc-daemon-filter allowports { %s }", p)
 	runNft(ctx, nftconf)
 }
 
 // removePortalPorts removes ports for a captive portal from the allowed ports
-func removePortalPorts(ctx context.Context) {
-	nftconf := "delete element inet oc-daemon-filter allowports { 80, 443 }"
+func removePortalPorts(ctx context.Context, ports []uint16) {
+	p := portsToString(ports)
+	nftconf := fmt.Sprintf("delete element inet oc-daemon-filter allowports { %s }", p)
 	runNft(ctx, nftconf)
 }
 
