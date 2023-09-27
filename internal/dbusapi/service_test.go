@@ -46,11 +46,11 @@ func TestDaemonConnect(t *testing.T) {
 	}
 
 	// run connect and get results
-	cookie, host, connectURL, fingerprint, resolve :=
-		"cookie", "host", "connectURL", "fingerprint", "resolve"
+	server, cookie, host, connectURL, fingerprint, resolve :=
+		"server", "cookie", "host", "connectURL", "fingerprint", "resolve"
 	want := &Request{
 		Name:       RequestConnect,
-		Parameters: []any{cookie, host, connectURL, fingerprint, resolve},
+		Parameters: []any{server, cookie, host, connectURL, fingerprint, resolve},
 		done:       done,
 	}
 	got := &Request{}
@@ -59,7 +59,7 @@ func TestDaemonConnect(t *testing.T) {
 		got = r
 		r.Close()
 	}()
-	err := daemon.Connect("sender", cookie, host, connectURL, fingerprint, resolve)
+	err := daemon.Connect("sender", server, cookie, host, connectURL, fingerprint, resolve)
 	if err != nil {
 		t.Error(err)
 	}
