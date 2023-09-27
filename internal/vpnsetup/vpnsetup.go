@@ -58,9 +58,7 @@ func (v *VPNSetup) sendEvent(event *Event) {
 }
 
 // setupVPNDevice sets up the vpn device with config
-func setupVPNDevice(c *vpnconfig.Config) {
-	ctx := context.TODO()
-
+func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	// set mtu on device
 	mtu := strconv.Itoa(c.Device.MTU)
 	if err := execs.RunIPLink(ctx, "set", c.Device.Name, "mtu", mtu); err != nil {
@@ -104,9 +102,7 @@ func setupVPNDevice(c *vpnconfig.Config) {
 }
 
 // teardownVPNDevice tears down the configured vpn device
-func teardownVPNDevice(c *vpnconfig.Config) {
-	ctx := context.TODO()
-
+func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	// set device down
 	if err := execs.RunIPLink(ctx, "set", c.Device.Name, "down"); err != nil {
 		log.WithError(err).WithField("device", c.Device.Name).
@@ -135,9 +131,7 @@ func (v *VPNSetup) teardownRouting() {
 }
 
 // setupDNS sets up DNS using config
-func (v *VPNSetup) setupDNS(config *vpnconfig.Config) {
-	ctx := context.TODO()
-
+func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 	// configure dns proxy
 
 	// set remotes
@@ -187,9 +181,7 @@ func (v *VPNSetup) setupDNS(config *vpnconfig.Config) {
 }
 
 // teardownDNS tears down the DNS configuration
-func (v *VPNSetup) teardownDNS(vpnconf *vpnconfig.Config) {
-	ctx := context.TODO()
-
+func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 	// update dns proxy configuration
 
 	// reset remotes
@@ -219,30 +211,30 @@ func (v *VPNSetup) teardownDNS(vpnconf *vpnconfig.Config) {
 }
 
 // setup sets up the vpn configuration
-func (v *VPNSetup) setup(vpnconf *vpnconfig.Config) {
-	setupVPNDevice(vpnconf)
+func (v *VPNSetup) setup(ctx context.Context, vpnconf *vpnconfig.Config) {
+	setupVPNDevice(ctx, vpnconf)
 	v.setupRouting(vpnconf)
-	v.setupDNS(vpnconf)
+	v.setupDNS(ctx, vpnconf)
 
 	v.sendEvent(&Event{EventSetupOK})
 }
 
 // teardown tears down the vpn configuration
-func (v *VPNSetup) teardown(vpnconf *vpnconfig.Config) {
-	teardownVPNDevice(vpnconf)
+func (v *VPNSetup) teardown(ctx context.Context, vpnconf *vpnconfig.Config) {
+	teardownVPNDevice(ctx, vpnconf)
 	v.teardownRouting()
-	v.teardownDNS(vpnconf)
+	v.teardownDNS(ctx, vpnconf)
 
 	v.sendEvent(&Event{EventTeardownOK})
 }
 
 // handleCommand handles a command
-func (v *VPNSetup) handleCommand(c *command) {
+func (v *VPNSetup) handleCommand(ctx context.Context, c *command) {
 	switch c.cmd {
 	case commandSetup:
-		v.setup(c.vpnconf)
+		v.setup(ctx, c.vpnconf)
 	case commandTeardown:
-		v.teardown(c.vpnconf)
+		v.teardown(ctx, c.vpnconf)
 	}
 }
 
@@ -265,6 +257,9 @@ func (v *VPNSetup) handleDNSReport(r *dnsproxy.Report) {
 func (v *VPNSetup) start() {
 	defer close(v.events)
 
+	// create context
+	ctx := context.Background()
+
 	// start DNS-Proxy
 	v.dnsProxy.Start()
 	defer v.dnsProxy.Stop()
@@ -272,7 +267,7 @@ func (v *VPNSetup) start() {
 	for {
 		select {
 		case c := <-v.cmds:
-			v.handleCommand(c)
+			v.handleCommand(ctx, c)
 		case r := <-v.dnsProxy.Reports():
 			v.handleDNSReport(r)
 		case <-v.done:
@@ -332,9 +327,7 @@ func NewVPNSetup(
 }
 
 // Cleanup cleans up the configuration after a failed shutdown
-func Cleanup(vpnDevice string, splitrtConfig *splitrt.Config) {
-	ctx := context.TODO()
-
+func Cleanup(ctx context.Context, vpnDevice string, splitrtConfig *splitrt.Config) {
 	// dns, device, split routing
 	if err := execs.RunResolvectl(ctx, "revert", vpnDevice); err == nil {
 		log.WithField("device", vpnDevice).

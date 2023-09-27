@@ -480,7 +480,7 @@ func (d *Daemon) handleProfileUpdate() {
 // cleanup cleans up after a failed shutdown
 func (d *Daemon) cleanup(ctx context.Context) {
 	ocrunner.CleanupConnect(d.config.OpenConnect)
-	vpnsetup.Cleanup(d.config.OpenConnect.VPNDevice, d.config.SplitRouting)
+	vpnsetup.Cleanup(ctx, d.config.OpenConnect.VPNDevice, d.config.SplitRouting)
 	trafpol.Cleanup(ctx)
 }
 

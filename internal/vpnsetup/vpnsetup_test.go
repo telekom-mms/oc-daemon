@@ -37,7 +37,7 @@ func TestSetupVPNDevice(t *testing.T) {
 	}
 
 	// test
-	setupVPNDevice(c)
+	setupVPNDevice(context.Background(), c)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -59,7 +59,7 @@ func TestTeardownVPNDevice(t *testing.T) {
 	}
 
 	// test
-	teardownVPNDevice(c)
+	teardownVPNDevice(context.Background(), c)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -77,7 +77,7 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 		return nil
 	}
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
-	v.setupDNS(c)
+	v.setupDNS(context.Background(), c)
 
 	want := []string{
 		"dns tun0 127.0.0.1:4253",
@@ -102,7 +102,7 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 		return nil
 	}
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
-	v.teardownDNS(c)
+	v.teardownDNS(context.Background(), c)
 
 	want := []string{
 		"revert tun0",
@@ -158,7 +158,7 @@ func TestCleanup(t *testing.T) {
 		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
 		return nil
 	}
-	Cleanup("tun0", splitrt.NewConfig())
+	Cleanup(context.Background(), "tun0", splitrt.NewConfig())
 	want := []string{
 		"resolvectl revert tun0",
 		"ip link delete tun0",
