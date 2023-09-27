@@ -337,5 +337,5 @@ func Cleanup(ctx context.Context, vpnDevice string, splitrtConfig *splitrt.Confi
 		log.WithField("device", vpnDevice).
 			Warn("VPNSetup cleaned up vpn device")
 	}
-	splitrt.Cleanup(splitrtConfig)
+	splitrt.Cleanup(ctx, splitrtConfig)
 }

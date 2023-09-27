@@ -8,9 +8,7 @@ import (
 )
 
 // addDefaultRouteIPv4 adds default routing for IPv4
-func addDefaultRouteIPv4(device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
-	ctx := context.TODO()
-
+func addDefaultRouteIPv4(ctx context.Context, device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
 	// set default route
 	if err := execs.RunIP4Route(ctx, "add", "0.0.0.0/0", "dev", device,
 		"table", rtTable); err != nil {
@@ -35,9 +33,7 @@ func addDefaultRouteIPv4(device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
 }
 
 // addDefaultRouteIPv6 adds default routing for IPv6
-func addDefaultRouteIPv6(device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
-	ctx := context.TODO()
-
+func addDefaultRouteIPv6(ctx context.Context, device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
 	// set default route
 	if err := execs.RunIP6Route(ctx, "add", "::/0", "dev", device, "table",
 		rtTable); err != nil {
@@ -56,9 +52,7 @@ func addDefaultRouteIPv6(device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
 }
 
 // deleteDefaultRouteIPv4 removes default routing for IPv4
-func deleteDefaultRouteIPv4(device, rtTable string) {
-	ctx := context.TODO()
-
+func deleteDefaultRouteIPv4(ctx context.Context, device, rtTable string) {
 	// delete routing rules
 	if err := execs.RunIP4Rule(ctx, "delete", "table", rtTable); err != nil {
 		log.WithError(err).Error("SplitRouting error deleting ipv4 routing rule 2")
@@ -70,9 +64,7 @@ func deleteDefaultRouteIPv4(device, rtTable string) {
 }
 
 // deleteDefaultRouteIPv6 removes default routing for IPv6
-func deleteDefaultRouteIPv6(device, rtTable string) {
-	ctx := context.TODO()
-
+func deleteDefaultRouteIPv6(ctx context.Context, device, rtTable string) {
 	// delete routing rules
 	if err := execs.RunIP6Rule(ctx, "delete", "table", rtTable); err != nil {
 		log.WithError(err).Error("SplitRouting error deleting ipv6 routing rule 2")
@@ -84,9 +76,7 @@ func deleteDefaultRouteIPv6(device, rtTable string) {
 }
 
 // cleanupRouting cleans up the routing configuration after a failed shutdown
-func cleanupRouting(rtTable, rulePrio1, rulePrio2 string) {
-	ctx := context.TODO()
-
+func cleanupRouting(ctx context.Context, rtTable, rulePrio1, rulePrio2 string) {
 	// delete ipv4 routing rules
 	if err := execs.RunIP4Rule(ctx, "delete", "pref", rulePrio1); err == nil {
 		log.Debug("SplitRouting cleaned up ipv4 routing rule 1")

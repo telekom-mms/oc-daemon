@@ -1,6 +1,7 @@
 package splitrt
 
 import (
+	"context"
 	"net"
 	"sync"
 	"time"
@@ -30,24 +31,24 @@ type Excludes struct {
 }
 
 // addFilter adds the exclude to netfilter
-func (e *Excludes) addFilter(exclude *exclude) {
+func (e *Excludes) addFilter(ctx context.Context, exclude *exclude) {
 	log.WithField("address", exclude.net).Debug("SplitRouting adding exclude to netfilter")
-	addExclude(exclude.net)
+	addExclude(ctx, exclude.net)
 }
 
 // setFilter resets the excludes in netfilter
-func (e *Excludes) setFilter() {
+func (e *Excludes) setFilter(ctx context.Context) {
 	log.Debug("SplitRouting resetting excludes in netfilter")
 
 	addresses := []*net.IPNet{}
 	for _, v := range e.m {
 		addresses = append(addresses, v.net)
 	}
-	setExcludes(addresses)
+	setExcludes(ctx, addresses)
 }
 
 // add adds the exclude entry for ip to the split excludes
-func (e *Excludes) add(ip *net.IPNet, exclude *exclude) {
+func (e *Excludes) add(ctx context.Context, ip *net.IPNet, exclude *exclude) {
 	e.Lock()
 	defer e.Unlock()
 
@@ -57,7 +58,7 @@ func (e *Excludes) add(ip *net.IPNet, exclude *exclude) {
 	// new entry, just add it
 	if old == nil {
 		e.m[key] = exclude
-		e.addFilter(exclude)
+		e.addFilter(ctx, exclude)
 		return
 	}
 
@@ -73,21 +74,21 @@ func (e *Excludes) add(ip *net.IPNet, exclude *exclude) {
 }
 
 // AddStatic adds a static entry to the split excludes
-func (e *Excludes) AddStatic(address *net.IPNet) {
+func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 	log.WithField("address", address).Debug("SplitRouting adding static exclude")
-	e.add(address, &exclude{
+	e.add(ctx, address, &exclude{
 		net:    address,
 		static: true,
 	})
 }
 
 // AddDynamic adds a dynamic entry to the split excludes
-func (e *Excludes) AddDynamic(address *net.IPNet, ttl uint32) {
+func (e *Excludes) AddDynamic(ctx context.Context, address *net.IPNet, ttl uint32) {
 	log.WithFields(log.Fields{
 		"address": address,
 		"ttl":     ttl,
 	}).Debug("SplitRouting adding dynamic exclude")
-	e.add(address, &exclude{
+	e.add(ctx, address, &exclude{
 		net:     address,
 		ttl:     ttl,
 		updated: true,
@@ -95,16 +96,16 @@ func (e *Excludes) AddDynamic(address *net.IPNet, ttl uint32) {
 }
 
 // Remove removes an entry from the split excludes
-func (e *Excludes) Remove(address *net.IPNet) {
+func (e *Excludes) Remove(ctx context.Context, address *net.IPNet) {
 	e.Lock()
 	defer e.Unlock()
 
 	delete(e.m, address.String())
-	e.setFilter()
+	e.setFilter(ctx)
 }
 
 // cleanup cleans up the split excludes
-func (e *Excludes) cleanup() {
+func (e *Excludes) cleanup(ctx context.Context) {
 	e.Lock()
 	defer e.Unlock()
 
@@ -134,7 +135,7 @@ func (e *Excludes) cleanup() {
 
 	// if entries were changed, reset netfilter
 	if changed {
-		e.setFilter()
+		e.setFilter(ctx)
 	}
 }
 
@@ -142,11 +143,12 @@ func (e *Excludes) cleanup() {
 func (e *Excludes) start() {
 	defer close(e.closed)
 
+	ctx := context.Background()
 	timer := time.NewTimer(excludesTimer * time.Second)
 	for {
 		select {
 		case <-timer.C:
-			e.cleanup()
+			e.cleanup(ctx)
 			timer.Reset(excludesTimer * time.Second)
 
 		case <-e.done:

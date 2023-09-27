@@ -1,6 +1,7 @@
 package splitrt
 
 import (
+	"context"
 	"net"
 
 	log "github.com/sirupsen/logrus"
@@ -26,7 +27,7 @@ type SplitRouting struct {
 }
 
 // setupRouting sets up routing using config
-func (s *SplitRouting) setupRouting() {
+func (s *SplitRouting) setupRouting(ctx context.Context) {
 	// get vpn network addresses
 	ipnet4 := &net.IPNet{
 		IP:   s.vpnconfig.IPv4.Address,
@@ -38,18 +39,18 @@ func (s *SplitRouting) setupRouting() {
 	}
 
 	// prepare netfilter and excludes
-	setRoutingRules(s.config.FirewallMark)
+	setRoutingRules(ctx, s.config.FirewallMark)
 
 	// filter non-local traffic to vpn addresses
-	addLocalAddressesIPv4(s.vpnconfig.Device.Name, []*net.IPNet{ipnet4})
-	addLocalAddressesIPv6(s.vpnconfig.Device.Name, []*net.IPNet{ipnet6})
+	addLocalAddressesIPv4(ctx, s.vpnconfig.Device.Name, []*net.IPNet{ipnet4})
+	addLocalAddressesIPv6(ctx, s.vpnconfig.Device.Name, []*net.IPNet{ipnet6})
 
 	// reject unsupported ip versions on vpn
 	if len(s.vpnconfig.IPv6.Address) == 0 {
-		rejectIPv6(s.vpnconfig.Device.Name)
+		rejectIPv6(ctx, s.vpnconfig.Device.Name)
 	}
 	if len(s.vpnconfig.IPv4.Address) == 0 {
-		rejectIPv4(s.vpnconfig.Device.Name)
+		rejectIPv4(ctx, s.vpnconfig.Device.Name)
 	}
 
 	// add excludes
@@ -63,14 +64,14 @@ func (s *SplitRouting) setupRouting() {
 	if gateway.IP.To4() == nil {
 		gateway.Mask = net.CIDRMask(128, 128)
 	}
-	s.excludes.AddStatic(gateway)
+	s.excludes.AddStatic(ctx, gateway)
 
 	// add static IPv4 excludes
 	for _, e := range s.vpnconfig.Split.ExcludeIPv4 {
 		if e.String() == "0.0.0.0/32" {
 			continue
 		}
-		s.excludes.AddStatic(e)
+		s.excludes.AddStatic(ctx, e)
 	}
 
 	// add static IPv6 excludes
@@ -79,23 +80,22 @@ func (s *SplitRouting) setupRouting() {
 		if e.String() == "::/128" {
 			continue
 		}
-		s.excludes.AddStatic(e)
+		s.excludes.AddStatic(ctx, e)
 	}
 
 	// setup routing
-	// TODO: add netlink variant?
-	addDefaultRouteIPv4(s.vpnconfig.Device.Name, s.config.RoutingTable,
+	addDefaultRouteIPv4(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable,
 		s.config.RulePriority1, s.config.FirewallMark, s.config.RulePriority2)
-	addDefaultRouteIPv6(s.vpnconfig.Device.Name, s.config.RoutingTable,
+	addDefaultRouteIPv6(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable,
 		s.config.RulePriority1, s.config.FirewallMark, s.config.RulePriority2)
 
 }
 
 // teardownRouting tears down the routing configuration
-func (s *SplitRouting) teardownRouting() {
-	deleteDefaultRouteIPv4(s.vpnconfig.Device.Name, s.config.RoutingTable)
-	deleteDefaultRouteIPv6(s.vpnconfig.Device.Name, s.config.RoutingTable)
-	unsetRoutingRules()
+func (s *SplitRouting) teardownRouting(ctx context.Context) {
+	deleteDefaultRouteIPv4(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable)
+	deleteDefaultRouteIPv6(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable)
+	unsetRoutingRules(ctx)
 
 	// remove excludes
 	s.excludes.Stop()
@@ -115,7 +115,7 @@ func (s *SplitRouting) excludeLocalNetworks() (exclude bool, virtual bool) {
 }
 
 // updateLocalNetworkExcludes updates the local network split excludes
-func (s *SplitRouting) updateLocalNetworkExcludes() {
+func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	exclude, virtual := s.excludeLocalNetworks()
 
 	// stop if exclude local networks is disabled
@@ -149,14 +149,14 @@ func (s *SplitRouting) updateLocalNetworkExcludes() {
 	// add new excludes
 	for _, e := range excludes {
 		if !isIn(e, s.locals) {
-			s.excludes.AddStatic(e)
+			s.excludes.AddStatic(ctx, e)
 		}
 	}
 
 	// remove old excludes
 	for _, l := range s.locals {
 		if !isIn(l, excludes) {
-			s.excludes.Remove(l)
+			s.excludes.Remove(ctx, l)
 		}
 	}
 
@@ -166,7 +166,7 @@ func (s *SplitRouting) updateLocalNetworkExcludes() {
 }
 
 // handleDeviceUpdate handles a device update from the device monitor
-func (s *SplitRouting) handleDeviceUpdate(u *devmon.Update) {
+func (s *SplitRouting) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
 	log.WithField("update", u).Debug("SplitRouting got device update")
 
 	if u.Add {
@@ -183,11 +183,11 @@ func (s *SplitRouting) handleDeviceUpdate(u *devmon.Update) {
 	} else {
 		s.devices.Remove(u)
 	}
-	s.updateLocalNetworkExcludes()
+	s.updateLocalNetworkExcludes(ctx)
 }
 
 // handleAddressUpdate handles an address update from the address monitor
-func (s *SplitRouting) handleAddressUpdate(u *addrmon.Update) {
+func (s *SplitRouting) handleAddressUpdate(ctx context.Context, u *addrmon.Update) {
 	log.WithField("update", u).Debug("SplitRouting got address update")
 
 	if u.Add {
@@ -195,22 +195,22 @@ func (s *SplitRouting) handleAddressUpdate(u *addrmon.Update) {
 	} else {
 		s.addrs.Remove(u)
 	}
-	s.updateLocalNetworkExcludes()
+	s.updateLocalNetworkExcludes(ctx)
 }
 
 // handleDNSReport handles a DNS report
-func (s *SplitRouting) handleDNSReport(r *dnsproxy.Report) {
+func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) {
 	defer r.Done()
 	log.WithField("report", r).Debug("SplitRouting handling DNS report")
 
 	if r.IP.To4() != nil {
-		s.excludes.AddDynamic(&net.IPNet{
+		s.excludes.AddDynamic(ctx, &net.IPNet{
 			IP:   r.IP,
 			Mask: net.CIDRMask(32, 32),
 		}, r.TTL)
 		return
 	}
-	s.excludes.AddDynamic(&net.IPNet{
+	s.excludes.AddDynamic(ctx, &net.IPNet{
 		IP:   r.IP,
 		Mask: net.CIDRMask(128, 128),
 	}, r.TTL)
@@ -221,9 +221,12 @@ func (s *SplitRouting) start() {
 	log.Debug("SplitRouting starting")
 	defer close(s.closed)
 
+	// create context
+	ctx := context.Background()
+
 	// configure routing
-	s.setupRouting()
-	defer s.teardownRouting()
+	s.setupRouting(ctx)
+	defer s.teardownRouting(ctx)
 
 	// start device monitor
 	s.devmon.Start()
@@ -237,11 +240,11 @@ func (s *SplitRouting) start() {
 	for {
 		select {
 		case u := <-s.devmon.Updates():
-			s.handleDeviceUpdate(u)
+			s.handleDeviceUpdate(ctx, u)
 		case u := <-s.addrmon.Updates():
-			s.handleAddressUpdate(u)
+			s.handleAddressUpdate(ctx, u)
 		case r := <-s.dnsreps:
-			s.handleDNSReport(r)
+			s.handleDNSReport(ctx, r)
 		case <-s.done:
 			return
 		}
@@ -282,8 +285,8 @@ func NewSplitRouting(config *Config, vpnconfig *vpnconfig.Config) *SplitRouting 
 }
 
 // Cleanup cleans up old configuration after a failed shutdown
-func Cleanup(config *Config) {
-	cleanupRouting(config.RoutingTable, config.RulePriority1,
+func Cleanup(ctx context.Context, config *Config) {
+	cleanupRouting(ctx, config.RoutingTable, config.RulePriority1,
 		config.RulePriority2)
-	cleanupRoutingRules()
+	cleanupRoutingRules(ctx)
 }

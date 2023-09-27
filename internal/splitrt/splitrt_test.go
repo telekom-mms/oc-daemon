@@ -17,6 +17,7 @@ import (
 
 // TestSplitRoutingHandleDeviceUpdate tests handleDeviceUpdate of SplitRouting
 func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
+	ctx := context.Background()
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 
 	want := []string{"nothing else"}
@@ -28,14 +29,14 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 
 	// test adding
 	update := getTestDevMonUpdate()
-	s.handleDeviceUpdate(update)
+	s.handleDeviceUpdate(ctx, update)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
 	// test removing
 	update.Add = false
-	s.handleDeviceUpdate(update)
+	s.handleDeviceUpdate(ctx, update)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -43,6 +44,7 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 
 // TestSplitRoutingHandleAddressUpdate tests handleAddressUpdate of SplitRouting
 func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
+	ctx := context.Background()
 	vpnconf := vpnconfig.New()
 	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
 		{
@@ -64,7 +66,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
 	}
 	update := getTestAddrMonUpdate("192.168.1.1/32")
-	s.handleAddressUpdate(update)
+	s.handleAddressUpdate(ctx, update)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -76,7 +78,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 			"flush set inet oc-daemon-routing excludes6\n",
 	}
 	update.Add = false
-	s.handleAddressUpdate(update)
+	s.handleAddressUpdate(ctx, update)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -84,6 +86,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 
 // TestSplitRoutingHandleDNSReport tests handleDNSReport of SplitRouting
 func TestSplitRoutingHandleDNSReport(t *testing.T) {
+	ctx := context.Background()
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 
 	got := []string{}
@@ -94,12 +97,12 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 
 	// test ipv4
 	report := dnsproxy.NewReport("example.com", net.ParseIP("192.168.1.1"), 300)
-	go s.handleDNSReport(report)
+	go s.handleDNSReport(ctx, report)
 	report.Wait()
 
 	// test ipv6
 	report = dnsproxy.NewReport("example.com", net.ParseIP("2001::1"), 300)
-	go s.handleDNSReport(report)
+	go s.handleDNSReport(ctx, report)
 	report.Wait()
 
 	want := []string{
@@ -175,7 +178,7 @@ func TestCleanup(t *testing.T) {
 		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
 		return nil
 	}
-	Cleanup(NewConfig())
+	Cleanup(context.Background(), NewConfig())
 	want := []string{
 		"ip -4 rule delete pref 2111",
 		"ip -4 rule delete pref 2112",
