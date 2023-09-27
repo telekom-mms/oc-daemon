@@ -62,7 +62,7 @@ func (c *Config) Valid() bool {
 // NewConfig returns a new TrafPol configuration
 func NewConfig() *Config {
 	return &Config{
-		AllowedHosts: AllowedHosts,
+		AllowedHosts: append(AllowedHosts[:0:0], AllowedHosts...),
 
 		ResolveTimeout:    ResolveTimeout,
 		ResolveTries:      ResolveTries,
