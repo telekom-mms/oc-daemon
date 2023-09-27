@@ -1,7 +1,6 @@
 package daemon
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -51,7 +50,7 @@ func TestConfigLoad(t *testing.T) {
 	}
 
 	// test empty config file
-	empty, err := ioutil.TempFile("", "oc-daemon-config-test")
+	empty, err := os.CreateTemp("", "oc-daemon-config-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +119,7 @@ func TestConfigLoad(t *testing.T) {
 }`,
 	} {
 
-		valid, err := ioutil.TempFile("", "oc-daemon-config-test")
+		valid, err := os.CreateTemp("", "oc-daemon-config-test")
 		if err != nil {
 			t.Fatal(err)
 		}
