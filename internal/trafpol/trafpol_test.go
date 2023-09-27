@@ -136,7 +136,7 @@ func TestCleanup(t *testing.T) {
 		got = append(got, s)
 		return nil
 	}
-	Cleanup()
+	Cleanup(context.Background())
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}

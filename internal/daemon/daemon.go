@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"net"
@@ -477,10 +478,10 @@ func (d *Daemon) handleProfileUpdate() {
 }
 
 // cleanup cleans up after a failed shutdown
-func (d *Daemon) cleanup() {
+func (d *Daemon) cleanup(ctx context.Context) {
 	ocrunner.CleanupConnect(d.config.OpenConnect)
 	vpnsetup.Cleanup(d.config.OpenConnect.VPNDevice, d.config.SplitRouting)
-	trafpol.Cleanup()
+	trafpol.Cleanup(ctx)
 }
 
 // initToken creates the daemon token for client authentication
@@ -641,11 +642,14 @@ func (d *Daemon) checkTrafPol() {
 func (d *Daemon) start() {
 	defer close(d.closed)
 
+	// create context
+	ctx := context.Background()
+
 	// set executables
 	execs.SetExecutables(d.config.Executables)
 
 	// cleanup after a failed shutdown
-	d.cleanup()
+	d.cleanup(ctx)
 
 	// init token
 	d.initToken()

@@ -244,9 +244,8 @@ func removePortalPorts(ctx context.Context, ports []uint16) {
 }
 
 // cleanupFilterRules cleans up the filter rules after a failed shutdown
-func cleanupFilterRules() {
-	if err := execs.RunNft(context.TODO(),
-		"delete table inet oc-daemon-filter"); err == nil {
+func cleanupFilterRules(ctx context.Context) {
+	if err := execs.RunNft(ctx, "delete table inet oc-daemon-filter"); err == nil {
 		log.Debug("TrafPol cleaned up nft")
 	}
 }
