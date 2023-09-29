@@ -11,6 +11,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/internal/trafpol"
+	"github.com/telekom-mms/tnd/pkg/tnd"
 )
 
 var (
@@ -37,6 +38,7 @@ type Config struct {
 	Executables     *execs.Config
 	SplitRouting    *splitrt.Config
 	TrafficPolicing *trafpol.Config
+	TND             *tnd.Config
 }
 
 // Valid returns whether config is valid
@@ -48,7 +50,8 @@ func (c *Config) Valid() bool {
 		!c.OpenConnect.Valid() ||
 		!c.Executables.Valid() ||
 		!c.SplitRouting.Valid() ||
-		!c.TrafficPolicing.Valid() {
+		!c.TrafficPolicing.Valid() ||
+		!c.TND.Valid() {
 		// invalid
 		return false
 	}
@@ -84,5 +87,6 @@ func NewConfig() *Config {
 		Executables:     execs.NewConfig(),
 		SplitRouting:    splitrt.NewConfig(),
 		TrafficPolicing: trafpol.NewConfig(),
+		TND:             tnd.NewConfig(),
 	}
 }
