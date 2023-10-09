@@ -167,6 +167,6 @@ func NewTrafPol(config *Config) *TrafPol {
 }
 
 // Cleanup cleans up old configuration after a failed shutdown
-func Cleanup() {
-	cleanupFilterRules()
+func Cleanup(ctx context.Context) {
+	cleanupFilterRules(ctx)
 }

@@ -31,6 +31,12 @@
 		"ExtraEnv": [],
 		"ExtraArgs": []
 	},
+	"Executables": {
+		"IP": "ip",
+		"Nft": "nft",
+		"Resolvectl": "resolvectl",
+		"Sysctl": "sysctl"
+	},
 	"SplitRouting": {
 		"RoutingTable": "42111",
 		"RulePriority1": "2111",

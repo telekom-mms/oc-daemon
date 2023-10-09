@@ -8,6 +8,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/api"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/internal/trafpol"
@@ -100,6 +101,12 @@ func TestConfigLoad(t *testing.T) {
 		"PIDGroup": "",
 		"PIDPermissions": "0600"
 	},
+	"Executables": {
+		"IP": "ip",
+		"Nft": "nft",
+		"Resolvectl": "resolvectl",
+		"Sysctl": "sysctl"
+	},
 	"SplitRouting": {
 		"RoutingTable": "42111",
 		"RulePriority1": "2111",
@@ -149,6 +156,7 @@ func TestConfigLoad(t *testing.T) {
 			CPD:             cpd.NewConfig(),
 			DNSProxy:        dnsproxy.NewConfig(),
 			OpenConnect:     ocrunner.NewConfig(),
+			Executables:     execs.NewConfig(),
 			SplitRouting:    splitrt.NewConfig(),
 			TrafficPolicing: trafpol.NewConfig(),
 		}
@@ -157,6 +165,9 @@ func TestConfigLoad(t *testing.T) {
 		}
 		if !reflect.DeepEqual(want.OpenConnect, config.OpenConnect) {
 			t.Errorf("got %v, want %v", config.OpenConnect, want.OpenConnect)
+		}
+		if !reflect.DeepEqual(want.Executables, config.Executables) {
+			t.Errorf("got %v, want %v", config.Executables, want.Executables)
 		}
 		if !reflect.DeepEqual(want.SplitRouting, config.SplitRouting) {
 			t.Errorf("got %v, want %v", config.SplitRouting, want.SplitRouting)
@@ -179,6 +190,7 @@ func TestNewConfig(t *testing.T) {
 		CPD:             cpd.NewConfig(),
 		DNSProxy:        dnsproxy.NewConfig(),
 		OpenConnect:     ocrunner.NewConfig(),
+		Executables:     execs.NewConfig(),
 		SplitRouting:    splitrt.NewConfig(),
 		TrafficPolicing: trafpol.NewConfig(),
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/api"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/internal/trafpol"
@@ -33,6 +34,7 @@ type Config struct {
 	CPD             *cpd.Config
 	DNSProxy        *dnsproxy.Config
 	OpenConnect     *ocrunner.Config
+	Executables     *execs.Config
 	SplitRouting    *splitrt.Config
 	TrafficPolicing *trafpol.Config
 }
@@ -44,6 +46,7 @@ func (c *Config) Valid() bool {
 		!c.CPD.Valid() ||
 		!c.DNSProxy.Valid() ||
 		!c.OpenConnect.Valid() ||
+		!c.Executables.Valid() ||
 		!c.SplitRouting.Valid() ||
 		!c.TrafficPolicing.Valid() {
 		// invalid
@@ -78,6 +81,7 @@ func NewConfig() *Config {
 		CPD:             cpd.NewConfig(),
 		DNSProxy:        dnsproxy.NewConfig(),
 		OpenConnect:     ocrunner.NewConfig(),
+		Executables:     execs.NewConfig(),
 		SplitRouting:    splitrt.NewConfig(),
 		TrafficPolicing: trafpol.NewConfig(),
 	}

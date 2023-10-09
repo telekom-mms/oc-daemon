@@ -1,14 +1,16 @@
 package vpnsetup
 
 import (
+	"context"
 	"net"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
-	"github.com/vishvananda/netlink"
 )
 
 // TestSetupVPNDevice tests setupVPNDevice
@@ -21,48 +23,23 @@ func TestSetupVPNDevice(t *testing.T) {
 	c.IPv6.Address = net.ParseIP("2001::1")
 	c.IPv6.Netmask = net.CIDRMask(64, 128)
 
-	// overwrite netlink functions
-	device := ""
-	mtu := 0
-	up := false
-	addrs := []*netlink.Addr{}
-	runLinkByName = func(name string) (netlink.Link, error) {
-		device = name
-		return &netlink.Device{}, nil
+	// overwrite RunCmd
+	want := []string{
+		"link set tun0 mtu 1300",
+		"link set tun0 up",
+		"address add 192.168.0.123/24 dev tun0",
+		"address add 2001::1/64 dev tun0",
 	}
-	runLinkSetMTU = func(link netlink.Link, m int) error {
-		mtu = m
-		return nil
-	}
-	runLinkSetUp = func(netlink.Link) error {
-		up = true
-		return nil
-	}
-	runAddrAdd = func(link netlink.Link, addr *netlink.Addr) error {
-		addrs = append(addrs, addr)
+	got := []string{}
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
 
 	// test
-	setupVPNDevice(c)
-	if device != c.Device.Name {
-		t.Errorf("got %s, want %s", device, c.Device.Name)
-	}
-	if mtu != c.Device.MTU {
-		t.Errorf("got %d, want %d", mtu, c.Device.MTU)
-	}
-	if !up {
-		t.Errorf("got %t, want true", up)
-	}
-	a := addrs[0].IPNet
-	if !a.IP.Equal(c.IPv4.Address) ||
-		a.Mask.String() != c.IPv4.Netmask.String() {
-		t.Errorf("got %v, want %v", a, c.IPv4)
-	}
-	a = addrs[1].IPNet
-	if !a.IP.Equal(c.IPv6.Address) ||
-		a.Mask.String() != c.IPv6.Netmask.String() {
-		t.Errorf("got %v, want %v", a, c.IPv6)
+	setupVPNDevice(context.Background(), c)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
@@ -71,25 +48,20 @@ func TestTeardownVPNDevice(t *testing.T) {
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 
-	// overwrite netlink functions
-	device := ""
-	down := false
-	runLinkByName = func(name string) (netlink.Link, error) {
-		device = name
-		return &netlink.Device{}, nil
+	// overwrite RunCmd
+	want := []string{
+		"link set tun0 down",
 	}
-	runLinkSetDown = func(netlink.Link) error {
-		down = true
+	got := []string{}
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
 
 	// test
-	teardownVPNDevice(c)
-	if device != c.Device.Name {
-		t.Errorf("got %s, want %s", device, c.Device.Name)
-	}
-	if !down {
-		t.Errorf("got %t, want true", down)
+	teardownVPNDevice(context.Background(), c)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
@@ -100,11 +72,12 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 	c.DNS.DefaultDomain = "mycompany.com"
 
 	got := []string{}
-	runResolvectl = func(cmd string) {
-		got = append(got, cmd)
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
+		return nil
 	}
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
-	v.setupDNS(c)
+	v.setupDNS(context.Background(), c)
 
 	want := []string{
 		"dns tun0 127.0.0.1:4253",
@@ -124,11 +97,12 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 	c.Device.Name = "tun0"
 
 	got := []string{}
-	runResolvectl = func(cmd string) {
-		got = append(got, cmd)
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
+		return nil
 	}
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
-	v.teardownDNS(c)
+	v.teardownDNS(context.Background(), c)
 
 	want := []string{
 		"revert tun0",
@@ -176,13 +150,25 @@ func TestNewVPNSetup(t *testing.T) {
 // TestCleanup tests Cleanup
 func TestCleanup(t *testing.T) {
 	got := []string{}
-	runCleanupCmd = func(cmd string) {
-		got = append(got, cmd)
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		if s == "" {
+			got = append(got, cmd+" "+strings.Join(arg, " "))
+			return nil
+		}
+		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
+		return nil
 	}
-	Cleanup("tun0", splitrt.NewConfig())
+	Cleanup(context.Background(), "tun0", splitrt.NewConfig())
 	want := []string{
 		"resolvectl revert tun0",
 		"ip link delete tun0",
+		"ip -4 rule delete pref 2111",
+		"ip -4 rule delete pref 2112",
+		"ip -6 rule delete pref 2111",
+		"ip -6 rule delete pref 2112",
+		"ip -4 route flush table 42111",
+		"ip -6 route flush table 42111",
+		"nft -f - delete table inet oc-daemon-routing",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)

@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"net"
@@ -12,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/api"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/profilemon"
 	"github.com/telekom-mms/oc-daemon/internal/sleepmon"
@@ -476,10 +478,10 @@ func (d *Daemon) handleProfileUpdate() {
 }
 
 // cleanup cleans up after a failed shutdown
-func (d *Daemon) cleanup() {
+func (d *Daemon) cleanup(ctx context.Context) {
 	ocrunner.CleanupConnect(d.config.OpenConnect)
-	vpnsetup.Cleanup(d.config.OpenConnect.VPNDevice, d.config.SplitRouting)
-	trafpol.Cleanup()
+	vpnsetup.Cleanup(ctx, d.config.OpenConnect.VPNDevice, d.config.SplitRouting)
+	trafpol.Cleanup(ctx)
 }
 
 // initToken creates the daemon token for client authentication
@@ -640,8 +642,14 @@ func (d *Daemon) checkTrafPol() {
 func (d *Daemon) start() {
 	defer close(d.closed)
 
+	// create context
+	ctx := context.Background()
+
+	// set executables
+	execs.SetExecutables(d.config.Executables)
+
 	// cleanup after a failed shutdown
-	d.cleanup()
+	d.cleanup(ctx)
 
 	// init token
 	d.initToken()

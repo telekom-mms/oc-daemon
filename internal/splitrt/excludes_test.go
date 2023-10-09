@@ -1,10 +1,13 @@
 package splitrt
 
 import (
+	"context"
 	"log"
 	"net"
 	"reflect"
 	"testing"
+
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
 // getTestExcludes returns excludes for testing
@@ -25,13 +28,15 @@ func getTestExcludes() []*net.IPNet {
 
 // TestExcludesAddStatic tests AddStatic of Excludes
 func TestExcludesAddStatic(t *testing.T) {
+	ctx := context.Background()
 	e := NewExcludes()
 	excludes := getTestExcludes()
 
 	// set testing runNft function
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test adding excludes
@@ -40,7 +45,7 @@ func TestExcludesAddStatic(t *testing.T) {
 		"add element inet oc-daemon-routing excludes6 { 2001::/64 }",
 	}
 	for _, exclude := range excludes {
-		e.AddStatic(exclude)
+		e.AddStatic(ctx, exclude)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -48,7 +53,7 @@ func TestExcludesAddStatic(t *testing.T) {
 
 	// test adding excludes again, should not change nft commands
 	for _, exclude := range excludes {
-		e.AddStatic(exclude)
+		e.AddStatic(ctx, exclude)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -57,13 +62,15 @@ func TestExcludesAddStatic(t *testing.T) {
 
 // TestExcludesAddDynamic tests AddDynamic of Excludes
 func TestExcludesAddDynamic(t *testing.T) {
+	ctx := context.Background()
 	e := NewExcludes()
 	excludes := getTestExcludes()
 
 	// set testing runNft function
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test adding excludes
@@ -72,7 +79,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 		"add element inet oc-daemon-routing excludes6 { 2001::/64 }",
 	}
 	for _, exclude := range excludes {
-		e.AddDynamic(exclude, 300)
+		e.AddDynamic(ctx, exclude, 300)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -80,7 +87,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 
 	// test adding excludes again, should not change nft commands
 	for _, exclude := range excludes {
-		e.AddDynamic(exclude, 300)
+		e.AddDynamic(ctx, exclude, 300)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -89,13 +96,15 @@ func TestExcludesAddDynamic(t *testing.T) {
 
 // TestExcludesRemove tests Remove of Excludes
 func TestExcludesRemove(t *testing.T) {
+	ctx := context.Background()
 	e := NewExcludes()
 	excludes := getTestExcludes()
 
 	// set testing runNft function
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test removing not existing excludes
@@ -106,7 +115,7 @@ func TestExcludesRemove(t *testing.T) {
 			"flush set inet oc-daemon-routing excludes6\n",
 	}
 	for _, exclude := range excludes {
-		e.Remove(exclude)
+		e.Remove(ctx, exclude)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -124,10 +133,10 @@ func TestExcludesRemove(t *testing.T) {
 			"flush set inet oc-daemon-routing excludes6\n",
 	}
 	for _, exclude := range excludes {
-		e.AddStatic(exclude)
+		e.AddStatic(ctx, exclude)
 	}
 	for _, exclude := range excludes {
-		e.Remove(exclude)
+		e.Remove(ctx, exclude)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -137,10 +146,10 @@ func TestExcludesRemove(t *testing.T) {
 	// should have same nft commands as static case
 	got = []string{}
 	for _, exclude := range excludes {
-		e.AddDynamic(exclude, 300)
+		e.AddDynamic(ctx, exclude, 300)
 	}
 	for _, exclude := range excludes {
-		e.Remove(exclude)
+		e.Remove(ctx, exclude)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -149,31 +158,33 @@ func TestExcludesRemove(t *testing.T) {
 
 // TestExcludesCleanup tests cleanup of Excludes
 func TestExcludesCleanup(t *testing.T) {
+	ctx := context.Background()
 	e := NewExcludes()
 	excludes := getTestExcludes()
 
 	// set testing runNft function
 	got := []string{}
-	runNft = func(s string) {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
+		return nil
 	}
 
 	// test without excludes
 	want := []string{}
-	e.cleanup()
+	e.cleanup(ctx)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
 	// test with dynamic excludes
 	for _, exclude := range excludes {
-		e.AddDynamic(exclude, excludesTimer)
+		e.AddDynamic(ctx, exclude, excludesTimer)
 	}
 
 	got = []string{}
 	for i := 0; i <= excludesTimer; i += excludesTimer {
 		want := []string{}
-		e.cleanup()
+		e.cleanup(ctx)
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("got %v, want %v", got, want)
 		}
@@ -182,18 +193,18 @@ func TestExcludesCleanup(t *testing.T) {
 		"flush set inet oc-daemon-routing excludes4\n" +
 			"flush set inet oc-daemon-routing excludes6\n",
 	}
-	e.cleanup()
+	e.cleanup(ctx)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
 	// test with static excludes
 	for _, exclude := range excludes {
-		e.AddStatic(exclude)
+		e.AddStatic(ctx, exclude)
 	}
 	got = []string{}
 	want = []string{}
-	e.cleanup()
+	e.cleanup(ctx)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
