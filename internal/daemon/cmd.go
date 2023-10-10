@@ -77,6 +77,11 @@ func Run() {
 		log.Warn("Daemon loaded invalid config, using default config")
 	}
 
+	// check executables
+	if err := config.Executables.CheckExecutables(); err != nil {
+		log.WithError(err).Fatal("Daemon could not find all executables")
+	}
+
 	// overwrite config settings with command line arguments
 	if flagIsSet(argVerbose) {
 		config.Verbose = *verbose
