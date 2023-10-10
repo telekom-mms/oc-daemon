@@ -21,7 +21,8 @@ func (c *Config) Valid() bool {
 	if c == nil ||
 		c.IP == "" ||
 		c.Nft == "" ||
-		c.Resolvectl == "" {
+		c.Resolvectl == "" ||
+		c.Sysctl == "" {
 		// invalid
 		return false
 	}
