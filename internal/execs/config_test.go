@@ -1,6 +1,9 @@
 package execs
 
 import (
+	"log"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -25,6 +28,50 @@ func TestConfigValid(t *testing.T) {
 		if !valid.Valid() {
 			t.Errorf("config should be valid: %v", valid)
 		}
+	}
+}
+
+// TestConfigCheckExecutables tests CheckExecutables of Config
+func TestConfigCheckExecutables(t *testing.T) {
+	// create temporary dir for executables
+	dir, err := os.MkdirTemp("", "execs-test")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() { _ = os.RemoveAll(dir) }()
+
+	// create executable file paths
+	ip := filepath.Join(dir, "ip")
+	nft := filepath.Join(dir, "nft")
+	resolvectl := filepath.Join(dir, "resolvectl")
+	sysctl := filepath.Join(dir, "sysctl")
+
+	// create config with executables
+	c := &Config{
+		IP:         ip,
+		Nft:        nft,
+		Resolvectl: resolvectl,
+		Sysctl:     sysctl,
+	}
+
+	// test with not all files existing, create files in the process
+	for _, f := range []string{
+		ip, nft, resolvectl, sysctl,
+	} {
+		// test
+		if got := c.CheckExecutables(); got == nil {
+			t.Errorf("got nil, want != nil")
+		}
+
+		// create executable file
+		if err := os.WriteFile(f, []byte{}, 0777); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	// test with all files existing
+	if got := c.CheckExecutables(); got != nil {
+		t.Errorf("got %v, want nil", got)
 	}
 }
 
