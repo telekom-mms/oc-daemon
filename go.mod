@@ -9,12 +9,12 @@ require (
 	github.com/sirupsen/logrus v1.9.2
 	github.com/telekom-mms/tnd v0.1.0
 	github.com/vishvananda/netlink v1.1.0
-	golang.org/x/sys v0.8.0
+	golang.org/x/sys v0.13.0
 )
 
 require (
 	github.com/vishvananda/netns v0.0.4 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/tools v0.9.2 // indirect
 )
