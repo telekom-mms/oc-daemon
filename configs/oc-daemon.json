@@ -49,5 +49,11 @@
 		"ResolveTries": 3,
 		"ResolveTriesSleep": 1000000000,
 		"ResolveTTL": 300000000000
+	},
+	"TND": {
+		"WaitCheck": 1000000000,
+		"HTTPSTimeout": 5000000000,
+		"UntrustedTimer": 30000000000,
+		"TrustedTimer": 60000000000
 	}
 }

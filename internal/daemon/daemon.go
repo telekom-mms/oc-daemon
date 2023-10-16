@@ -23,7 +23,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
-	"github.com/telekom-mms/tnd/pkg/trustnet"
+	"github.com/telekom-mms/tnd/pkg/tnd"
 	"golang.org/x/sys/unix"
 )
 
@@ -34,7 +34,7 @@ type Daemon struct {
 	server *api.Server
 	dbus   *dbusapi.Service
 
-	tnd *trustnet.TND
+	tnd tnd.TND
 
 	vpnsetup *vpnsetup.VPNSetup
 	trafpol  *trafpol.TrafPol
@@ -560,7 +560,7 @@ func (d *Daemon) startTND() {
 	if d.tnd != nil {
 		return
 	}
-	d.tnd = trustnet.NewTND()
+	d.tnd = tnd.NewDetector(d.config.TND)
 	d.initTNDServers()
 	d.setTNDDialer()
 	d.tnd.Start()

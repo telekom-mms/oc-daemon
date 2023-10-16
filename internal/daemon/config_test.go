@@ -12,6 +12,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/internal/trafpol"
+	"github.com/telekom-mms/tnd/pkg/tnd"
 )
 
 // TestConfigValid tests Valid of Config
@@ -120,6 +121,12 @@ func TestConfigLoad(t *testing.T) {
 		"ResolveTries": 3,
 		"ResolveTriesSleep": 1000000000,
 		"ResolveTTL": 300000000000
+	},
+	"TND": {
+		"WaitCheck": 1000000000,
+		"HTTPSTimeout": 5000000000,
+		"UntrustedTimer": 30000000000,
+		"TrustedTimer": 60000000000
 	}
 }`,
 		`{
@@ -159,6 +166,7 @@ func TestConfigLoad(t *testing.T) {
 			Executables:     execs.NewConfig(),
 			SplitRouting:    splitrt.NewConfig(),
 			TrafficPolicing: trafpol.NewConfig(),
+			TND:             tnd.NewConfig(),
 		}
 		if !reflect.DeepEqual(want.DNSProxy, config.DNSProxy) {
 			t.Errorf("got %v, want %v", config.DNSProxy, want.DNSProxy)
@@ -174,6 +182,9 @@ func TestConfigLoad(t *testing.T) {
 		}
 		if !reflect.DeepEqual(want.TrafficPolicing, config.TrafficPolicing) {
 			t.Errorf("got %v, want %v", config.TrafficPolicing, want.TrafficPolicing)
+		}
+		if !reflect.DeepEqual(want.TND, config.TND) {
+			t.Errorf("got %v, want %v", config.TND, want.TND)
 		}
 		if !reflect.DeepEqual(want, config) {
 			t.Errorf("got %v, want %v", config, want)
@@ -193,6 +204,7 @@ func TestNewConfig(t *testing.T) {
 		Executables:     execs.NewConfig(),
 		SplitRouting:    splitrt.NewConfig(),
 		TrafficPolicing: trafpol.NewConfig(),
+		TND:             tnd.NewConfig(),
 	}
 	got := NewConfig()
 	if !reflect.DeepEqual(got, want) {
