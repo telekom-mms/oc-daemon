@@ -23,6 +23,15 @@ var RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) erro
 	return c.Run()
 }
 
+// RunCmdOutput runs the cmd with args and sets stdin to s, returns output
+var RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
+	c := exec.CommandContext(ctx, cmd, arg...)
+	if s != "" {
+		c.Stdin = bytes.NewBufferString(s)
+	}
+	return c.Output()
+}
+
 // RunIP runs the "ip" command with args
 func RunIP(ctx context.Context, arg ...string) error {
 	return RunCmd(ctx, ip, "", arg...)
@@ -77,6 +86,11 @@ func RunNft(ctx context.Context, s string) error {
 // RunResolvectl runs the "resolvectl" command with args
 func RunResolvectl(ctx context.Context, arg ...string) error {
 	return RunCmd(ctx, resolvectl, "", arg...)
+}
+
+// RunResolvectlOutput runs the "resolvectl" command with args, returns output
+func RunResolvectlOutput(ctx context.Context, arg ...string) ([]byte, error) {
+	return RunCmdOutput(ctx, resolvectl, "", arg...)
 }
 
 // SetExecutables configures all executables from config
