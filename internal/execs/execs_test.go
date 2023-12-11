@@ -30,6 +30,22 @@ func TestRunCmd(t *testing.T) {
 	}
 }
 
+// TestRunCmdOutput tests RunCmdOutput
+func TestRunCmdOutput(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+
+	// test with error
+	if _, err := RunCmdOutput(ctx, filepath.Join(dir, "does/not/exist"), ""); err == nil {
+		t.Errorf("running should fail: %v", err)
+	}
+
+	// test without error
+	if b, err := RunCmdOutput(ctx, "ls", "", "-d", dir); err != nil || len(b) == 0 {
+		t.Errorf("running should not fail: %v, %v", b, err)
+	}
+}
+
 // TestRunIP tests RunIP
 func TestRunIP(t *testing.T) {
 	want := []string{"ip address show"}
@@ -165,6 +181,22 @@ func TestRunResolvectl(t *testing.T) {
 		return nil
 	}
 	_ = RunResolvectl(context.Background(), "dns")
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestRunResolvectlOutput tests RunResolvectlOutput
+func TestRunResolvectlOutput(t *testing.T) {
+	want := []string{"resolvectl dns"}
+	got := []string{}
+	RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
+		got = append(got, cmd+" "+strings.Join(arg, " "))
+		return []byte("OK"), nil
+	}
+	if b, err := RunResolvectlOutput(context.Background(), "dns"); err != nil || string(b) != "OK" {
+		t.Errorf("invalid return values %v, %v", b, err)
+	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}

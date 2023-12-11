@@ -2,6 +2,7 @@ package vpnsetup
 
 import (
 	"context"
+	"errors"
 	"net"
 	"reflect"
 	"strings"
@@ -111,6 +112,144 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestVPNSetupCheckDNSProtocols tests checkDNSProtocols of VPNSetup
+func TestVPNSetupCheckDNSProtocols(t *testing.T) {
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+
+	// test invalid
+	for _, invalid := range [][]string{
+		{},
+		{"x", "y", "z"},
+	} {
+		if ok := v.checkDNSProtocols(invalid); ok {
+			t.Errorf("dns check should fail with %v", invalid)
+		}
+	}
+
+	// test valid
+	for _, valid := range [][]string{
+		{"+DefaultRoute"},
+		{"x", "y", "z", "+DefaultRoute"},
+	} {
+		if ok := v.checkDNSProtocols(valid); !ok {
+			t.Errorf("dns check should not fail with %v", valid)
+		}
+	}
+}
+
+// TestVPNSetupCheckDNSServers tests checkDNSServers of VPNSetup
+func TestVPNSetupCheckDNSServers(t *testing.T) {
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+
+	// test invalid
+	for _, invalid := range [][]string{
+		{},
+		{"x", "y", "z"},
+	} {
+		if ok := v.checkDNSServers(invalid); ok {
+			t.Errorf("dns check should fail with %v", invalid)
+		}
+	}
+
+	// test valid
+	proxy := []string{v.dnsProxyConf.Address}
+	if ok := v.checkDNSServers(proxy); !ok {
+		t.Errorf("dns check should not fail with %v", proxy)
+	}
+}
+
+// TestVPNSetupCheckDNSDomain tests checkDNSDomain of VPNSetup
+func TestVPNSetupCheckDNSDomain(t *testing.T) {
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	vpnconf := vpnconfig.New()
+	vpnconf.DNS.DefaultDomain = "test.example.com"
+
+	// test invalid
+	for _, invalid := range [][]string{
+		{},
+		{"x", "y", "z"},
+		{vpnconf.DNS.DefaultDomain},
+	} {
+		if ok := v.checkDNSDomain(vpnconf, invalid); ok {
+			t.Errorf("dns check should fail with %v", invalid)
+		}
+	}
+
+	// test valid
+	for _, valid := range [][]string{
+		{"~.", vpnconf.DNS.DefaultDomain},
+		{vpnconf.DNS.DefaultDomain, "~."},
+	} {
+		if ok := v.checkDNSDomain(vpnconf, valid); !ok {
+			t.Errorf("dns check should not fail with %v", valid)
+		}
+	}
+}
+
+func TestVPNSetupEnsureDNS(t *testing.T) {
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	ctx := context.Background()
+	vpnconf := vpnconfig.New()
+
+	// test settings
+	v.dnsProxyConf.Address = "127.0.0.1:4253"
+	vpnconf.DNS.DefaultDomain = "test.example.com"
+
+	// override RunCmd and clean up after tests
+	oldCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldCmd }()
+
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		return nil
+	}
+
+	// clean up RunCmdOutput after tests
+	oldCmdOutput := execs.RunCmdOutput
+	defer func() { execs.RunCmdOutput = oldCmdOutput }()
+
+	// test resolvectl error
+	execs.RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
+		return nil, errors.New("test error")
+	}
+
+	if ok := v.ensureDNS(ctx, vpnconf); ok {
+		t.Errorf("ensure dns should fail with resolvectl error")
+	}
+
+	// test wrong settings
+	for _, invalid := range [][]byte{
+		[]byte(""),
+		[]byte("header\n Protocols:\n DNS Servers:\n DNS Domain:\n"),
+		[]byte("header\n Protocols: x y z \n DNS Servers: x y z \n DNS Domain: x y z\n"),
+		[]byte("header\nProtocols: other\nDNS Servers: 127.0.0.1:4253\nDNS Domain: test.example.com ~.\n"),
+		[]byte("header\nProtocols: +DefaultRoute\nDNS Servers: other\nDNS Domain: test.example.com ~.\n"),
+		[]byte("header\nProtocols: +DefaultRoute\nDNS Servers: 127.0.0.1:4253\nDNS Domain: other\n"),
+	} {
+		execs.RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
+			return invalid, nil
+		}
+
+		if ok := v.ensureDNS(ctx, vpnconf); ok {
+			t.Errorf("ensure dns should fail with %v", invalid)
+		}
+	}
+
+	// test correct settings
+	for _, valid := range [][]byte{
+		[]byte("header\nProtocols: +DefaultRoute\nDNS Servers: 127.0.0.1:4253\nDNS Domain: test.example.com ~.\n"),
+		[]byte("header\n Protocols:  +DefaultRoute  \nother\n  " +
+			"DNS Servers: 127.0.0.1:4253  \n  DNS Domain: test.example.com ~.\nother\n"),
+	} {
+		execs.RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
+			return valid, nil
+		}
+
+		if ok := v.ensureDNS(ctx, vpnconf); !ok {
+			t.Errorf("ensure dns should not fail with %v", valid)
+		}
 	}
 }
 

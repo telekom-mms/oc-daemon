@@ -4,6 +4,8 @@ import (
 	"context"
 	"net"
 	"strconv"
+	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
@@ -43,6 +45,9 @@ type VPNSetup struct {
 
 	dnsProxy     *dnsproxy.Proxy
 	dnsProxyConf *dnsproxy.Config
+
+	ensureDone   chan struct{}
+	ensureClosed chan struct{}
 
 	cmds   chan *command
 	events chan *Event
@@ -130,6 +135,37 @@ func (v *VPNSetup) teardownRouting() {
 	v.splitrt = nil
 }
 
+// setupDNSServer sets the DNS server
+func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config) {
+	device := config.Device.Name
+	if err := execs.RunResolvectl(ctx, "dns", device, v.dnsProxyConf.Address); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"device": device,
+			"server": v.dnsProxyConf.Address,
+		}).Error("VPNSetup error setting dns server")
+	}
+}
+
+// setupDNSDomains sets the DNS domains
+func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config) {
+	device := config.Device.Name
+	if err := execs.RunResolvectl(ctx, "domain", device, config.DNS.DefaultDomain, "~."); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"device": device,
+			"domain": config.DNS.DefaultDomain,
+		}).Error("VPNSetup error setting dns domains")
+	}
+}
+
+// setupDNSDefaultRoute sets the DNS default route
+func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.Config) {
+	device := config.Device.Name
+	if err := execs.RunResolvectl(ctx, "default-route", device, "yes"); err != nil {
+		log.WithError(err).WithField("device", device).
+			Error("VPNSetup error setting dns default route")
+	}
+}
+
 // setupDNS sets up DNS using config
 func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 	// configure dns proxy
@@ -146,28 +182,14 @@ func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 	// update dns configuration of host
 
 	// set dns server for device
-	device := config.Device.Name
-	if err := execs.RunResolvectl(ctx, "dns", device, v.dnsProxyConf.Address); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"device": device,
-			"server": v.dnsProxyConf.Address,
-		}).Error("VPNSetup error setting dns server")
-	}
+	v.setupDNSServer(ctx, config)
 
 	// set domains for device
 	// this includes "~." to use this device for all domains
-	if err := execs.RunResolvectl(ctx, "domain", device, config.DNS.DefaultDomain, "~."); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"device": device,
-			"domain": config.DNS.DefaultDomain,
-		}).Error("VPNSetup error setting dns domains")
-	}
+	v.setupDNSDomains(ctx, config)
 
 	// set default route for device
-	if err := execs.RunResolvectl(ctx, "default-route", device, "yes"); err != nil {
-		log.WithError(err).WithField("device", device).
-			Error("VPNSetup error setting dns default route")
-	}
+	v.setupDNSDefaultRoute(ctx, config)
 
 	// flush dns caches
 	if err := execs.RunResolvectl(ctx, "flush-caches"); err != nil {
@@ -210,21 +232,187 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 	}
 }
 
+// checkDNSProtocols checks the configured DNS protocols, only checks default-route
+func (v *VPNSetup) checkDNSProtocols(protocols []string) bool {
+	// check if default route is set
+	ok := false
+	for _, protocol := range protocols {
+		if protocol == "+DefaultRoute" {
+			ok = true
+		}
+	}
+
+	return ok
+}
+
+// checkDNSServers checks the configured DNS servers
+func (v *VPNSetup) checkDNSServers(servers []string) bool {
+	// check dns server ip
+	if len(servers) != 1 || servers[0] != v.dnsProxyConf.Address {
+		// server not correct
+		return false
+	}
+
+	return true
+}
+
+// checkDNSDomain checks the configured DNS domains
+func (v *VPNSetup) checkDNSDomain(config *vpnconfig.Config, domains []string) bool {
+	// get domains in config
+	inConfig := strings.Fields(config.DNS.DefaultDomain)
+	inConfig = append(inConfig, "~.")
+
+	// check domains in config
+	for _, c := range inConfig {
+		found := false
+		for _, d := range domains {
+			if c == d {
+				found = true
+			}
+		}
+
+		if !found {
+			// domains not correct
+			return false
+		}
+	}
+
+	return true
+}
+
+// ensureDNS ensures the DNS config
+func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool {
+	log.Debug("VPNSetup checking DNS settings")
+
+	// get dns settings
+	device := config.Device.Name
+	stdout, err := execs.RunResolvectlOutput(ctx, "status", device, "--no-pager")
+	if err != nil {
+		log.WithError(err).WithField("device", device).Error("VPNSetup error getting DNS settings")
+		return false
+	}
+
+	// parse and check dns settings line by line
+	var protOK, srvOK, domOK bool
+	lines := strings.Split(string(stdout), "\n")
+	for _, line := range lines {
+		// try to find separator ":"
+		before, after, found := strings.Cut(strings.TrimSpace(line), ":")
+		if !found {
+			continue
+		}
+
+		// get fields after separator
+		f := strings.Fields(after)
+
+		// check settings if present
+		switch before {
+		case "Protocols":
+			protOK = v.checkDNSProtocols(f)
+
+		case "DNS Servers":
+			srvOK = v.checkDNSServers(f)
+
+		case "DNS Domain":
+			domOK = v.checkDNSDomain(config, f)
+		}
+	}
+
+	// reset settings if incorrect/not present
+
+	if !protOK {
+		// protocols are not correct
+		log.Error("VPNSetup found invalid DNS protocols, trying to fix")
+
+		// reset default route for device
+		v.setupDNSDefaultRoute(ctx, config)
+	}
+
+	if !srvOK {
+		// servers are not correct
+		log.Error("VPNSetup found invalid DNS servers, trying to fix")
+
+		// reset dns server
+		v.setupDNSServer(ctx, config)
+	}
+
+	if !domOK {
+		// domains are not correct
+		log.Error("VPNSetup found invalid DNS domains, trying to fix")
+
+		// reset domains for device
+		v.setupDNSDomains(ctx, config)
+	}
+
+	// combine results
+	return protOK && srvOK && domOK
+}
+
+// ensureConfig ensured that the VPN config is and stays active
+func (v *VPNSetup) ensureConfig(ctx context.Context, vpnconf *vpnconfig.Config) {
+	defer close(v.ensureClosed)
+
+	timerInvalid := time.Second
+	timerValid := 15 * time.Second
+	timer := timerInvalid
+	for {
+		select {
+		case <-time.After(timer):
+			log.Debug("VPNSetup checking VPN configuration")
+
+			// ensure DNS settings
+			if ok := v.ensureDNS(ctx, vpnconf); !ok {
+				timer = timerInvalid
+				break
+			}
+
+			// vpn config is OK
+			timer = timerValid
+
+		case <-v.ensureDone:
+			return
+		}
+	}
+}
+
+// startEnsure starts ensuring the VPN config
+func (v *VPNSetup) startEnsure(ctx context.Context, vpnconf *vpnconfig.Config) {
+	v.ensureDone = make(chan struct{})
+	v.ensureClosed = make(chan struct{})
+	go v.ensureConfig(ctx, vpnconf)
+}
+
+// stopEnsure stops ensuring the VPN config
+func (v *VPNSetup) stopEnsure() {
+	close(v.ensureDone)
+	<-v.ensureClosed
+}
+
 // setup sets up the vpn configuration
 func (v *VPNSetup) setup(ctx context.Context, vpnconf *vpnconfig.Config) {
+	// setup device, routing, dns
 	setupVPNDevice(ctx, vpnconf)
 	v.setupRouting(vpnconf)
 	v.setupDNS(ctx, vpnconf)
 
+	// ensure VPN config
+	v.startEnsure(ctx, vpnconf)
+
+	// signal setup complete
 	v.sendEvent(&Event{EventSetupOK})
 }
 
 // teardown tears down the vpn configuration
 func (v *VPNSetup) teardown(ctx context.Context, vpnconf *vpnconfig.Config) {
+	// stop ensuring VPN config
+	v.stopEnsure()
+
+	// tear down device, routing, dns
 	teardownVPNDevice(ctx, vpnconf)
 	v.teardownRouting()
 	v.teardownDNS(ctx, vpnconf)
 
+	// signal teardown complete
 	v.sendEvent(&Event{EventTeardownOK})
 }
 
