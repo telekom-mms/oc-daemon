@@ -512,9 +512,11 @@ func (d *Daemon) getProfileAllowedHosts() (hosts []string) {
 // initTNDServers sets the TND servers from the xml profile
 func (d *Daemon) initTNDServers() {
 	urls, hashes := d.profile.GetTNDHTTPSServers()
+	servers := map[string]string{}
 	for i, url := range urls {
-		d.tnd.AddServer(url, hashes[i])
+		servers[url] = hashes[i]
 	}
+	d.tnd.SetServers(servers)
 }
 
 // setTNDDialer sets a custom dialer for TND
@@ -563,7 +565,9 @@ func (d *Daemon) startTND() {
 	d.tnd = tnd.NewDetector(d.config.TND)
 	d.initTNDServers()
 	d.setTNDDialer()
-	d.tnd.Start()
+	if err := d.tnd.Start(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // stopTND stops TND if it's running
