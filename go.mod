@@ -1,6 +1,6 @@
 module github.com/telekom-mms/oc-daemon
 
-go 1.18
+go 1.21
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0
