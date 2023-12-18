@@ -72,14 +72,11 @@ func (p *Profile) GetTNDServers() (servers []string) {
 }
 
 // GetTNDHTTPSServers gets the TND HTTPS server URLs and their hashes in the XML profile
-func (p *Profile) GetTNDHTTPSServers() (urls, hashes []string) {
+func (p *Profile) GetTNDHTTPSServers() (servers map[string]string) {
+	servers = make(map[string]string)
 	for _, s := range p.AutomaticVPNPolicy.TrustedHTTPSServerList {
 		url := fmt.Sprintf("https://%s:%s", s.Address, s.Port)
-		urls = append(urls, url)
-		hashes = append(hashes, s.CertificateHash)
-	}
-	if len(urls) != len(hashes) {
-		return nil, nil
+		servers[url] = s.CertificateHash
 	}
 	return
 }

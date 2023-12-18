@@ -511,11 +511,7 @@ func (d *Daemon) getProfileAllowedHosts() (hosts []string) {
 
 // initTNDServers sets the TND servers from the xml profile
 func (d *Daemon) initTNDServers() {
-	urls, hashes := d.profile.GetTNDHTTPSServers()
-	servers := map[string]string{}
-	for i, url := range urls {
-		servers[url] = hashes[i]
-	}
+	servers := d.profile.GetTNDHTTPSServers()
 	d.tnd.SetServers(servers)
 }
 
