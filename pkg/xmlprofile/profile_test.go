@@ -133,14 +133,10 @@ func TestProfileGetTNDHTTPSServers(t *testing.T) {
 	p := NewProfile()
 
 	// test empty
-	var wantURLs []string
-	var wantHashes []string
-	gotURLs, gotHashes := p.GetTNDHTTPSServers()
-	if !reflect.DeepEqual(gotURLs, wantURLs) ||
-		!reflect.DeepEqual(gotHashes, wantHashes) {
-
-		t.Errorf("got %v, %v, want %v, %v",
-			gotURLs, gotHashes, wantURLs, wantHashes)
+	want := map[string]string{}
+	got := p.GetTNDHTTPSServers()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 
 	// test filled
@@ -156,20 +152,13 @@ func TestProfileGetTNDHTTPSServers(t *testing.T) {
 			CertificateHash: "hash of tnd2 certificate",
 		},
 	}
-	wantURLs = []string{
-		"https://tnd1.mycompany.com:443",
-		"https://tnd2.mycompany.com:443",
+	want = map[string]string{
+		"https://tnd1.mycompany.com:443": "hash of tnd1 certificate",
+		"https://tnd2.mycompany.com:443": "hash of tnd2 certificate",
 	}
-	wantHashes = []string{
-		"hash of tnd1 certificate",
-		"hash of tnd2 certificate",
-	}
-	gotURLs, gotHashes = p.GetTNDHTTPSServers()
-	if !reflect.DeepEqual(gotURLs, wantURLs) ||
-		!reflect.DeepEqual(gotHashes, wantHashes) {
-
-		t.Errorf("got %v, %v, want %v, %v",
-			gotURLs, gotHashes, wantURLs, wantHashes)
+	got = p.GetTNDHTTPSServers()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
