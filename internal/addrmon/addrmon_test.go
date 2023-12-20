@@ -9,9 +9,17 @@ import (
 
 // TestAddrMonStartStop tests Start and Stop of AddrMon
 func TestAddrMonStartStop(t *testing.T) {
+	// test RegisterAddrUpdates without netlink error
 	addrMon := NewAddrMon()
+	netlinkAddrSubscribeWithOptions = func(ch chan<- netlink.AddrUpdate,
+		done <-chan struct{}, options netlink.AddrSubscribeOptions) error {
+		return nil
+	}
+	addrMon.Start()
+	addrMon.Stop()
 
 	// test without AddrUpdates
+	addrMon = NewAddrMon()
 	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 		return nil
 	}
@@ -77,7 +85,8 @@ func TestNewAddrMon(t *testing.T) {
 	addrMon := NewAddrMon()
 	if addrMon.updates == nil ||
 		addrMon.upsDone == nil ||
-		addrMon.done == nil {
+		addrMon.done == nil ||
+		addrMon.closed == nil {
 
 		t.Errorf("got nil, want != nil")
 	}

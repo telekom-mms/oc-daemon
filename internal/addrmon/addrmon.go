@@ -19,6 +19,7 @@ type AddrMon struct {
 	updates chan *Update
 	upsDone chan struct{}
 	done    chan struct{}
+	closed  chan struct{}
 }
 
 // sendUpdate sends an address update
@@ -29,6 +30,9 @@ func (a *AddrMon) sendUpdate(update *Update) {
 	}
 }
 
+// netlinkAddrSubscribeWithOptions is netlink.AddrSubscribeWithOptions for testing.
+var netlinkAddrSubscribeWithOptions = netlink.AddrSubscribeWithOptions
+
 // RegisterAddrUpdates registers for addr update events
 var RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 	// register for addr update events
@@ -36,7 +40,7 @@ var RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 	options := netlink.AddrSubscribeOptions{
 		ListExisting: true,
 	}
-	if err := netlink.AddrSubscribeWithOptions(events, a.upsDone, options); err != nil {
+	if err := netlinkAddrSubscribeWithOptions(events, a.upsDone, options); err != nil {
 		log.WithError(err).Fatal("AddrMon address subscribe error")
 	}
 
@@ -45,6 +49,7 @@ var RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 
 // start starts the address monitor
 func (a *AddrMon) start() {
+	defer close(a.closed)
 	defer close(a.updates)
 	defer close(a.upsDone)
 
@@ -93,9 +98,7 @@ func (a *AddrMon) Start() {
 // Stop stops the address monitor
 func (a *AddrMon) Stop() {
 	close(a.done)
-	for range a.updates {
-		// wait for channel close
-	}
+	<-a.closed
 }
 
 // Updates returns the address updates channel
@@ -109,5 +112,6 @@ func NewAddrMon() *AddrMon {
 		updates: make(chan *Update),
 		upsDone: make(chan struct{}),
 		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
 	}
 }
