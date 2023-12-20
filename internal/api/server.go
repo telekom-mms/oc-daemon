@@ -66,6 +66,7 @@ func (s *Server) handleRequest(conn net.Conn) {
 			log.WithError(err).Error("Daemon message send error")
 		}
 		_ = conn.Close()
+		return
 	}
 
 	// forward client's request to daemon
