@@ -9,12 +9,31 @@ import (
 
 // TestAddrMonStartStop tests Start and Stop of AddrMon
 func TestAddrMonStartStop(t *testing.T) {
+	// clean up after tests
+	oldRegisterAddrUpdates := RegisterAddrUpdates
+	defer func() {
+		netlinkAddrSubscribeWithOptions = netlink.AddrSubscribeWithOptions
+		RegisterAddrUpdates = oldRegisterAddrUpdates
+	}()
+
+	// test RegisterAddrUpdates without netlink error
 	addrMon := NewAddrMon()
 
+	netlinkAddrSubscribeWithOptions = func(ch chan<- netlink.AddrUpdate,
+		done <-chan struct{}, options netlink.AddrSubscribeOptions) error {
+		return nil
+	}
+
+	addrMon.Start()
+	addrMon.Stop()
+
 	// test without AddrUpdates
+	addrMon = NewAddrMon()
+
 	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 		return nil
 	}
+
 	addrMon.Start()
 	addrMon.Stop()
 
@@ -33,11 +52,13 @@ func TestAddrMonStartStop(t *testing.T) {
 
 	// test with AddrUpdates
 	addrMon = NewAddrMon()
+
 	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 		updates := make(chan netlink.AddrUpdate)
 		go addrUpdates(updates, a.upsDone)
 		return updates
 	}
+
 	addrMon.Start()
 	for i := 0; i < 3; i++ {
 		log.Println(<-addrMon.Updates())
@@ -47,6 +68,7 @@ func TestAddrMonStartStop(t *testing.T) {
 	// test with unexpected close and AddrUpdates
 	addrMon = NewAddrMon()
 	runOnce := false
+
 	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
 		updates := make(chan netlink.AddrUpdate)
 		if !runOnce {
@@ -57,6 +79,7 @@ func TestAddrMonStartStop(t *testing.T) {
 		}
 		return updates
 	}
+
 	addrMon.Start()
 	log.Println(<-addrMon.Updates())
 	addrMon.Stop()
@@ -77,7 +100,8 @@ func TestNewAddrMon(t *testing.T) {
 	addrMon := NewAddrMon()
 	if addrMon.updates == nil ||
 		addrMon.upsDone == nil ||
-		addrMon.done == nil {
+		addrMon.done == nil ||
+		addrMon.closed == nil {
 
 		t.Errorf("got nil, want != nil")
 	}
