@@ -57,6 +57,30 @@ func TestRequestError(t *testing.T) {
 	}
 }
 
+// TestRequestCloseErrors tests Close of Request, errors.
+func TestRequestCloseErrors(t *testing.T) {
+	// test OK with error
+	c1, c2 := net.Pipe()
+	req := &Request{
+		conn: c1,
+	}
+	if err := c2.Close(); err != nil {
+		t.Fatal(err)
+	}
+	req.Close()
+
+	// test Error with error
+	c1, c2 = net.Pipe()
+	req = &Request{
+		conn: c1,
+	}
+	req.Error("fail")
+	if err := c2.Close(); err != nil {
+		t.Fatal(err)
+	}
+	req.Close()
+}
+
 // TestRequestClose tests Close of Request
 func TestRequestClose(t *testing.T) {
 	// test OK
