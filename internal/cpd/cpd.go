@@ -35,16 +35,8 @@ type CPD struct {
 	runAgain bool
 }
 
-// resetTimer resets the timer
-func (c *CPD) resetTimer() {
-	if c.detected {
-		c.timer.Reset(c.config.ProbeTimerDetected)
-	} else {
-		c.timer.Reset(c.config.ProbeTimer)
-	}
-}
-
 // check probes the http server
+// TODO: add context?
 func (c *CPD) check() *Report {
 	// send http request
 	client := &http.Client{
@@ -53,6 +45,7 @@ func (c *CPD) check() *Report {
 			return http.ErrUseLastResponse
 		},
 	}
+	// TODO: move http:// into config.Host?
 	resp, err := client.Get("http://" + c.config.Host)
 	if err != nil {
 		log.WithError(err).Debug("CPD GET error")
@@ -91,6 +84,10 @@ func (c *CPD) check() *Report {
 	}
 }
 
+// ProbeWait is the time between probes.
+// TODO: move to config?
+var ProbeWait = time.Second
+
 // probe probes the http server
 func (c *CPD) probe() {
 	// TODO: improve this?
@@ -100,7 +97,7 @@ func (c *CPD) probe() {
 		if r.Detected {
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(ProbeWait)
 	}
 	select {
 	case c.probeReports <- r:
@@ -109,8 +106,19 @@ func (c *CPD) probe() {
 	}
 }
 
-// sendReport is a helper for sending a probe report
-func (c *CPD) sendReport(r *Report) {
+// handleProbeRequest handles a probe request.
+func (c *CPD) handleProbeRequest() {
+	if c.running {
+		c.runAgain = true
+		return
+	}
+	c.running = true
+	go c.probe()
+
+}
+
+// handleProbeReport handles an internal probe report.
+func (c *CPD) handleProbeReport(r *Report) {
 	// try sending the report back,
 	// in the meantime read incoming probe requests and set the
 	// runAgain flag accordingly,
@@ -133,35 +141,7 @@ func (c *CPD) sendReport(r *Report) {
 			return
 		}
 	}
-}
 
-// handleProbeRequest handles a probe request.
-func (c *CPD) handleProbeRequest() {
-	if c.running {
-		c.runAgain = true
-		return
-	}
-	c.running = true
-	go c.probe()
-
-}
-
-// handleProbeReport handles an internal probe report.
-func (c *CPD) handleProbeReport(r *Report) {
-	// send probe report
-	c.sendReport(r)
-
-	// reset periodic probing timer
-	if c.running {
-		// probing still active and new report about
-		// to arrive, so wait for it before resetting
-		// the timer
-		return
-	}
-	if !c.timer.Stop() {
-		<-c.timer.C
-	}
-	c.resetTimer()
 }
 
 // handleTimer handles a timer event.
@@ -174,7 +154,11 @@ func (c *CPD) handleTimer() {
 	}
 
 	// reset timer
-	c.resetTimer()
+	if c.detected {
+		c.timer.Reset(c.config.ProbeTimerDetected)
+	} else {
+		c.timer.Reset(c.config.ProbeTimer)
+	}
 }
 
 // start starts the captive portal detection
