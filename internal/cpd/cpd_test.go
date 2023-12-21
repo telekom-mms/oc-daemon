@@ -53,7 +53,9 @@ func TestNewCPD(t *testing.T) {
 	}
 	if c.reports == nil ||
 		c.probes == nil ||
-		c.done == nil {
+		c.done == nil ||
+		c.closed == nil ||
+		c.probeReports == nil {
 
 		t.Errorf("got nil, want != nil")
 	}

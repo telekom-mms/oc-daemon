@@ -20,6 +20,28 @@ type CPD struct {
 	reports chan *Report
 	probes  chan struct{}
 	done    chan struct{}
+	closed  chan struct{}
+
+	// internal probe reports
+	probeReports chan *Report
+
+	// timer for periodic checks
+	timer *time.Timer
+
+	// is a captive portal detected, are probes currently running or
+	// have to run again?
+	detected bool
+	running  bool
+	runAgain bool
+}
+
+// resetTimer resets the timer
+func (c *CPD) resetTimer() {
+	if c.detected {
+		c.timer.Reset(c.config.ProbeTimerDetected)
+	} else {
+		c.timer.Reset(c.config.ProbeTimer)
+	}
 }
 
 // check probes the http server
@@ -69,113 +91,114 @@ func (c *CPD) check() *Report {
 	}
 }
 
-// start starts the captive portal detection
-func (c *CPD) start() {
-	defer close(c.reports)
-
-	// probe channels and function
-	probeReports := make(chan *Report)
-	probesDone := make(chan struct{})
-	probeFunc := func() {
-		// TODO: improve this?
-		r := &Report{}
-		for i := 0; i < c.config.ProbeCount; i++ {
-			r = c.check()
-			if r.Detected {
-				break
-			}
-			time.Sleep(time.Second)
+// probe probes the http server
+func (c *CPD) probe() {
+	// TODO: improve this?
+	r := &Report{}
+	for i := 0; i < c.config.ProbeCount; i++ {
+		r = c.check()
+		if r.Detected {
+			break
 		}
+		time.Sleep(time.Second)
+	}
+	select {
+	case c.probeReports <- r:
+	case <-c.done:
+		return
+	}
+}
+
+// sendReport is a helper for sending a probe report
+func (c *CPD) sendReport(r *Report) {
+	// try sending the report back,
+	// in the meantime read incoming probe requests and set the
+	// runAgain flag accordingly,
+	// stop when the report is sent or we are shutting down
+	for {
 		select {
-		case probeReports <- r:
-		case <-probesDone:
+		case c.reports <- r:
+			c.running = false
+			if c.runAgain {
+				// we must trigger another probe
+				c.runAgain = false
+				c.running = true
+				go c.probe()
+			}
+			c.detected = r.Detected
+			return
+		case <-c.probes:
+			c.runAgain = true
+		case <-c.done:
 			return
 		}
 	}
+}
 
-	// is a captive portal detected, are probes currently running or
-	// have to run again?
-	detected := false
-	running := false
-	runAgain := false
+// handleProbeRequest handles a probe request.
+func (c *CPD) handleProbeRequest() {
+	if c.running {
+		c.runAgain = true
+		return
+	}
+	c.running = true
+	go c.probe()
+
+}
+
+// handleProbeReport handles an internal probe report.
+func (c *CPD) handleProbeReport(r *Report) {
+	// send probe report
+	c.sendReport(r)
+
+	// reset periodic probing timer
+	if c.running {
+		// probing still active and new report about
+		// to arrive, so wait for it before resetting
+		// the timer
+		return
+	}
+	if !c.timer.Stop() {
+		<-c.timer.C
+	}
+	c.resetTimer()
+}
+
+// handleTimer handles a timer event.
+func (c *CPD) handleTimer() {
+	if !c.running && !c.runAgain {
+		// no probes active, trigger new probe
+		log.Debug("periodic CPD timer")
+		c.running = true
+		go c.probe()
+	}
+
+	// reset timer
+	c.resetTimer()
+}
+
+// start starts the captive portal detection
+func (c *CPD) start() {
+	defer close(c.closed)
+	defer close(c.reports)
 
 	// set timer for periodic checks
-	timer := time.NewTimer(c.config.ProbeTimer)
-	resetTimer := func() {
-		if detected {
-			timer.Reset(c.config.ProbeTimerDetected)
-		} else {
-			timer.Reset(c.config.ProbeTimer)
-		}
-	}
-
-	// helper for sending a probe report
-	reportFunc := func(r *Report) {
-		// try sending the report back,
-		// in the meantime read incoming probe requests and set the
-		// runAgain flag accordingly,
-		// stop when the report is sent or we are shutting down
-		for {
-			select {
-			case c.reports <- r:
-				running = false
-				if runAgain {
-					// we must trigger another probe
-					runAgain = false
-					running = true
-					go probeFunc()
-				}
-				detected = r.Detected
-				return
-			case <-c.probes:
-				runAgain = true
-			case <-c.done:
-				return
-			}
-		}
-	}
+	c.timer = time.NewTimer(c.config.ProbeTimer)
 
 	for {
 		select {
 		case <-c.probes:
-			if running {
-				runAgain = true
-				break
-			}
-			running = true
-			go probeFunc()
+			c.handleProbeRequest()
 
-		case r := <-probeReports:
-			// send probe report
-			reportFunc(r)
+		case r := <-c.probeReports:
+			c.handleProbeReport(r)
 
-			// reset periodic probing timer
-			if running {
-				// probing still active and new report about
-				// to arrive, so wait for it before resetting
-				// the timer
-				break
-			}
-			if !timer.Stop() {
-				<-timer.C
-			}
-			resetTimer()
-
-		case <-timer.C:
-			if !running && !runAgain {
-				// no probes active, trigger new probe
-				log.Debug("periodic CPD timer")
-				running = true
-				go probeFunc()
-			}
-
-			// reset timer
-			resetTimer()
+		case <-c.timer.C:
+			c.handleTimer()
 
 		case <-c.done:
-			close(probesDone)
-			if !timer.Stop() {
-				<-timer.C
+			if !c.timer.Stop() {
+				<-c.timer.C
 			}
 			return
 		}
@@ -190,9 +213,7 @@ func (c *CPD) Start() {
 // Stop stops the captive portal detection
 func (c *CPD) Stop() {
 	close(c.done)
-	for range c.reports {
-		// wait for channel shutdown
-	}
+	<-c.closed
 }
 
 // Hosts returns the host addresses used for captive protal detection
@@ -217,5 +238,8 @@ func NewCPD(config *Config) *CPD {
 		reports: make(chan *Report),
 		probes:  make(chan struct{}),
 		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
+
+		probeReports: make(chan *Report),
 	}
 }
