@@ -108,13 +108,24 @@ func TestCPDHandleTimer(t *testing.T) {
 
 // TestCPDStartStop tests Start and Stop of CPD
 func TestCPDStartStop(t *testing.T) {
+	// start and stop immediately
+	c := NewCPD(NewConfig())
+	c.Start()
+	c.Stop()
+
+	// start and stop with timer event, probe result
 	conf := NewConfig()
+	conf.Host = ""
 	conf.ProbeTimer = 0
 	conf.ProbeWait = 0
-	c := NewCPD(conf)
+	c = NewCPD(conf)
 	c.Start()
-	<-c.Results()
+	r := <-c.Results()
 	c.Stop()
+
+	if r.Detected {
+		t.Error("detected should be false")
+	}
 }
 
 // TestCPDHosts tests Hosts of CPD
