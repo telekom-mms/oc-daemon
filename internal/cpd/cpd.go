@@ -84,10 +84,6 @@ func (c *CPD) check() *Report {
 	}
 }
 
-// ProbeWait is the time between probes.
-// TODO: move to config?
-var ProbeWait = time.Second
-
 // probe probes the http server
 func (c *CPD) probe() {
 	// TODO: improve this?
@@ -97,7 +93,7 @@ func (c *CPD) probe() {
 		if r.Detected {
 			break
 		}
-		time.Sleep(ProbeWait)
+		time.Sleep(c.config.ProbeWait)
 	}
 	select {
 	case c.probeReports <- r:

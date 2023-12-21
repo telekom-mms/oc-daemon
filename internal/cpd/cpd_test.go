@@ -9,8 +9,6 @@ import (
 )
 
 func TestCPDProbeCheck(t *testing.T) {
-	ProbeWait = 0
-
 	// status code , detected, early stop
 	t.Run("stop during probe", func(_ *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -19,6 +17,7 @@ func TestCPDProbeCheck(t *testing.T) {
 		defer ts.Close()
 		c := NewCPD(NewConfig())
 		c.config.Host = ts.Listener.Addr().String()
+		c.config.ProbeWait = 0
 		close(c.done)
 		c.probe()
 	})
@@ -30,12 +29,14 @@ func TestCPDProbeCheck(t *testing.T) {
 		defer ts.Close()
 		c := NewCPD(NewConfig())
 		c.config.Host = ts.Listener.Addr().String()
+		c.config.ProbeWait = 0
 		c.check()
 	})
 
 	t.Run("invalid server", func(_ *testing.T) {
 		c := NewCPD(NewConfig())
 		c.config.Host = ""
+		c.config.ProbeWait = 0
 		c.check()
 	})
 
@@ -47,6 +48,7 @@ func TestCPDProbeCheck(t *testing.T) {
 		defer ts.Close()
 		c := NewCPD(NewConfig())
 		c.config.Host = ts.Listener.Addr().String()
+		c.config.ProbeWait = 0
 		c.check()
 	})
 }
@@ -108,6 +110,7 @@ func TestCPDHandleTimer(t *testing.T) {
 func TestCPDStartStop(t *testing.T) {
 	conf := NewConfig()
 	conf.ProbeTimer = 0
+	conf.ProbeWait = 0
 	c := NewCPD(conf)
 	c.Start()
 	<-c.Results()
@@ -128,8 +131,6 @@ func TestCPDHosts(t *testing.T) {
 
 // TestCPDProbe tests Probe of CPD
 func TestCPDProbe(t *testing.T) {
-	ProbeWait = 0
-
 	// status code 204, not detected
 	t.Run("not detected", func(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -138,6 +139,7 @@ func TestCPDProbe(t *testing.T) {
 		defer ts.Close()
 		c := NewCPD(NewConfig())
 		c.config.Host = ts.Listener.Addr().String()
+		c.config.ProbeWait = 0
 		c.Start()
 		c.Probe()
 		r := <-c.Results()
@@ -155,6 +157,7 @@ func TestCPDProbe(t *testing.T) {
 		defer ts.Close()
 		c := NewCPD(NewConfig())
 		c.config.Host = ts.Listener.Addr().String()
+		c.config.ProbeWait = 0
 		c.Start()
 		c.Probe()
 		r := <-c.Results()

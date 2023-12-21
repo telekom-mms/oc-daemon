@@ -24,6 +24,7 @@ func TestConfigValid(t *testing.T) {
 			Host:               "some.host.example.com",
 			HTTPTimeout:        3 * time.Second,
 			ProbeCount:         5,
+			ProbeWait:          2 * time.Second,
 			ProbeTimer:         150 * time.Second,
 			ProbeTimerDetected: 10 * time.Second,
 		},
