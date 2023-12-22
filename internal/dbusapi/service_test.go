@@ -1,6 +1,7 @@
 package dbusapi
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -33,6 +34,33 @@ func TestRequestWaitClose(_ *testing.T) {
 		close(done)
 	}()
 	r.Wait()
+}
+
+// TestDaemonConnectErrors tests Connect of daemon, errors.
+func TestDaemonConnectErrors(t *testing.T) {
+	// create daemon
+	requests := make(chan *Request)
+	done := make(chan struct{})
+	daemon := daemon{
+		requests: requests,
+		done:     done,
+	}
+
+	// error when handling request
+	go func() {
+		r := <-requests
+		r.Error = errors.New("test error")
+		r.Close()
+	}()
+	if err := daemon.Connect("", "", "", "", "", "", ""); err == nil {
+		t.Error("should return error")
+	}
+
+	// closed daemon
+	close(done)
+	if err := daemon.Connect("", "", "", "", "", "", ""); err == nil {
+		t.Error("should return error")
+	}
 }
 
 // TestDaemonConnect tests Connect of daemon
@@ -72,6 +100,33 @@ func TestDaemonConnect(t *testing.T) {
 		got.done != want.done {
 		// not equal
 		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestDaemonDisconnectErrors tests Disconnect of daemon, errors.
+func TestDaemonDisconnectErrors(t *testing.T) {
+	// create daemon
+	requests := make(chan *Request)
+	done := make(chan struct{})
+	daemon := daemon{
+		requests: requests,
+		done:     done,
+	}
+
+	// error when handling request
+	go func() {
+		r := <-requests
+		r.Error = errors.New("test error")
+		r.Close()
+	}()
+	if err := daemon.Disconnect(""); err == nil {
+		t.Error("should return error")
+	}
+
+	// closed daemon
+	close(done)
+	if err := daemon.Disconnect(""); err == nil {
+		t.Error("should return error")
 	}
 }
 
