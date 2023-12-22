@@ -8,8 +8,9 @@ import (
 	"time"
 )
 
+// TestCPDProbeCheck tests probe and check of CPD.
 func TestCPDProbeCheck(t *testing.T) {
-	// status code , detected, early stop
+	// probe with status code 400 (-> detected) and early stop
 	t.Run("stop during probe", func(_ *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
@@ -22,7 +23,8 @@ func TestCPDProbeCheck(t *testing.T) {
 		c.probe()
 	})
 
-	t.Run("redirect without url", func(_ *testing.T) {
+	// check with redirect and no url
+	t.Run("redirect without url", func(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusFound)
 		}))
@@ -30,17 +32,27 @@ func TestCPDProbeCheck(t *testing.T) {
 		c := NewCPD(NewConfig())
 		c.config.Host = ts.Listener.Addr().String()
 		c.config.ProbeWait = 0
-		c.check()
+
+		r := c.check()
+		if !r.Detected {
+			t.Error("should be detected")
+		}
 	})
 
-	t.Run("invalid server", func(_ *testing.T) {
+	// check with invalid server address
+	t.Run("invalid server", func(t *testing.T) {
 		c := NewCPD(NewConfig())
 		c.config.Host = ""
 		c.config.ProbeWait = 0
-		c.check()
+
+		r := c.check()
+		if r.Detected {
+			t.Error("should not be detected")
+		}
 	})
 
-	t.Run("invalid content length", func(_ *testing.T) {
+	// check with invalid content length
+	t.Run("invalid content length", func(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Length", "100")
 			w.WriteHeader(http.StatusOK)
@@ -49,10 +61,15 @@ func TestCPDProbeCheck(t *testing.T) {
 		c := NewCPD(NewConfig())
 		c.config.Host = ts.Listener.Addr().String()
 		c.config.ProbeWait = 0
-		c.check()
+
+		r := c.check()
+		if r.Detected {
+			t.Error("should not be detected")
+		}
 	})
 }
 
+// TestCPDHandleProbeRequest tests handleProbeRequest of CPD.
 func TestCPDHandleProbeRequest(t *testing.T) {
 	c := NewCPD(NewConfig())
 	close(c.done)
@@ -69,16 +86,20 @@ func TestCPDHandleProbeRequest(t *testing.T) {
 	}
 }
 
+// TestCPDHandleProbeReport tests handleProbeReport of CPD.
 func TestCPDHandleProbeReport(t *testing.T) {
 	c := NewCPD(NewConfig())
 
+	// - send a probe request
+	// - read report
+	// - stop CPD
 	go func() {
 		c.probes <- struct{}{}
 		<-c.reports
 		close(c.done)
 	}()
 
-	// TODO: read and compare reports?
+	// test with incoming probe request
 	c.handleProbeReport(&Report{Detected: true})
 	if !c.detected {
 		t.Error("detected should be true")
@@ -86,10 +107,12 @@ func TestCPDHandleProbeReport(t *testing.T) {
 	if !c.running {
 		t.Error("should be running")
 	}
-	//c.running = true
+
+	// test with stopped CPD
 	c.handleProbeReport(&Report{})
 }
 
+// TestCPDHandleTimer tests handleTimer of CPD.
 func TestCPDHandleTimer(t *testing.T) {
 	for _, detected := range []bool{
 		false,
