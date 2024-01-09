@@ -2,6 +2,7 @@ package devmon
 
 import (
 	"log"
+	"net"
 	"testing"
 
 	"github.com/vishvananda/netlink"
@@ -63,6 +64,95 @@ func TestDevMonStartStop(t *testing.T) {
 	devMon.Start()
 	log.Println(<-devMon.Updates())
 	devMon.Stop()
+
+	// test with del link event
+	devMon = NewDevMon()
+	linkUpdates = func(updates chan netlink.LinkUpdate, done chan struct{}) {
+		up := netlink.LinkUpdate{}
+		up.Header.Type = unix.RTM_DELLINK
+		up.Link = &netlink.Device{}
+		updates <- up
+	}
+	devMon.Start()
+	up := <-devMon.updates
+	if up.Add {
+		t.Errorf("add should be false")
+	}
+	devMon.Stop()
+
+	// test with invalid event
+	devMon = NewDevMon()
+	linkUpdates = func(updates chan netlink.LinkUpdate, done chan struct{}) {
+		up := netlink.LinkUpdate{}
+		up.Header.Type = unix.RTM_NEWADDR
+		up.Link = &netlink.Device{}
+		updates <- up
+		up = netlink.LinkUpdate{}
+		up.Header.Type = unix.RTM_DELLINK
+		up.Link = &netlink.Device{}
+		updates <- up
+	}
+	devMon.Start()
+	up = <-devMon.updates
+	if up.Add {
+		t.Errorf("add should be false")
+	}
+	devMon.Stop()
+
+	// test loopback
+	devMon = NewDevMon()
+	linkUpdates = func(updates chan netlink.LinkUpdate, done chan struct{}) {
+		up := netlink.LinkUpdate{}
+		up.Header.Type = unix.RTM_NEWLINK
+		up.Link = &netlink.Device{LinkAttrs: netlink.LinkAttrs{Flags: net.FlagLoopback}}
+		updates <- up
+	}
+	devMon.Start()
+	up = <-devMon.updates
+	if up.Type != "loopback" {
+		t.Errorf("type should be loopback")
+	}
+	devMon.Stop()
+
+	// test device that is actually virtual
+	devMon = NewDevMon()
+	linkUpdates = func(updates chan netlink.LinkUpdate, done chan struct{}) {
+		up := netlink.LinkUpdate{}
+		up.Header.Type = unix.RTM_NEWLINK
+		up.Link = &netlink.Device{LinkAttrs: netlink.LinkAttrs{Name: "lo"}}
+		updates <- up
+	}
+	devMon.Start()
+	up = <-devMon.updates
+	if up.Type != "virtual" {
+		t.Errorf("type should be virtual")
+	}
+	devMon.Stop()
+
+	// test device with invalid symlink
+	devMon = NewDevMon()
+	linkUpdates = func(updates chan netlink.LinkUpdate, done chan struct{}) {
+		up := netlink.LinkUpdate{}
+		up.Header.Type = unix.RTM_NEWLINK
+		up.Link = &netlink.Device{LinkAttrs: netlink.LinkAttrs{Name: "device-does-not-exist"}}
+		updates <- up
+	}
+	devMon.Start()
+	up = <-devMon.updates
+	if up.Type != "device" {
+		t.Errorf("type should be device")
+	}
+	devMon.Stop()
+	// test stop during event handling
+	devMon = NewDevMon()
+	linkUpdates = func(updates chan netlink.LinkUpdate, done chan struct{}) {
+		up := netlink.LinkUpdate{}
+		up.Header.Type = unix.RTM_DELLINK
+		up.Link = &netlink.Device{}
+		updates <- up
+	}
+	devMon.Start()
+	devMon.Stop()
 }
 
 // TestDevMonUpdates tests Updates of DevMon
@@ -80,7 +170,8 @@ func TestNewDevMon(t *testing.T) {
 	devMon := NewDevMon()
 	if devMon.updates == nil ||
 		devMon.upsDone == nil ||
-		devMon.done == nil {
+		devMon.done == nil ||
+		devMon.closed == nil {
 
 		t.Errorf("got nil, want != nil")
 	}
