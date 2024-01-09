@@ -22,6 +22,7 @@ type DevMon struct {
 	updates chan *Update
 	upsDone chan struct{}
 	done    chan struct{}
+	closed  chan struct{}
 }
 
 // sendUpdate sends update over the update channel
@@ -90,6 +91,7 @@ var RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
 
 // start starts the device monitor
 func (d *DevMon) start() {
+	defer close(d.closed)
 	defer close(d.updates)
 	defer close(d.upsDone)
 
@@ -136,9 +138,7 @@ func (d *DevMon) Start() {
 // Stop stops the device monitor
 func (d *DevMon) Stop() {
 	close(d.done)
-	for range d.updates {
-		// wait for channel shutdown
-	}
+	<-d.closed
 }
 
 // Updates returns the Update channel for device updates
@@ -152,5 +152,6 @@ func NewDevMon() *DevMon {
 		updates: make(chan *Update),
 		upsDone: make(chan struct{}),
 		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
 	}
 }
