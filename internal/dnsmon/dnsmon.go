@@ -8,8 +8,10 @@ import (
 // DNSMon is a DNS monitor
 type DNSMon struct {
 	config  *Config
+	watcher *fsnotify.Watcher
 	updates chan struct{}
 	done    chan struct{}
+	closed  chan struct{}
 }
 
 // isResolvConfEvent checks if event is a resolv.conf file event
@@ -36,25 +38,13 @@ func (d *DNSMon) sendUpdate() {
 
 // start starts the DNSMon
 func (d *DNSMon) start() {
+	defer close(d.closed)
 	defer close(d.updates)
-
-	// create watcher
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.WithError(err).Fatal("DNSMon file watcher error")
-	}
 	defer func() {
-		if err := watcher.Close(); err != nil {
+		if err := d.watcher.Close(); err != nil {
 			log.WithError(err).Error("DNSMon file watcher close error")
 		}
 	}()
-
-	// add resolv.conf folders to watcher
-	for _, dir := range d.config.resolvConfDirs() {
-		if err := watcher.Add(dir); err != nil {
-			log.WithError(err).WithField("dir", dir).Debug("DNSMon add resolv.conf dir error")
-		}
-	}
 
 	// send initial update
 	d.sendUpdate()
@@ -62,7 +52,7 @@ func (d *DNSMon) start() {
 	// watch the files
 	for {
 		select {
-		case event, ok := <-watcher.Events:
+		case event, ok := <-d.watcher.Events:
 			if !ok {
 				log.Error("DNSMon got unexpected close of events channel")
 				return
@@ -75,7 +65,7 @@ func (d *DNSMon) start() {
 				d.sendUpdate()
 			}
 
-		case err, ok := <-watcher.Errors:
+		case err, ok := <-d.watcher.Errors:
 			if !ok {
 				log.Error("DNSMon got unexpected close of errors channel")
 				return
@@ -90,15 +80,27 @@ func (d *DNSMon) start() {
 
 // Start starts the DNSMon
 func (d *DNSMon) Start() {
+	// create watcher
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.WithError(err).Fatal("DNSMon file watcher error")
+	}
+
+	// add resolv.conf folders to watcher
+	for _, dir := range d.config.resolvConfDirs() {
+		if err := watcher.Add(dir); err != nil {
+			log.WithError(err).WithField("dir", dir).Debug("DNSMon add resolv.conf dir error")
+		}
+	}
+
+	d.watcher = watcher
 	go d.start()
 }
 
 // Stop stops the DNSMon
 func (d *DNSMon) Stop() {
 	close(d.done)
-	for range d.updates {
-		// wait for channel shutdown
-	}
+	<-d.closed
 }
 
 // Updates returns the channel for dns config updates
@@ -112,5 +114,6 @@ func NewDNSMon(config *Config) *DNSMon {
 		config:  config,
 		updates: make(chan struct{}),
 		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
 	}
 }
