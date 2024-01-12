@@ -7,7 +7,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-func TestDNSMonStart(t *testing.T) {
+// TestDNSMonStartEvents tests start of DNSMon, events.
+func TestDNSMonStartEvents(t *testing.T) {
 	dnsMon := NewDNSMon(NewConfig())
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -28,7 +29,8 @@ func TestDNSMonStart(t *testing.T) {
 	}
 
 	// test invalid file event
-	dnsMon.watcher.Events <- fsnotify.Event{Name: "something else"}
+	dnsMon.watcher.Events <- fsnotify.Event{Name: "something else..."}
+	dnsMon.watcher.Events <- fsnotify.Event{Name: "... shouldn't block"}
 
 	// test error event
 	dnsMon.watcher.Errors <- errors.New("test error")
