@@ -23,6 +23,7 @@ type Proxy struct {
 	watches *Watches
 	reports chan *Report
 	done    chan struct{}
+	closed  chan struct{}
 
 	// channels for temp watch cleaning goroutine
 	stopClean chan struct{}
@@ -169,6 +170,9 @@ func (p *Proxy) stopDNSServer(server *dns.Server) {
 
 // start starts running the proxy
 func (p *Proxy) start() {
+	defer close(p.closed)
+	defer close(p.reports)
+
 	// start cleaning goroutine
 	go p.cleanTempWatches()
 
@@ -190,7 +194,6 @@ func (p *Proxy) start() {
 	for _, srv := range []*dns.Server{p.udp, p.tcp} {
 		p.stopDNSServer(srv)
 	}
-	close(p.reports)
 }
 
 // Start starts running the proxy
@@ -201,9 +204,7 @@ func (p *Proxy) Start() {
 // Stop stops running the proxy
 func (p *Proxy) Stop() {
 	close(p.done)
-	for range p.reports {
-		// wait for channel shutdown
-	}
+	<-p.closed
 }
 
 // Reports returns the Report channel for watched domains
@@ -251,6 +252,7 @@ func NewProxy(config *Config) *Proxy {
 		watches: NewWatches(),
 		reports: make(chan *Report),
 		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
 
 		stopClean: make(chan struct{}),
 		doneClean: make(chan struct{}),

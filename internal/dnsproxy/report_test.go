@@ -20,7 +20,7 @@ func TestReportString(t *testing.T) {
 }
 
 // TestReportDone tests Wait and Done of Report
-func TestReportWaitDone(t *testing.T) {
+func TestReportWaitDone(_ *testing.T) {
 	name := "example.com."
 	ip := net.IPv4(192, 168, 1, 1)
 	ttl := uint32(300)

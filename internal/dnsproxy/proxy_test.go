@@ -1,7 +1,12 @@
 package dnsproxy
 
 import (
+	"errors"
+	"net"
 	"testing"
+
+	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
 )
 
 // getTestConfig returns a config for testing
@@ -13,12 +18,111 @@ func getTestConfig() *Config {
 	}
 }
 
+// getTestDNSServer returns a dns server for testing.
+func getTestDNSServer(handler dns.Handler) *dns.Server {
+	s := &dns.Server{
+		Addr: "127.0.0.1:4255",
+		Net:  "udp",
+	}
+	p, err := net.ListenPacket("udp", s.Addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.PacketConn = p
+	s.Handler = handler
+	go func() {
+		if err := s.ActivateAndServe(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	return s
+}
+
+// responseWriter is a dns.ResponseWriter for testing.
+type responseWriter struct{ err error }
+
+func (r *responseWriter) LocalAddr() net.Addr       { return nil }
+func (r *responseWriter) RemoteAddr() net.Addr      { return nil }
+func (r *responseWriter) WriteMsg(*dns.Msg) error   { return r.err }
+func (r *responseWriter) Write([]byte) (int, error) { return 0, nil }
+func (r *responseWriter) Close() error              { return nil }
+func (r *responseWriter) TsigStatus() error         { return nil }
+func (r *responseWriter) TsigTimersOnly(bool)       {}
+func (r *responseWriter) Hijack()                   {}
+
+// TestProxyHandleRequest tests handleRequest of Proxy.
+func TestProxyHandleRequest(_ *testing.T) {
+	p := NewProxy(getTestConfig())
+
+	// without question in request
+	p.handleRequest(nil, &dns.Msg{})
+
+	// without remotes in proxy
+	p.handleRequest(nil, &dns.Msg{Question: []dns.Question{{Name: "test"}}})
+
+	// with invalid remote in proxy
+	p.SetRemotes(map[string][]string{".": {""}})
+	p.handleRequest(nil, &dns.Msg{Question: []dns.Question{{Name: "test"}}})
+
+	// start remote
+	s := getTestDNSServer(dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		reply := &dns.Msg{}
+		reply.SetReply(r)
+
+		cname, _ := dns.NewRR("test.example.com 3600 IN CNAME example.com.")
+		a, _ := dns.NewRR("example.com. 3600 IN A 127.0.0.1")
+		aaaa, _ := dns.NewRR("example.com. 3600 IN AAAA ::1")
+
+		reply.Answer = []dns.RR{cname, aaaa, a}
+		if err := w.WriteMsg(reply); err != nil {
+			log.WithError(err).Error("error sending reply")
+		}
+	}))
+	defer func() { _ = s.Shutdown() }()
+
+	// with remotes in proxy
+	p.SetRemotes(map[string][]string{".": {s.Addr}})
+	p.handleRequest(&responseWriter{}, &dns.Msg{Question: []dns.Question{{Name: "test.example.com."}}})
+
+	// error sending reply
+	p.handleRequest(&responseWriter{err: errors.New("test error")},
+		&dns.Msg{Question: []dns.Question{{Name: "test.example.com."}}})
+
+	// with watches in proxy
+	p.SetWatches([]string{"test.example.com."})
+	go func() {
+		for r := range p.Reports() {
+			r.Done()
+		}
+	}()
+	p.handleRequest(&responseWriter{}, &dns.Msg{Question: []dns.Question{{Name: "test.example.com."}}})
+}
+
 // TestProxyStartStop tests Start and Stop of Proxy
-func TestProxyStartStop(t *testing.T) {
+func TestProxyStartStop(_ *testing.T) {
+	// tcp and udp listeners
 	p := NewProxy(getTestConfig())
 	p.Start()
 	p.Stop()
 	<-p.Reports()
+
+	// no listeners
+	c := getTestConfig()
+	c.ListenUDP = false
+	c.ListenTCP = false
+	p = NewProxy(c)
+	p.Start()
+	p.Stop()
+	<-p.Reports()
+
+	// invalid listener address
+	c = getTestConfig()
+	c.Address = "invalid address"
+	p = NewProxy(c)
+	p.Start()
+	p.Stop()
+	<-p.Reports()
+
 }
 
 // TestProxyReports tests Reports of Proxy
@@ -32,14 +136,14 @@ func TestProxyReports(t *testing.T) {
 }
 
 // TestProxySetRemotes tests SetRemotes of Proxy
-func TestProxySetRemotes(t *testing.T) {
+func TestProxySetRemotes(_ *testing.T) {
 	p := NewProxy(getTestConfig())
 	remotes := getTestRemotes()
 	p.SetRemotes(remotes)
 }
 
 // TestProxySetWatches tests SetWatches of Proxy
-func TestProxySetWatches(t *testing.T) {
+func TestProxySetWatches(_ *testing.T) {
 	config := &Config{
 		Address:   "127.0.0.1:4254",
 		ListenUDP: true,
@@ -60,6 +164,7 @@ func TestNewProxy(t *testing.T) {
 		p.watches == nil ||
 		p.reports == nil ||
 		p.done == nil ||
+		p.closed == nil ||
 		p.stopClean == nil ||
 		p.doneClean == nil {
 
