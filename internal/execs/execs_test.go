@@ -2,8 +2,6 @@ package execs
 
 import (
 	"context"
-	"log"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -15,17 +13,18 @@ func TestRunCmd(t *testing.T) {
 	ctx := context.Background()
 
 	// test not existing
-	dir, err := os.MkdirTemp("", "runcmd-test")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() { _ = os.RemoveAll(dir) }()
+	dir := t.TempDir()
 	if err := RunCmd(ctx, filepath.Join(dir, "does/not/exist"), ""); err == nil {
 		t.Errorf("running not existing command should fail: %v", err)
 	}
 
 	// test existing
 	if err := RunCmd(ctx, "echo", "", "this", "is", "a", "test"); err != nil {
+		t.Errorf("running echo failed: %v", err)
+	}
+
+	// test with stdin
+	if err := RunCmd(ctx, "echo", "this is a test"); err != nil {
 		t.Errorf("running echo failed: %v", err)
 	}
 }
@@ -42,6 +41,11 @@ func TestRunCmdOutput(t *testing.T) {
 
 	// test without error
 	if b, err := RunCmdOutput(ctx, "ls", "", "-d", dir); err != nil || len(b) == 0 {
+		t.Errorf("running should not fail: %v, %v", b, err)
+	}
+
+	// test with stdin
+	if b, err := RunCmdOutput(ctx, "echo", "this is a test"); err != nil || len(b) == 0 {
 		t.Errorf("running should not fail: %v, %v", b, err)
 	}
 }
