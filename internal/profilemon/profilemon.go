@@ -12,9 +12,11 @@ import (
 
 // ProfileMon is a XML profile monitor
 type ProfileMon struct {
+	watcher *fsnotify.Watcher
 	file    string
 	updates chan struct{}
 	done    chan struct{}
+	closed  chan struct{}
 	hash    [sha256.Size]byte
 }
 
@@ -47,29 +49,18 @@ func (p *ProfileMon) handleEvent() {
 
 // start starts the profile monitor
 func (p *ProfileMon) start() {
+	defer close(p.closed)
 	defer close(p.updates)
-
-	// create watcher
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.WithError(err).Fatal("XML Profile watcher create error")
-	}
 	defer func() {
-		if err := watcher.Close(); err != nil {
+		if err := p.watcher.Close(); err != nil {
 			log.WithError(err).Error("XML Profile watcher close error")
 		}
 	}()
 
-	// add xml profile folder to watcher
-	dir := filepath.Dir(p.file)
-	if err := watcher.Add(dir); err != nil {
-		log.WithError(err).Debug("XML Profile watcher add profile dir error")
-	}
-
 	// watch file
 	for {
 		select {
-		case event, ok := <-watcher.Events:
+		case event, ok := <-p.watcher.Events:
 			if !ok {
 				log.Error("XML Profile watcher got unexpected " +
 					"close of events channel")
@@ -83,7 +74,7 @@ func (p *ProfileMon) start() {
 				p.handleEvent()
 			}
 
-		case err, ok := <-watcher.Errors:
+		case err, ok := <-p.watcher.Errors:
 			if !ok {
 				log.Error("XML Profile watcher got unexpected " +
 					"close of errors channel")
@@ -99,15 +90,26 @@ func (p *ProfileMon) start() {
 
 // Start starts the profile monitor
 func (p *ProfileMon) Start() {
+	// create watcher
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.WithError(err).Fatal("XML Profile watcher create error")
+	}
+
+	// add xml profile folder to watcher
+	dir := filepath.Dir(p.file)
+	if err := watcher.Add(dir); err != nil {
+		log.WithError(err).Debug("XML Profile watcher add profile dir error")
+	}
+
+	p.watcher = watcher
 	go p.start()
 }
 
 // Stop stops the profile monitor
 func (p *ProfileMon) Stop() {
 	close(p.done)
-	for range p.updates {
-		// wait for channel shutdown
-	}
+	<-p.closed
 }
 
 // Updates returns the channel for profile updates
@@ -121,5 +123,6 @@ func NewProfileMon(file string) *ProfileMon {
 		file:    file,
 		updates: make(chan struct{}),
 		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
 	}
 }
