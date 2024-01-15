@@ -15,6 +15,7 @@ type ProfileMon struct {
 	file    string
 	updates chan struct{}
 	done    chan struct{}
+	closed  chan struct{}
 	hash    [sha256.Size]byte
 }
 
@@ -47,6 +48,7 @@ func (p *ProfileMon) handleEvent() {
 
 // start starts the profile monitor
 func (p *ProfileMon) start() {
+	defer close(p.closed)
 	defer close(p.updates)
 
 	// create watcher
@@ -105,9 +107,7 @@ func (p *ProfileMon) Start() {
 // Stop stops the profile monitor
 func (p *ProfileMon) Stop() {
 	close(p.done)
-	for range p.updates {
-		// wait for channel shutdown
-	}
+	<-p.closed
 }
 
 // Updates returns the channel for profile updates
@@ -121,5 +121,6 @@ func NewProfileMon(file string) *ProfileMon {
 		file:    file,
 		updates: make(chan struct{}),
 		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
 	}
 }

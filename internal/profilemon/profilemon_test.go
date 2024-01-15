@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -37,6 +38,12 @@ func TestProfileMonHandleEvent(t *testing.T) {
 	if !bytes.Equal(h[:], p.hash[:]) {
 		t.Errorf("got %v, want %v", p.hash, h)
 	}
+
+	// test with file error
+	d := t.TempDir()
+	p = NewProfileMon(filepath.Join(d, "does-not-exist"))
+	p.handleEvent()
+
 }
 
 // TestProfileMonStartStop tests Start and Stop of ProfileMon
@@ -49,6 +56,16 @@ func TestProfileMonStartStop(t *testing.T) {
 	p.Stop()
 }
 
+// TestProfileMonUpdates tests Updates of ProfileMon.
+func TestProfileMonUpdates(t *testing.T) {
+	p := NewProfileMon("")
+	want := p.updates
+	got := p.Updates()
+	if got != want {
+		t.Errorf("got %p, want %p", got, want)
+	}
+}
+
 // TestNewProfileMon tests NewProfileMon
 func TestNewProfileMon(t *testing.T) {
 	f := "some file"
@@ -57,7 +74,8 @@ func TestNewProfileMon(t *testing.T) {
 		t.Errorf("got %s, want %s", p.file, f)
 	}
 	if p.updates == nil ||
-		p.done == nil {
+		p.done == nil ||
+		p.closed == nil {
 
 		t.Errorf("got nil, want != nil")
 	}
