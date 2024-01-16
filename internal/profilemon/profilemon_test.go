@@ -2,10 +2,13 @@ package profilemon
 
 import (
 	"bytes"
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 // createProfileMonTestFile creates a temporary file for ProfileMon testing
@@ -20,7 +23,7 @@ func createProfileMonTestFile() string {
 // TestProfileMonHandleEvent tests handleEvent of ProfileMon
 func TestProfileMonHandleEvent(t *testing.T) {
 	f := createProfileMonTestFile()
-	defer os.Remove(f)
+	defer func() { _ = os.Remove(f) }()
 
 	p := NewProfileMon(f)
 
@@ -46,10 +49,37 @@ func TestProfileMonHandleEvent(t *testing.T) {
 
 }
 
-// TestProfileMonStartStop tests Start and Stop of ProfileMon
-func TestProfileMonStartStop(t *testing.T) {
+// TestProfileMonStartEvents tests start of ProfileMon, events.
+func TestProfileMonStartEvents(t *testing.T) {
 	f := createProfileMonTestFile()
-	defer os.Remove(f)
+	defer func() { _ = os.Remove(f) }()
+
+	p := NewProfileMon(f)
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = watcher.Close() }()
+	p.watcher = watcher
+
+	go p.start()
+
+	p.watcher.Events <- fsnotify.Event{}
+	p.watcher.Events <- fsnotify.Event{Name: f}
+	<-p.Updates()
+
+	p.watcher.Errors <- errors.New("test error")
+
+	if err := watcher.Close(); err != nil {
+		t.Error(err)
+	}
+	<-p.closed
+}
+
+// TestProfileMonStartStop tests Start and Stop of ProfileMon
+func TestProfileMonStartStop(_ *testing.T) {
+	f := createProfileMonTestFile()
+	defer func() { _ = os.Remove(f) }()
 
 	p := NewProfileMon(f)
 	p.Start()

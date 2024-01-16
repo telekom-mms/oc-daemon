@@ -12,6 +12,7 @@ import (
 
 // ProfileMon is a XML profile monitor
 type ProfileMon struct {
+	watcher *fsnotify.Watcher
 	file    string
 	updates chan struct{}
 	done    chan struct{}
@@ -50,28 +51,16 @@ func (p *ProfileMon) handleEvent() {
 func (p *ProfileMon) start() {
 	defer close(p.closed)
 	defer close(p.updates)
-
-	// create watcher
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.WithError(err).Fatal("XML Profile watcher create error")
-	}
 	defer func() {
-		if err := watcher.Close(); err != nil {
+		if err := p.watcher.Close(); err != nil {
 			log.WithError(err).Error("XML Profile watcher close error")
 		}
 	}()
 
-	// add xml profile folder to watcher
-	dir := filepath.Dir(p.file)
-	if err := watcher.Add(dir); err != nil {
-		log.WithError(err).Debug("XML Profile watcher add profile dir error")
-	}
-
 	// watch file
 	for {
 		select {
-		case event, ok := <-watcher.Events:
+		case event, ok := <-p.watcher.Events:
 			if !ok {
 				log.Error("XML Profile watcher got unexpected " +
 					"close of events channel")
@@ -85,7 +74,7 @@ func (p *ProfileMon) start() {
 				p.handleEvent()
 			}
 
-		case err, ok := <-watcher.Errors:
+		case err, ok := <-p.watcher.Errors:
 			if !ok {
 				log.Error("XML Profile watcher got unexpected " +
 					"close of errors channel")
@@ -101,6 +90,19 @@ func (p *ProfileMon) start() {
 
 // Start starts the profile monitor
 func (p *ProfileMon) Start() {
+	// create watcher
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.WithError(err).Fatal("XML Profile watcher create error")
+	}
+
+	// add xml profile folder to watcher
+	dir := filepath.Dir(p.file)
+	if err := watcher.Add(dir); err != nil {
+		log.WithError(err).Debug("XML Profile watcher add profile dir error")
+	}
+
+	p.watcher = watcher
 	go p.start()
 }
 
