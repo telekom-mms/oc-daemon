@@ -1,6 +1,7 @@
 package sleepmon
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/godbus/dbus/v5"
@@ -33,10 +34,63 @@ func TestSleepMonHandleSignal(t *testing.T) {
 	}
 }
 
+// testRWC is a reader writer closer for testing.
+type testRWC struct{}
+
+func (t *testRWC) Read([]byte) (int, error)  { return 0, nil }
+func (t *testRWC) Write([]byte) (int, error) { return 0, nil }
+func (t *testRWC) Close() error              { return nil }
+
+// TestSleepMonStartEvents tests start of SleepMon, events.
+func TestSleepMonStartEvents(t *testing.T) {
+	s := NewSleepMon()
+	conn, err := dbus.NewConn(&testRWC{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.conn = conn
+	go s.start()
+
+	// signal
+	s.sigs <- &dbus.Signal{}
+
+	// unexpected close
+	close(s.sigs)
+	<-s.closed
+}
+
+// TestSleepMonStartErrors tests Start of SleepMon, errors.
+func TestSleepMonStartErrors(t *testing.T) {
+	// match signal error
+	oldAddMatchSignal := connAddMatchSignal
+	connAddMatchSignal = func(conn *dbus.Conn, options ...dbus.MatchOption) error {
+		return errors.New("test error")
+	}
+	defer func() { connAddMatchSignal = oldAddMatchSignal }()
+
+	s := NewSleepMon()
+	if err := s.Start(); err == nil {
+		t.Error("Start should return error")
+	}
+
+	// system bus error
+	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (*dbus.Conn, error) {
+		return nil, errors.New("test error")
+	}
+	defer func() { dbusConnectSystemBus = dbus.ConnectSystemBus }()
+
+	s = NewSleepMon()
+	if err := s.Start(); err == nil {
+		t.Error("Start should return error")
+	}
+}
+
 // TestSleepMonStartStop tests Start and Stop of SleepMon
 func TestSleepMonStartStop(t *testing.T) {
 	s := NewSleepMon()
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
 	s.Stop()
 }
 
@@ -53,8 +107,10 @@ func TestSleepMonEvents(t *testing.T) {
 // TestNewSleepMon tests NewSleepMon
 func TestNewSleepMon(t *testing.T) {
 	s := NewSleepMon()
-	if s.events == nil ||
-		s.done == nil {
+	if s.sigs == nil ||
+		s.events == nil ||
+		s.done == nil ||
+		s.closed == nil {
 
 		t.Errorf("got nil, want != nil")
 	}
