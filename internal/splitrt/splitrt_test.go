@@ -2,6 +2,7 @@ package splitrt
 
 import (
 	"context"
+	"errors"
 	"net"
 	"reflect"
 	"strings"
@@ -22,10 +23,13 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 
 	want := []string{"nothing else"}
 	got := []string{"nothing else"}
+
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test adding
 	update := getTestDevMonUpdate()
@@ -40,11 +44,29 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test adding loopback device
+	update = getTestDevMonUpdate()
+	update.Type = "loopback"
+	s.handleDeviceUpdate(ctx, update)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test adding vpn device
+	update = getTestDevMonUpdate()
+	update.Device = s.vpnconfig.Device.Name
+	s.handleDeviceUpdate(ctx, update)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
 }
 
 // TestSplitRoutingHandleAddressUpdate tests handleAddressUpdate of SplitRouting
 func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	ctx := context.Background()
+
+	// test with exclude
 	vpnconf := vpnconfig.New()
 	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
 		{
@@ -56,16 +78,62 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	s.devices.Add(getTestDevMonUpdate())
 
 	got := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test adding
 	want := []string{
 		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
 	}
 	update := getTestAddrMonUpdate("192.168.1.1/32")
+	s.handleAddressUpdate(ctx, update)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test removing
+	got = []string{}
+	want = []string{
+		"flush set inet oc-daemon-routing excludes4\n" +
+			"flush set inet oc-daemon-routing excludes6\n",
+	}
+	update.Add = false
+	s.handleAddressUpdate(ctx, update)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with exculde and virtual
+	vpnconf = vpnconfig.New()
+	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
+		{
+			IP:   net.IPv4(0, 0, 0, 0),
+			Mask: net.CIDRMask(32, 32),
+		},
+	}
+	vpnconf.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
+	s = NewSplitRouting(NewConfig(), vpnconf)
+	devUp := getTestDevMonUpdate()
+	devUp.Type = "virtual"
+	s.devices.Add(devUp)
+
+	got = []string{}
+
+	// test adding
+	want = []string{
+		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
+	}
+	update = getTestAddrMonUpdate("192.168.1.1/32")
+	s.handleAddressUpdate(ctx, update)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test double adding
 	s.handleAddressUpdate(ctx, update)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -90,10 +158,12 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 
 	got := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test ipv4
 	report := dnsproxy.NewReport("example.com", net.ParseIP("192.168.1.1"), 300)
@@ -116,19 +186,79 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 
 // TestSplitRoutingStartStop tests Start and Stop of SplitRouting
 func TestSplitRoutingStartStop(t *testing.T) {
-	s := NewSplitRouting(NewConfig(), vpnconfig.New())
-
 	// set dummy low level functions for testing
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
+
+	oldRegisterAddrUpdates := addrmon.RegisterAddrUpdates
 	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) chan netlink.AddrUpdate {
 		return nil
 	}
+	defer func() { addrmon.RegisterAddrUpdates = oldRegisterAddrUpdates }()
+
+	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
 	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
 		return nil
 	}
+	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
+	// test with new configs
+	s := NewSplitRouting(NewConfig(), vpnconfig.New())
+	s.Start()
+	s.Stop()
+
+	// test with excludes
+	vpnconf := vpnconfig.New()
+	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
+		{
+			IP:   net.IPv4(0, 0, 0, 0),
+			Mask: net.CIDRMask(32, 32),
+		},
+		{
+			IP:   net.IPv4(192, 168, 1, 1),
+			Mask: net.CIDRMask(32, 32),
+		},
+	}
+	vpnconf.Split.ExcludeIPv6 = []*net.IPNet{
+		{
+			IP:   net.ParseIP("::"),
+			Mask: net.CIDRMask(128, 128),
+		},
+		{
+			IP:   net.ParseIP("2000::1"),
+			Mask: net.CIDRMask(32, 32),
+		},
+	}
+	s = NewSplitRouting(NewConfig(), vpnconf)
+	s.Start()
+	s.Stop()
+
+	// test with vpn address
+	vpnconf = vpnconfig.New()
+	vpnconf.IPv4.Address = net.IPv4(192, 168, 1, 1)
+	vpnconf.IPv4.Netmask = net.CIDRMask(24, 32)
+	s = NewSplitRouting(NewConfig(), vpnconf)
+	s.Start()
+	s.Stop()
+
+	// test with events
+	s = NewSplitRouting(NewConfig(), vpnconfig.New())
+	s.Start()
+	s.devmon.Updates() <- getTestDevMonUpdate()
+	s.addrmon.Updates() <- getTestAddrMonUpdate("192.168.1.1/32")
+	report := dnsproxy.NewReport("example.com", net.ParseIP("192.168.1.1"), 300)
+	s.dnsreps <- report
+	report.Wait()
+	s.Stop()
+
+	// test with nft errors
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		return errors.New("test error")
+	}
+	s = NewSplitRouting(NewConfig(), vpnconfig.New())
 	s.Start()
 	s.Stop()
 }
@@ -170,6 +300,8 @@ func TestNewSplitRouting(t *testing.T) {
 // TestCleanup tests Cleanup
 func TestCleanup(t *testing.T) {
 	got := []string{}
+
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		if s == "" {
 			got = append(got, cmd+" "+strings.Join(arg, " "))
@@ -178,6 +310,8 @@ func TestCleanup(t *testing.T) {
 		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	Cleanup(context.Background(), NewConfig())
 	want := []string{
 		"ip -4 rule delete pref 2111",
