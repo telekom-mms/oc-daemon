@@ -1,6 +1,7 @@
 package sleepmon
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/godbus/dbus/v5"
@@ -40,6 +41,7 @@ func (t *testRWC) Read([]byte) (int, error)  { return 0, nil }
 func (t *testRWC) Write([]byte) (int, error) { return 0, nil }
 func (t *testRWC) Close() error              { return nil }
 
+// TestSleepMonStartEvents tests start of SleepMon, events.
 func TestSleepMonStartEvents(t *testing.T) {
 	s := NewSleepMon()
 	conn, err := dbus.NewConn(&testRWC{})
@@ -57,10 +59,38 @@ func TestSleepMonStartEvents(t *testing.T) {
 	<-s.closed
 }
 
+// TestSleepMonStartErrors tests Start of SleepMon, errors.
+func TestSleepMonStartErrors(t *testing.T) {
+	// match signal error
+	oldAddMatchSignal := connAddMatchSignal
+	connAddMatchSignal = func(conn *dbus.Conn, options ...dbus.MatchOption) error {
+		return errors.New("test error")
+	}
+	defer func() { connAddMatchSignal = oldAddMatchSignal }()
+
+	s := NewSleepMon()
+	if err := s.Start(); err == nil {
+		t.Error("Start should return error")
+	}
+
+	// system bus error
+	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (*dbus.Conn, error) {
+		return nil, errors.New("test error")
+	}
+	defer func() { dbusConnectSystemBus = dbus.ConnectSystemBus }()
+
+	s = NewSleepMon()
+	if err := s.Start(); err == nil {
+		t.Error("Start should return error")
+	}
+}
+
 // TestSleepMonStartStop tests Start and Stop of SleepMon
 func TestSleepMonStartStop(t *testing.T) {
 	s := NewSleepMon()
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
 	s.Stop()
 }
 

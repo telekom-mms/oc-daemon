@@ -78,29 +78,39 @@ func (s *SleepMon) start() {
 	}
 }
 
+// dbusConnectSystemBus is dbus.ConnectSystemBus for testing.
+var dbusConnectSystemBus = dbus.ConnectSystemBus
+
+// connAddMatchSignal is dbus conn.AddMatchSignal for testing.
+var connAddMatchSignal = func(conn *dbus.Conn, options ...dbus.MatchOption) error {
+	return conn.AddMatchSignal(options...)
+}
+
 // Start starts the sleep monitor
-func (s *SleepMon) Start() {
+func (s *SleepMon) Start() error {
 	// connect to system bus
-	conn, err := dbus.ConnectSystemBus()
+	conn, err := dbusConnectSystemBus()
 	if err != nil {
 		log.WithError(err).Error("SleepMon could not connect to system bus")
-		return
+		return err
 	}
 	s.conn = conn
 
 	// subscribe to login signals
-	if err = conn.AddMatchSignal(
+	if err = connAddMatchSignal(conn,
 		dbus.WithMatchObjectPath(path),
 		dbus.WithMatchInterface(iface),
 	); err != nil {
 		log.WithError(err).Error("SleepMon could not subscribe to login signals")
-		return
+		_ = s.conn.Close()
+		return err
 	}
 
 	// set channel for signals
 	conn.Signal(s.sigs)
 
 	go s.start()
+	return nil
 }
 
 // Stop stops the sleep monitor
