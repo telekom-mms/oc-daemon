@@ -38,18 +38,31 @@ func TestAddressesAdd(t *testing.T) {
 // TestAddressesRemove tests Remove of Addresses
 func TestAddressesRemove(t *testing.T) {
 	a := NewAddresses()
-	update := getTestAddrMonUpdate("192.168.1.0/24")
+	updates := []*addrmon.Update{
+		getTestAddrMonUpdate("192.168.1.0/24"),
+		getTestAddrMonUpdate("192.168.2.0/24"),
+		getTestAddrMonUpdate("192.168.3.0/24"),
+	}
 
-	// add element
-	a.Add(update)
-	if !a.contains(update) {
-		t.Errorf("got false, want true")
+	// add elements
+	for _, update := range updates {
+		a.Add(update)
+		if !a.contains(update) {
+			t.Errorf("got false, want true")
+		}
 	}
 
 	// test removing element
-	a.Remove(update)
-	if a.contains(update) {
-		t.Errorf("got true, want false")
+	for _, update := range updates {
+		a.Remove(update)
+		if a.contains(update) {
+			t.Errorf("got true, want false")
+		}
+	}
+
+	// test removing again/not existing entries
+	for _, update := range updates {
+		a.Remove(update)
 	}
 }
 
