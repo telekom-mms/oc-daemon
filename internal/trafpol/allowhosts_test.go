@@ -1,6 +1,9 @@
 package trafpol
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 // TestAllowHostsAdd tests Add of AllowHosts
 func TestAllowHostsAdd(t *testing.T) {
@@ -37,11 +40,16 @@ func TestAllowHostsStartStop(t *testing.T) {
 // TestAllowHostsUpdate tests Update of AllowHosts
 func TestAllowHostsUpdate(t *testing.T) {
 	config := NewConfig()
+	config.ResolveTriesSleep = 0
+	config.ResolveTimer = 0
 	a := NewAllowHosts(config)
 	host := "example.com"
 	a.Add(host)
+	a.Add("192.168.1.1/32")
 	a.Start()
 	a.Update()
+	a.Update()
+	time.Sleep(time.Second)
 	a.Stop()
 }
 
