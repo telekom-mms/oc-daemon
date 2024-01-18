@@ -13,7 +13,7 @@ import (
 )
 
 // TestTrafPolHandleDeviceUpdate tests handleDeviceUpdate of TrafPol
-func TestTrafPolHandleDeviceUpdate(t *testing.T) {
+func TestTrafPolHandleDeviceUpdate(_ *testing.T) {
 	tp := NewTrafPol(NewConfig())
 	ctx := context.Background()
 
@@ -29,7 +29,7 @@ func TestTrafPolHandleDeviceUpdate(t *testing.T) {
 }
 
 // TestTrafPolHandleDNSUpdate tests handleDNSUpdate of TrafPol
-func TestTrafPolHandleDNSUpdate(t *testing.T) {
+func TestTrafPolHandleDNSUpdate(_ *testing.T) {
 	tp := NewTrafPol(NewConfig())
 
 	tp.allowHosts.Start()
@@ -50,12 +50,15 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 
 	var nftMutex sync.Mutex
 	nftCmds := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		nftMutex.Lock()
 		defer nftMutex.Unlock()
 		nftCmds = append(nftCmds, s)
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	getNftCmds := func() []string {
 		nftMutex.Lock()
 		defer nftMutex.Unlock()
@@ -98,15 +101,33 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	}
 }
 
-// TestTrafPolStartStop tests Start and Stop of TrafPol
-func TestTrafPolStartStop(t *testing.T) {
-	tp := NewTrafPol(NewConfig())
-
+// TestTrafPolStartEvents tests start of TrafPol, events.
+func TestTrafPolStartEvents(_ *testing.T) {
 	// set dummy low level function for devmon
+	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
 	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
 		return nil
 	}
+	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
+	tp := NewTrafPol(NewConfig())
+	tp.Start()
+	tp.devmon.Updates() <- &devmon.Update{Type: "device"}
+	tp.dnsmon.Updates() <- struct{}{}
+	tp.cpd.Results() <- &cpd.Report{}
+	tp.Stop()
+}
+
+// TestTrafPolStartStop tests Start and Stop of TrafPol
+func TestTrafPolStartStop(_ *testing.T) {
+	// set dummy low level function for devmon
+	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
+		return nil
+	}
+	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
+
+	tp := NewTrafPol(NewConfig())
 	tp.Start()
 	tp.Stop()
 }
