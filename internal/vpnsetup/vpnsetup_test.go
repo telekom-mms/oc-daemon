@@ -7,11 +7,15 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
+	"github.com/vishvananda/netlink"
 )
 
 // TestSetupVPNDevice tests setupVPNDevice
@@ -326,6 +330,50 @@ func TestVPNSetupStartStop(t *testing.T) {
 	v.Stop()
 }
 
+func TestVPNSetupSetupTeardown(t *testing.T) {
+	oldCmd := execs.RunCmd
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		return nil
+	}
+	defer func() { execs.RunCmd = oldCmd }()
+
+	oldCmdOutput := execs.RunCmdOutput
+	execs.RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
+		return nil, nil
+	}
+	defer func() { execs.RunCmdOutput = oldCmdOutput }()
+
+	oldRegisterAddrUpdates := addrmon.RegisterAddrUpdates
+	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) chan netlink.AddrUpdate {
+		return nil
+	}
+	defer func() { addrmon.RegisterAddrUpdates = oldRegisterAddrUpdates }()
+
+	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
+		return nil
+	}
+	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
+
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v.Start()
+	vpnconf := vpnconfig.New()
+
+	v.Setup(vpnconf)
+	<-v.Events()
+
+	go func() { <-v.splitrt.DNSReports() }()
+	v.dnsProxy.Reports() <- dnsproxy.NewReport("example.com", nil, 300)
+
+	time.Sleep(time.Second * 2)
+	v.Teardown(vpnconf)
+	<-v.Events()
+
+	v.dnsProxy.Reports() <- dnsproxy.NewReport("example.com", nil, 300)
+
+	v.Stop()
+}
+
 // TestVPNSetupEvents tests Events of VPNSetup
 func TestVPNSetupEvents(t *testing.T) {
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
@@ -347,7 +395,8 @@ func TestNewVPNSetup(t *testing.T) {
 		v.splitrtConf != splitrtConfig ||
 		v.cmds == nil ||
 		v.events == nil ||
-		v.done == nil {
+		v.done == nil ||
+		v.closed == nil {
 		t.Errorf("invalid vpn setup")
 	}
 }
