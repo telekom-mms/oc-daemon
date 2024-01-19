@@ -32,15 +32,44 @@ func TestSetupVPNDevice(t *testing.T) {
 		"address add 2001::1/64 dev tun0",
 	}
 	got := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test
 	setupVPNDevice(context.Background(), c)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with execs errors
+	// run above test multiple times, each time failing execs.RunCmd at a
+	// later time. Expect only parts of the results defined in want above
+	// depending on when execs.RunCmd failed.
+	numRuns := 0
+	failAt := 0
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		// fail after failAt runs
+		if numRuns == failAt {
+			return errors.New("test error")
+		}
+
+		numRuns++
+		got = append(got, strings.Join(arg, " "))
+		return nil
+	}
+	for _, f := range []int{0, 1, 2} {
+		got = []string{}
+		numRuns = 0
+		failAt = f
+
+		setupVPNDevice(context.Background(), c)
+		if !reflect.DeepEqual(got, want[:f]) {
+			t.Errorf("got %v, want %v", got, want)
+		}
 	}
 }
 
@@ -54,16 +83,24 @@ func TestTeardownVPNDevice(t *testing.T) {
 		"link set tun0 down",
 	}
 	got := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test
 	teardownVPNDevice(context.Background(), c)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test with execs error
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		return errors.New("test error")
+	}
+	teardownVPNDevice(context.Background(), c)
 }
 
 // TestVPNSetupSetupDNS tests setupDNS of VPNSetup
@@ -73,10 +110,12 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 	c.DNS.DefaultDomain = "mycompany.com"
 
 	got := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.setupDNS(context.Background(), c)
 
@@ -90,6 +129,18 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test with execs errors
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
+		return errors.New("test error")
+	}
+
+	got = []string{}
+	v.setupDNS(context.Background(), c)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
 }
 
 // TestVPNSetupTeardownDNS tests teardownDNS of VPNSetup
@@ -98,10 +149,13 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 	c.Device.Name = "tun0"
 
 	got := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.teardownDNS(context.Background(), c)
 
@@ -110,6 +164,18 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 		"flush-caches",
 		"reset-server-features",
 	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with execs errors
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
+		return errors.New("test error")
+	}
+
+	got = []string{}
+	v.teardownDNS(context.Background(), c)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
