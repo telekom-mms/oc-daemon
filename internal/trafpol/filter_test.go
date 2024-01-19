@@ -10,7 +10,7 @@ import (
 )
 
 // TestFilterFunctionsErrors tests filter functions, errors.
-func TestFilterFunctionsErrors(t *testing.T) {
+func TestFilterFunctionsErrors(_ *testing.T) {
 	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		return errors.New("test error")

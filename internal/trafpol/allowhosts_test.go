@@ -30,7 +30,7 @@ func TestAllowHostsRemove(t *testing.T) {
 }
 
 // TestAllowHostsStartStop tests Start and Stop of AllowHosts
-func TestAllowHostsStartStop(t *testing.T) {
+func TestAllowHostsStartStop(_ *testing.T) {
 	config := NewConfig()
 	a := NewAllowHosts(config)
 	a.Start()
@@ -38,17 +38,22 @@ func TestAllowHostsStartStop(t *testing.T) {
 }
 
 // TestAllowHostsUpdate tests Update of AllowHosts
-func TestAllowHostsUpdate(t *testing.T) {
+func TestAllowHostsUpdate(_ *testing.T) {
 	config := NewConfig()
 	config.ResolveTriesSleep = 0
 	config.ResolveTimer = 0
 	a := NewAllowHosts(config)
-	host := "example.com"
-	a.Add(host)
+
+	// test with domain name and ip net
+	a.Add("example.com")
 	a.Add("192.168.1.1/32")
+
 	a.Start()
+
+	// test double update
 	a.Update()
 	a.Update()
+
 	time.Sleep(time.Second)
 	a.Stop()
 }
