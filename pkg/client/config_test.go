@@ -2,6 +2,7 @@ package client
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -10,6 +11,12 @@ import (
 
 // TestConfigCopy tests Copy of Config
 func TestConfigCopy(t *testing.T) {
+	// test nil
+	if (*Config)(nil).Copy() != nil {
+		t.Error("copy of nil should be nil")
+	}
+
+	// test new config
 	want := NewConfig()
 	got := want.Copy()
 	if !reflect.DeepEqual(got, want) {
@@ -85,6 +92,31 @@ func TestConfigValid(t *testing.T) {
 
 	if got != want {
 		t.Errorf("got %t, want %t for %v", got, want, valid)
+	}
+}
+
+// TestConfigExpand tests Expand of Config.
+func TestConfigExpand(t *testing.T) {
+	// get user home dir
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// test expanding dirs
+	want := NewConfig()
+	want.ClientCertificate = filepath.Join(home, "test-certs/cert")
+	want.ClientKey = filepath.Join(home, "test-certs/key")
+	want.CACertificate = filepath.Join(home, "test-certs/ca")
+
+	got := NewConfig()
+	got.ClientCertificate = "~/test-certs/cert"
+	got.ClientKey = "$HOME/test-certs/key"
+	got.CACertificate = filepath.Join(home, "test-certs/ca")
+	got.Expand()
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
