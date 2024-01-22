@@ -1,13 +1,130 @@
 package vpnstatus
 
 import (
+	"encoding/json"
+	"errors"
 	"log"
 	"reflect"
 	"testing"
 )
 
+// TestTrustedNetworkTrusted tests Trusted of TrustedNetwork.
+func TestTrustedNetworkTrusted(t *testing.T) {
+	// test not trusted
+	for i, notTrusted := range []TrustedNetwork{
+		TrustedNetworkUnknown,
+		TrustedNetworkNotTrusted,
+	} {
+		if notTrusted.Trusted() {
+			t.Errorf("should not be trusted: %d, %s", i, notTrusted)
+		}
+	}
+
+	// test trusted
+	if !TrustedNetworkTrusted.Trusted() {
+		t.Errorf("should be trusted: %s", TrustedNetworkTrusted)
+	}
+}
+
+// TestTrustedNetworkString tests String of TrustedNetwork.
+func TestTrustedNetworkString(t *testing.T) {
+	for v, s := range map[TrustedNetwork]string{
+		// valid
+		TrustedNetworkUnknown:    "unknown",
+		TrustedNetworkNotTrusted: "not trusted",
+		TrustedNetworkTrusted:    "trusted",
+
+		// invalid
+		123456: "",
+	} {
+		if v.String() != s {
+			t.Errorf("got %s, want %s", v.String(), s)
+		}
+	}
+}
+
+// TestConnectionStateConnected tests Connected of ConnectionState.
+func TestConnectionStateConnected(t *testing.T) {
+	// test not connected
+	for i, notConnected := range []ConnectionState{
+		ConnectionStateUnknown,
+		ConnectionStateDisconnected,
+		ConnectionStateConnecting,
+		ConnectionStateDisconnecting,
+	} {
+		if notConnected.Connected() {
+			t.Errorf("should not be connected: %d, %s", i, notConnected)
+		}
+	}
+
+	// test connected
+	if !ConnectionStateConnected.Connected() {
+		t.Errorf("should be connected: %s", ConnectionStateConnected)
+	}
+}
+
+// TestConnectionStateString tests String of ConnectionState.
+func TestConnectionStateString(t *testing.T) {
+	for v, s := range map[ConnectionState]string{
+		// valid
+		ConnectionStateUnknown:       "unknown",
+		ConnectionStateDisconnected:  "disconnected",
+		ConnectionStateConnecting:    "connecting",
+		ConnectionStateConnected:     "connected",
+		ConnectionStateDisconnecting: "disconnecting",
+
+		// invalid
+		123456: "",
+	} {
+		if v.String() != s {
+			t.Errorf("got %s, want %s", v.String(), s)
+		}
+	}
+}
+
+// TestOCRunningRunning tests Running of OCRunning.
+func TestOCRunningRunning(t *testing.T) {
+	// test not running
+	for i, notRunning := range []OCRunning{
+		OCRunningUnknown,
+		OCRunningNotRunning,
+	} {
+		if notRunning.Running() {
+			t.Errorf("should not be running: %d, %s", i, notRunning)
+		}
+	}
+
+	// test running
+	if !OCRunningRunning.Running() {
+		t.Errorf("should be running: %s", OCRunningRunning)
+	}
+}
+
+// TestOCRunningString tests String of OCRunning.
+func TestOCRunningString(t *testing.T) {
+	for v, s := range map[OCRunning]string{
+		// valid
+		OCRunningUnknown:    "unknown",
+		OCRunningNotRunning: "not running",
+		OCRunningRunning:    "running",
+
+		// invalid
+		123456: "",
+	} {
+		if v.String() != s {
+			t.Errorf("got %s, want %s", v.String(), s)
+		}
+	}
+}
+
 // TestStatusCopy tests Copy of Status
 func TestStatusCopy(t *testing.T) {
+	// test nil
+	if (*Status)(nil).Copy() != nil {
+		t.Error("copy of nil status should be nil")
+	}
+
+	// test valid
 	want := New()
 	got := want.Copy()
 
@@ -18,6 +135,7 @@ func TestStatusCopy(t *testing.T) {
 
 // TestJSON tests JSON and NewFromJSON of Status
 func TestJSON(t *testing.T) {
+	// test without json errors
 	s := New()
 	b, err := s.JSON()
 	if err != nil {
@@ -29,6 +147,23 @@ func TestJSON(t *testing.T) {
 	}
 	if !reflect.DeepEqual(n, s) {
 		t.Errorf("got %v, want %v", n, s)
+	}
+
+	// test with errors
+	jsonMarshal = func(any) ([]byte, error) {
+		return nil, errors.New("test error")
+	}
+	defer func() { jsonMarshal = json.Marshal }()
+
+	// marshal error
+	b, err = s.JSON()
+	if err == nil {
+		t.Error("marshal error should return error")
+	}
+
+	// unmarshal error
+	if _, err := NewFromJSON(b); err == nil {
+		t.Error("unmarshal error should return error")
 	}
 }
 
