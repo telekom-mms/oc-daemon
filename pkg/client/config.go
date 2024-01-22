@@ -129,9 +129,12 @@ func (c *Config) Expand() {
 	c.expandUser()
 }
 
+// jsonMarshalIndent is json.MarshalIndent for testing.
+var jsonMarshalIndent = json.MarshalIndent
+
 // Save saves the config to file
 func (c *Config) Save(file string) error {
-	b, err := json.MarshalIndent(c, "", "    ")
+	b, err := jsonMarshalIndent(c, "", "    ")
 	if err != nil {
 		return err
 	}
@@ -171,9 +174,12 @@ func SystemConfig() string {
 	return filepath.Join(SystemConfigDirPath, ConfigDirName, ConfigName)
 }
 
+// osUserConfigDir is os.UserConfigDir for testing.
+var osUserConfigDir = os.UserConfigDir
+
 // UserConfig returns the default file path of the current user's configuration
 func UserConfig() string {
-	dir, err := os.UserConfigDir()
+	dir, err := osUserConfigDir()
 	if err != nil {
 		return ""
 	}
