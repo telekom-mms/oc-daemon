@@ -1,7 +1,8 @@
 package logininfo
 
 import (
-	"log"
+	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -25,6 +26,12 @@ func getTestLoginInfo() *LoginInfo {
 
 // TestLoginInfoCopy tests Copy of LoginInfo
 func TestLoginInfoCopy(t *testing.T) {
+	// test nil
+	if (*LoginInfo)(nil).Copy() != nil {
+		t.Error("copy of nil should be nil")
+	}
+
+	// test valid config
 	want := getTestLoginInfo()
 	got := want.Copy()
 	if !reflect.DeepEqual(got, want) {
@@ -64,6 +71,7 @@ func TestLoginInfoParseLine(t *testing.T) {
 		"CONNECT_URL='https://vpnserver.example.com'",
 		"FINGERPRINT='469bb424ec8835944d30bc77c77e8fc1d8e23a42'",
 		"RESOLVE='vpnserver.example.com:10.0.0.1'",
+		"And make sure other lines do not break anything",
 	} {
 		got.ParseLine(line)
 	}
@@ -82,17 +90,31 @@ func TestLoginInfoFromJSON(t *testing.T) {
 	// convert to json
 	b, err := want.JSON()
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	// parse json
 	got, err := LoginInfoFromJSON(b)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	// make sure both login infos match
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with marshal and parse error
+	jsonMarshal = func(any) ([]byte, error) {
+		return nil, errors.New("test error")
+	}
+	defer func() { jsonMarshal = json.Marshal }()
+
+	b, err = want.JSON()
+	if err == nil {
+		t.Error("Marshal error should return error")
+	}
+	if _, err = LoginInfoFromJSON(b); err == nil {
+		t.Error("parsing nil should return error")
 	}
 }
