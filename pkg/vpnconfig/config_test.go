@@ -2,6 +2,7 @@ package vpnconfig
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net"
 	"reflect"
@@ -87,10 +88,71 @@ func TestSplitDNSExcludes(t *testing.T) {
 	}
 }
 
+// getValidTestConfig returns a valid Config for testing
+func getValidTestConfig() *Config {
+	c := New()
+
+	c.Gateway = net.IPv4(192, 168, 0, 1)
+	c.PID = 123456
+	c.Timeout = 300
+	c.Device.Name = "tun0"
+	c.Device.MTU = 1300
+	c.IPv4.Address = net.IPv4(192, 168, 0, 123)
+	c.IPv4.Netmask = net.IPv4Mask(255, 255, 255, 0)
+	c.IPv6.Address = net.ParseIP("2001:42:42:42::1")
+	c.IPv6.Netmask = net.CIDRMask(64, 128)
+	c.DNS.DefaultDomain = "mycompany.com"
+	c.DNS.ServersIPv4 = []net.IP{net.IPv4(192, 168, 0, 53)}
+	c.DNS.ServersIPv6 = []net.IP{net.ParseIP("2001:53:53:53::53")}
+	c.Split.ExcludeIPv4 = []*net.IPNet{
+		{
+			IP:   net.IPv4(0, 0, 0, 0),
+			Mask: net.IPv4Mask(255, 255, 255, 255),
+		},
+		{
+			IP:   net.IPv4(10, 0, 0, 0),
+			Mask: net.IPv4Mask(255, 255, 255, 0),
+		},
+	}
+	c.Split.ExcludeIPv6 = []*net.IPNet{
+		{
+			IP:   net.ParseIP("2001:2:3:4::1"),
+			Mask: net.CIDRMask(128, 128),
+		},
+		{
+			IP:   net.ParseIP("2001:2:3:5::1"),
+			Mask: net.CIDRMask(64, 128),
+		},
+	}
+	c.Split.ExcludeDNS = []string{"this.other.com", "that.other.com"}
+	c.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
+	c.Flags.DisableAlwaysOnVPN = true
+
+	return c
+}
+
 // TestConfigCopy tests Copy of Config
 func TestConfigCopy(t *testing.T) {
+	// test nil
+	if (*Config)(nil).Copy() != nil {
+		t.Error("copy of nil should be nil")
+	}
+
+	// test with full example config
 	want := getValidTestConfig()
 	got := want.Copy()
+
+	if !got.Equal(want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test without DNS servers and excludes
+	want = getValidTestConfig()
+	want.DNS.ServersIPv4 = nil
+	want.DNS.ServersIPv6 = nil
+	want.Split.ExcludeIPv4 = nil
+	want.Split.ExcludeIPv6 = nil
+	got = want.Copy()
 
 	if !got.Equal(want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -140,36 +202,6 @@ func TestConfigEqual(t *testing.T) {
 	}
 }
 
-// getValidTestConfig returns a valid Config for testing
-func getValidTestConfig() *Config {
-	c := New()
-
-	c.Gateway = net.IPv4(192, 168, 0, 1)
-	c.PID = 123456
-	c.Timeout = 300
-	c.Device.Name = "tun0"
-	c.Device.MTU = 1300
-	c.IPv4.Address = net.IPv4(192, 168, 0, 123)
-	c.IPv4.Netmask = net.IPv4Mask(255, 255, 255, 0)
-	c.DNS.DefaultDomain = "mycompany.com"
-	c.DNS.ServersIPv4 = []net.IP{net.IPv4(192, 168, 0, 1)}
-	c.Split.ExcludeIPv4 = []*net.IPNet{
-		{
-			IP:   net.IPv4(0, 0, 0, 0),
-			Mask: net.IPv4Mask(255, 255, 255, 255),
-		},
-		{
-			IP:   net.IPv4(10, 0, 0, 0),
-			Mask: net.IPv4Mask(255, 255, 255, 0),
-		},
-	}
-	c.Split.ExcludeDNS = []string{"this.other.com", "that.other.com"}
-	c.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
-	c.Flags.DisableAlwaysOnVPN = true
-
-	return c
-}
-
 // TestConfigValid tests Valid of Config
 func TestConfigValid(t *testing.T) {
 	// test empty, valid
@@ -202,6 +234,7 @@ func TestConfigValid(t *testing.T) {
 func TestConfigJSON(t *testing.T) {
 	c := getValidTestConfig()
 
+	// test without errors
 	want := c
 	b, err := c.JSON()
 	if err != nil {
@@ -217,6 +250,16 @@ func TestConfigJSON(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test with marshal error
+	jsonMarshal = func(any) ([]byte, error) {
+		return nil, errors.New("test error")
+	}
+	defer func() { jsonMarshal = json.Marshal }()
+
+	if _, err := c.JSON(); err == nil {
+		t.Error("Marshal error should return error")
+	}
 }
 
 // TestNew tests New
@@ -229,6 +272,7 @@ func TestNew(t *testing.T) {
 
 // TestNewFromJSON tests NewFromJSON
 func TestNewFromJSON(t *testing.T) {
+	// test with valid config
 	want := getValidTestConfig()
 	b, err := want.JSON()
 	if err != nil {
@@ -240,5 +284,10 @@ func TestNewFromJSON(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with invalid config
+	if _, err := NewFromJSON(nil); err == nil {
+		t.Error("parsing invalid config should return error")
 	}
 }
