@@ -53,6 +53,14 @@ func TestProfileGetVPNServers(t *testing.T) {
 			HostName:    "vpn2.mycompany.com",
 			HostAddress: "vpn2.mycompany.com",
 		},
+		{
+			// ipsec server that should be skipped
+			HostName:    "ipsec1.mycompany.com",
+			HostAddress: "ipsec1.mycompany.com",
+			PrimaryProtocol: PrimaryProtocol{
+				Flag: "IPsec",
+			},
+		},
 	}
 	want = []string{
 		"vpn1.mycompany.com",
@@ -82,6 +90,13 @@ func TestProfileGetVPNServerHostNames(t *testing.T) {
 		},
 		{
 			HostName: "vpn2.mycompany.com",
+		},
+		{
+			// ipsec server that should be skipped
+			HostName: "ipsec1.mycompany.com",
+			PrimaryProtocol: PrimaryProtocol{
+				Flag: "IPsec",
+			},
 		},
 	}
 	want = []string{
@@ -173,6 +188,28 @@ func TestProfileGetAlwaysOn(t *testing.T) {
 	}
 }
 
+// TestProfileEqual tests Equal of Profile.
+func TestProfileEqual(t *testing.T) {
+	// test new profiles
+	p1 := NewProfile()
+	p2 := NewProfile()
+
+	if !p1.Equal(p2) {
+		t.Errorf("%v and %v should be equal", p1, p2)
+	}
+
+	// test not equal
+	p2.ServerList.HostEntry = []HostEntry{
+		{
+			HostName:    "vpn1.mycompany.com",
+			HostAddress: "vpn1.mycompany.com",
+		},
+	}
+	if p1.Equal(p2) {
+		t.Errorf("%v and %v should not be equal", p1, p2)
+	}
+}
+
 // TestNewProfile tests NewProfile
 func TestNewProfile(t *testing.T) {
 	p := NewProfile()
@@ -193,7 +230,7 @@ func TestLoadProfile(t *testing.T) {
 	// test empty file
 	f, err := os.CreateTemp("", "xmlprofile-test")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer func() { _ = os.Remove(f.Name()) }()
 
@@ -204,15 +241,49 @@ func TestLoadProfile(t *testing.T) {
 	// test empty config in file
 	b, err := xml.Marshal(empty)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if _, err := f.Write(b); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	p, err := LoadProfile(f.Name())
 	if err != nil {
 		t.Error(err)
 	}
+	if !reflect.DeepEqual(p, empty) {
+		t.Errorf("got %v, want %v", p, empty)
+	}
+}
+
+// TestLoadSystemProfile tests LoadSystemProfile.
+func TestLoadSystemProfile(t *testing.T) {
+	oldProfile := SystemProfile
+	defer func() { SystemProfile = oldProfile }()
+
+	// test not existing file
+	SystemProfile = "does not exist"
+	if p := LoadSystemProfile(); p != nil {
+		t.Error("not existing profile should return nil")
+	}
+
+	// test empty config in file
+	f, err := os.CreateTemp("", "xmlprofile-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Remove(f.Name()) }()
+
+	empty := NewProfile()
+	b, err := xml.Marshal(empty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write(b); err != nil {
+		t.Fatal(err)
+	}
+
+	SystemProfile = f.Name()
+	p := LoadSystemProfile()
 	if !reflect.DeepEqual(p, empty) {
 		t.Errorf("got %v, want %v", p, empty)
 	}
