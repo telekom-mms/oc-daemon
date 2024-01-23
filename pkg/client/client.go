@@ -48,6 +48,9 @@ type DBusClient struct {
 	// conn is the D-Bus connection
 	conn *dbus.Conn
 
+	// signals is the channel for the D-Bus signals
+	signals chan *dbus.Signal
+
 	// env are extra environment variables set during execution of
 	// `openconnect --authenticate`
 	env []string
@@ -65,6 +68,9 @@ type DBusClient struct {
 
 	// done signals termination of the client
 	done chan struct{}
+
+	// closed signals termination of the client is complete
+	closed chan struct{}
 }
 
 // SetConfig sets the client config
@@ -216,8 +222,7 @@ func (d *DBusClient) Query() (*vpnstatus.Status, error) {
 // handlePropertiesChanged handles a PropertiesChanged D-Bus signal
 func handlePropertiesChanged(s *dbus.Signal, status *vpnstatus.Status) *vpnstatus.Status {
 	// make sure it's a properties changed signal
-	if s.Path != dbusapi.Path ||
-		s.Name != "org.freedesktop.DBus.Properties.PropertiesChanged" {
+	if s.Path != dbusapi.Path || s.Name != dbusapi.PropertiesChanged {
 		return nil
 	}
 
@@ -288,6 +293,16 @@ func (d *DBusClient) isSubscribed() bool {
 	return d.subscribed
 }
 
+// connAddmatchSignal is dbus conn.AddMatchSignal for testing.
+var connAddMatchSignal = func(conn *dbus.Conn, options ...dbus.MatchOption) error {
+	return conn.AddMatchSignal(options...)
+}
+
+// connSignal is dbus conn.Signal for testing.
+var connSignal = func(conn *dbus.Conn, ch chan<- *dbus.Signal) {
+	conn.Signal(ch)
+}
+
 // Subscribe subscribes to PropertiesChanged D-Bus signals, converts incoming
 // PropertiesChanged signals to VPN status updates and sends those updates
 // over the returned channel
@@ -304,7 +319,7 @@ func (d *DBusClient) Subscribe() (chan *vpnstatus.Status, error) {
 	}
 
 	// subscribe to properties changed signals
-	if err := d.conn.AddMatchSignal(
+	if err := connAddMatchSignal(d.conn,
 		dbus.WithMatchSender(dbusapi.Interface),
 		dbus.WithMatchInterface("org.freedesktop.DBus.Properties"),
 		dbus.WithMatchMember("PropertiesChanged"),
@@ -314,11 +329,11 @@ func (d *DBusClient) Subscribe() (chan *vpnstatus.Status, error) {
 	}
 
 	// handle signals
-	c := make(chan *dbus.Signal, 10)
-	d.conn.Signal(c)
+	connSignal(d.conn, d.signals)
 
 	// handle properties
 	go func() {
+		defer close(d.closed)
 		defer close(d.updates)
 
 		// send initial status
@@ -329,7 +344,7 @@ func (d *DBusClient) Subscribe() (chan *vpnstatus.Status, error) {
 		}
 
 		// handle signals
-		for s := range c {
+		for s := range d.signals {
 			// get status update from signal
 			update := handlePropertiesChanged(s, status.Copy())
 			if update == nil {
@@ -533,9 +548,7 @@ func (d *DBusClient) Close() error {
 
 	if d.isSubscribed() {
 		close(d.done)
-		for range d.updates {
-			// wait for channel close
-		}
+		<-d.closed
 	}
 
 	return err
@@ -553,8 +566,10 @@ func NewDBusClient(config *Config) (*DBusClient, error) {
 	client := &DBusClient{
 		config:  config,
 		conn:    conn,
+		signals: make(chan *dbus.Signal, 10),
 		updates: make(chan *vpnstatus.Status),
 		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
 	}
 
 	return client, nil

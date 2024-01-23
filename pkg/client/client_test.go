@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -57,7 +58,22 @@ func TestDBusClientPing(t *testing.T) {
 
 // TestDBusClientQuery tests Query of DBusClient
 func TestDBusClientQuery(t *testing.T) {
+	// clean up after tests
+	oldQuery := query
+	defer func() { query = oldQuery }()
+
+	// create test client
 	client := &DBusClient{}
+
+	// test query error
+	query = func(*DBusClient) (map[string]dbus.Variant, error) {
+		return nil, errors.New("test error")
+	}
+	if _, err := client.Query(); err == nil {
+		t.Error(err)
+	}
+
+	// test empty properties
 	want := vpnstatus.New()
 	query = func(*DBusClient) (map[string]dbus.Variant, error) {
 		return nil, nil
@@ -69,6 +85,157 @@ func TestDBusClientQuery(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %p, want %p", got, want)
 	}
+
+	// test filled properties, valid properties
+	for _, props := range []map[string]dbus.Variant{
+		{
+			dbusapi.PropertyTrustedNetwork:  dbus.MakeVariant(dbusapi.TrustedNetworkUnknown),
+			dbusapi.PropertyConnectionState: dbus.MakeVariant(dbusapi.ConnectionStateUnknown),
+			dbusapi.PropertyIP:              dbus.MakeVariant(dbusapi.IPInvalid),
+			dbusapi.PropertyDevice:          dbus.MakeVariant(dbusapi.DeviceInvalid),
+			dbusapi.PropertyServer:          dbus.MakeVariant(dbusapi.ServerInvalid),
+			dbusapi.PropertyConnectedAt:     dbus.MakeVariant(dbusapi.ConnectedAtInvalid),
+			dbusapi.PropertyServers:         dbus.MakeVariant(dbusapi.ServersInvalid),
+			dbusapi.PropertyOCRunning:       dbus.MakeVariant(dbusapi.OCRunningUnknown),
+			dbusapi.PropertyVPNConfig:       dbus.MakeVariant(dbusapi.VPNConfigInvalid),
+		},
+		{
+			dbusapi.PropertyVPNConfig: dbus.MakeVariant("{}"),
+		},
+	} {
+		query = func(*DBusClient) (map[string]dbus.Variant, error) {
+			return props, nil
+		}
+		if _, err = client.Query(); err != nil {
+			t.Error(err)
+		}
+	}
+
+	// test filled properties, invalid properties
+	for _, props := range []map[string]dbus.Variant{
+		{dbusapi.PropertyTrustedNetwork: dbus.MakeVariant("invalid")},
+		{dbusapi.PropertyVPNConfig: dbus.MakeVariant(1.23)},
+		{dbusapi.PropertyVPNConfig: dbus.MakeVariant(1234)},
+	} {
+		query = func(*DBusClient) (map[string]dbus.Variant, error) {
+			return props, nil
+		}
+		if _, err := client.Query(); err == nil {
+			t.Error("invalid property should return error")
+		}
+	}
+}
+
+func TestDBusClientSubscribe(t *testing.T) {
+	// clean up after tests
+	oldQuery := query
+	defer func() { query = oldQuery }()
+	oldAddMatchSignal := connAddMatchSignal
+	defer func() { connAddMatchSignal = oldAddMatchSignal }()
+	oldSignal := connSignal
+	defer func() { connSignal = oldSignal }()
+
+	// test without errors
+	query = func(*DBusClient) (map[string]dbus.Variant, error) {
+		return nil, nil
+	}
+	connAddMatchSignal = func(*dbus.Conn, ...dbus.MatchOption) error {
+		return nil
+	}
+	connSignal = func(conn *dbus.Conn, ch chan<- *dbus.Signal) {}
+
+	client := &DBusClient{
+		updates: make(chan *vpnstatus.Status),
+		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
+	}
+	if _, err := client.Subscribe(); err != nil {
+		t.Error(err)
+	}
+	client.Close()
+
+	// test without errors, signals
+	client = &DBusClient{
+		signals: make(chan *dbus.Signal),
+		updates: make(chan *vpnstatus.Status),
+		done:    make(chan struct{}),
+		closed:  make(chan struct{}),
+	}
+	s, err := client.Subscribe()
+	if err != nil {
+		t.Error(err)
+	}
+	<-s
+	client.signals <- &dbus.Signal{}
+	client.signals <- &dbus.Signal{
+		Path: dbusapi.Path,
+		Name: dbusapi.PropertiesChanged,
+		Body: []any{"", "", ""},
+	}
+	client.signals <- &dbus.Signal{
+		Path: dbusapi.Path,
+		Name: dbusapi.PropertiesChanged,
+		Body: []any{dbusapi.Interface, "", ""},
+	}
+	client.signals <- &dbus.Signal{
+		Path: dbusapi.Path,
+		Name: dbusapi.PropertiesChanged,
+		Body: []any{dbusapi.Interface, map[string]dbus.Variant{
+			dbusapi.PropertyTrustedNetwork: dbus.MakeVariant("invalid"),
+		}, ""},
+	}
+	client.signals <- &dbus.Signal{
+		Path: dbusapi.Path,
+		Name: dbusapi.PropertiesChanged,
+		Body: []any{dbusapi.Interface, map[string]dbus.Variant{}, ""},
+	}
+	client.signals <- &dbus.Signal{
+		Path: dbusapi.Path,
+		Name: dbusapi.PropertiesChanged,
+		Body: []any{dbusapi.Interface, map[string]dbus.Variant{}, []string{
+			dbusapi.PropertyTrustedNetwork,
+			dbusapi.PropertyConnectionState,
+			dbusapi.PropertyIP,
+			dbusapi.PropertyDevice,
+			dbusapi.PropertyConnectedAt,
+			dbusapi.PropertyServers,
+			dbusapi.PropertyOCRunning,
+			dbusapi.PropertyVPNConfig,
+		}},
+	}
+
+	close(client.signals)
+	client.Close()
+
+	// test add match signal error
+	client = &DBusClient{}
+
+	connAddMatchSignal = func(*dbus.Conn, ...dbus.MatchOption) error {
+		return errors.New("test error")
+	}
+
+	if _, err := client.Subscribe(); err == nil {
+		t.Error("add match signal should return error")
+	}
+
+	// test query error
+	client = &DBusClient{}
+
+	query = func(*DBusClient) (map[string]dbus.Variant, error) {
+		return nil, errors.New("test error")
+	}
+	if _, err := client.Subscribe(); err == nil {
+		t.Error("query error should return error")
+	}
+
+	// test double subscribe
+	client = &DBusClient{}
+
+	_, _ = client.Subscribe()
+	if _, err := client.Subscribe(); err == nil {
+		t.Error("doube subscribe should return error")
+	}
+
 }
 
 // TestDBusClientAuthenticate tests Authenticate of DBusClient

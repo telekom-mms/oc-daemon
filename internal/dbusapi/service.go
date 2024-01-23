@@ -15,6 +15,9 @@ const (
 	Interface = "com.telekom_mms.oc_daemon.Daemon"
 )
 
+// DBus propeties changed signal
+const PropertiesChanged = "org.freedesktop.DBus.Properties.PropertiesChanged"
+
 // Properties
 const (
 	PropertyTrustedNetwork  = "TrustedNetwork"
