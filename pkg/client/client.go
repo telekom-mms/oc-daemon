@@ -388,6 +388,9 @@ func (d *DBusClient) checkStatus() error {
 	return nil
 }
 
+// execCommand is exec.Command for testing.
+var execCommand = exec.Command
+
 // authenticate runs OpenConnect in authentication mode
 var authenticate = func(d *DBusClient) error {
 	// create openconnect command:
@@ -441,7 +444,7 @@ var authenticate = func(d *DBusClient) error {
 	parameters = append(parameters, config.ExtraArgs...)
 	parameters = append(parameters, config.VPNServer)
 
-	command := exec.Command(config.OpenConnect, parameters...)
+	command := execCommand(config.OpenConnect, parameters...)
 
 	// run command: allow user input, show stderr, buffer stdout
 	var b bytes.Buffer

@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	"os/exec"
 	"reflect"
 	"testing"
 
@@ -126,6 +127,7 @@ func TestDBusClientQuery(t *testing.T) {
 	}
 }
 
+// TestDBusClientSubscribe tests Subscribe of DBusClient.
 func TestDBusClientSubscribe(t *testing.T) {
 	// clean up after tests
 	oldQuery := query
@@ -152,7 +154,7 @@ func TestDBusClientSubscribe(t *testing.T) {
 	if _, err := client.Subscribe(); err != nil {
 		t.Error(err)
 	}
-	client.Close()
+	_ = client.Close()
 
 	// test without errors, signals
 	client = &DBusClient{
@@ -165,47 +167,54 @@ func TestDBusClientSubscribe(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	<-s
-	client.signals <- &dbus.Signal{}
-	client.signals <- &dbus.Signal{
-		Path: dbusapi.Path,
-		Name: dbusapi.PropertiesChanged,
-		Body: []any{"", "", ""},
-	}
-	client.signals <- &dbus.Signal{
-		Path: dbusapi.Path,
-		Name: dbusapi.PropertiesChanged,
-		Body: []any{dbusapi.Interface, "", ""},
-	}
-	client.signals <- &dbus.Signal{
-		Path: dbusapi.Path,
-		Name: dbusapi.PropertiesChanged,
-		Body: []any{dbusapi.Interface, map[string]dbus.Variant{
-			dbusapi.PropertyTrustedNetwork: dbus.MakeVariant("invalid"),
-		}, ""},
-	}
-	client.signals <- &dbus.Signal{
-		Path: dbusapi.Path,
-		Name: dbusapi.PropertiesChanged,
-		Body: []any{dbusapi.Interface, map[string]dbus.Variant{}, ""},
-	}
-	client.signals <- &dbus.Signal{
-		Path: dbusapi.Path,
-		Name: dbusapi.PropertiesChanged,
-		Body: []any{dbusapi.Interface, map[string]dbus.Variant{}, []string{
-			dbusapi.PropertyTrustedNetwork,
-			dbusapi.PropertyConnectionState,
-			dbusapi.PropertyIP,
-			dbusapi.PropertyDevice,
-			dbusapi.PropertyConnectedAt,
-			dbusapi.PropertyServers,
-			dbusapi.PropertyOCRunning,
-			dbusapi.PropertyVPNConfig,
-		}},
-	}
 
+	// read initial status
+	<-s
+
+	// handle signals
+	for _, sig := range []*dbus.Signal{
+		{},
+		{
+			Path: dbusapi.Path,
+			Name: dbusapi.PropertiesChanged,
+			Body: []any{"", "", ""},
+		},
+		{
+			Path: dbusapi.Path,
+			Name: dbusapi.PropertiesChanged,
+			Body: []any{dbusapi.Interface, "", ""},
+		},
+		{
+			Path: dbusapi.Path,
+			Name: dbusapi.PropertiesChanged,
+			Body: []any{dbusapi.Interface, map[string]dbus.Variant{
+				dbusapi.PropertyTrustedNetwork: dbus.MakeVariant("invalid"),
+			}, ""},
+		},
+		{
+			Path: dbusapi.Path,
+			Name: dbusapi.PropertiesChanged,
+			Body: []any{dbusapi.Interface, map[string]dbus.Variant{}, ""},
+		},
+		{
+			Path: dbusapi.Path,
+			Name: dbusapi.PropertiesChanged,
+			Body: []any{dbusapi.Interface, map[string]dbus.Variant{}, []string{
+				dbusapi.PropertyTrustedNetwork,
+				dbusapi.PropertyConnectionState,
+				dbusapi.PropertyIP,
+				dbusapi.PropertyDevice,
+				dbusapi.PropertyConnectedAt,
+				dbusapi.PropertyServers,
+				dbusapi.PropertyOCRunning,
+				dbusapi.PropertyVPNConfig,
+			}},
+		},
+	} {
+		client.signals <- sig
+	}
 	close(client.signals)
-	client.Close()
+	_ = client.Close()
 
 	// test add match signal error
 	client = &DBusClient{}
@@ -235,25 +244,62 @@ func TestDBusClientSubscribe(t *testing.T) {
 	if _, err := client.Subscribe(); err == nil {
 		t.Error("doube subscribe should return error")
 	}
-
 }
 
 // TestDBusClientAuthenticate tests Authenticate of DBusClient
 func TestDBusClientAuthenticate(t *testing.T) {
-	client := &DBusClient{}
+	// clean up after tests
+	oldQuery := query
+	defer func() { query = oldQuery }()
+	defer func() { execCommand = exec.Command }()
+
+	// create test client
+	conf := NewConfig()
+	conf.CACertificate = "/test/ca"
+	conf.User = "test-user"
+	conf.Password = "test-passwd"
+	client := &DBusClient{config: conf}
+
+	// test with status errors
+	for _, v := range []map[string]dbus.Variant{
+		nil,
+		{dbusapi.PropertyTrustedNetwork: dbus.MakeVariant(dbusapi.TrustedNetworkTrusted)},
+		{dbusapi.PropertyConnectionState: dbus.MakeVariant(dbusapi.ConnectionStateConnected)},
+		{dbusapi.PropertyOCRunning: dbus.MakeVariant(dbusapi.OCRunningRunning)},
+	} {
+		query = func(*DBusClient) (map[string]dbus.Variant, error) {
+			if v == nil {
+				return nil, errors.New("test error")
+			}
+			return v, nil
+		}
+		if err := client.Authenticate(); err == nil {
+			t.Errorf("authenticate should return error for %v", v)
+		}
+	}
+
+	// test without status errors
 	query = func(*DBusClient) (map[string]dbus.Variant, error) {
 		return nil, nil
 	}
+
+	// test with exec error
+	execCommand = func(string, ...string) *exec.Cmd {
+		return exec.Command("")
+	}
+	if err := client.Authenticate(); err == nil {
+		t.Error("authenticate should return error")
+	}
+
+	// test without exec error
 	want := &logininfo.LoginInfo{
 		Cookie: "TestCookie",
 	}
-	authenticate = func(d *DBusClient) error {
-		d.login = want
-		return nil
+	execCommand = func(string, ...string) *exec.Cmd {
+		return exec.Command("echo", "COOKIE=TestCookie")
 	}
-	err := client.Authenticate()
-	if err != nil {
-		t.Error(err)
+	if err := client.Authenticate(); err != nil {
+		t.Errorf("authenticate returned error: %v", err)
 	}
 	got := client.GetLogin()
 	if !reflect.DeepEqual(got, want) {
@@ -263,22 +309,73 @@ func TestDBusClientAuthenticate(t *testing.T) {
 
 // TestDBusClientConnect tests Connect of DBusClient
 func TestDBusClientConnect(t *testing.T) {
+	// clean up after tests
+	oldQuery := query
+	defer func() { query = oldQuery }()
+	oldConnect := connect
+	defer func() { connect = oldConnect }()
+
+	// create test client
 	client := &DBusClient{}
+
+	// test with status errors
+	for _, v := range []map[string]dbus.Variant{
+		nil,
+		{dbusapi.PropertyTrustedNetwork: dbus.MakeVariant(dbusapi.TrustedNetworkTrusted)},
+		{dbusapi.PropertyConnectionState: dbus.MakeVariant(dbusapi.ConnectionStateConnected)},
+		{dbusapi.PropertyOCRunning: dbus.MakeVariant(dbusapi.OCRunningRunning)},
+	} {
+		query = func(*DBusClient) (map[string]dbus.Variant, error) {
+			if v == nil {
+				return nil, errors.New("test error")
+			}
+			return v, nil
+		}
+		if err := client.Connect(); err == nil {
+			t.Errorf("connect should return error for %v", v)
+		}
+	}
+
+	// test without status errors
 	query = func(*DBusClient) (map[string]dbus.Variant, error) {
 		return nil, nil
 	}
 	connect = func(d *DBusClient) error {
 		return nil
 	}
-	err := client.Connect()
-	if err != nil {
+	if err := client.Connect(); err != nil {
 		t.Error(err)
 	}
 }
 
 // TestDBusClientDisconnect tests Disconnect of DBusClient
 func TestDBusClientDisconnect(t *testing.T) {
+	// clean up after tests
+	oldQuery := query
+	defer func() { query = oldQuery }()
+	oldDisconnect := disconnect
+	defer func() { disconnect = oldDisconnect }()
+
+	// create test client
 	client := &DBusClient{}
+
+	// test with status errors
+	for _, v := range []map[string]dbus.Variant{
+		nil,
+		{dbusapi.PropertyOCRunning: dbus.MakeVariant(dbusapi.OCRunningNotRunning)},
+	} {
+		query = func(*DBusClient) (map[string]dbus.Variant, error) {
+			if v == nil {
+				return nil, errors.New("test error")
+			}
+			return v, nil
+		}
+		if err := client.Disconnect(); err == nil {
+			t.Errorf("disconnect should return error for %v", v)
+		}
+	}
+
+	// test without status errors
 	status := vpnstatus.New()
 	status.OCRunning = vpnstatus.OCRunningRunning
 	query = func(*DBusClient) (map[string]dbus.Variant, error) {
@@ -296,16 +393,43 @@ func TestDBusClientDisconnect(t *testing.T) {
 	}
 }
 
+// testRWC is a reader writer closer for testing.
+type testRWC struct{}
+
+func (t *testRWC) Read([]byte) (int, error)  { return 0, nil }
+func (t *testRWC) Write([]byte) (int, error) { return 0, nil }
+func (t *testRWC) Close() error              { return nil }
+
 // TestNewDBusClient tests NewDBusClient
 func TestNewDBusClient(t *testing.T) {
+	// clean up after tests
+	oldSystemBus := dbusConnectSystemBus
+	defer func() { dbusConnectSystemBus = oldSystemBus }()
+
+	// test with system bus error
 	dbusConnectSystemBus = func() (*dbus.Conn, error) {
-		return nil, nil
+		return nil, errors.New("test error")
 	}
+
+	if _, err := NewDBusClient(NewConfig()); err == nil {
+		t.Error("system bus error shold return error")
+	}
+
+	// test without errors
+	conn, err := dbus.NewConn(&testRWC{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dbusConnectSystemBus = func() (*dbus.Conn, error) {
+		return conn, nil
+	}
+
 	config := NewConfig()
 	client, err := NewDBusClient(config)
 	if err != nil {
 		t.Error(err)
 	}
+
 	want := config
 	got := client.GetConfig()
 	if !reflect.DeepEqual(got, want) {
@@ -318,14 +442,21 @@ func TestNewDBusClient(t *testing.T) {
 
 // TestNewClient tests NewClient
 func TestNewClient(t *testing.T) {
+	// clean up after tests
+	oldSystemBus := dbusConnectSystemBus
+	defer func() { dbusConnectSystemBus = oldSystemBus }()
+
+	// test without errors
 	dbusConnectSystemBus = func() (*dbus.Conn, error) {
 		return nil, nil
 	}
+
 	config := NewConfig()
 	client, err := NewClient(config)
 	if err != nil {
 		t.Error(err)
 	}
+
 	want := config
 	got := client.GetConfig()
 	if !reflect.DeepEqual(got, want) {
