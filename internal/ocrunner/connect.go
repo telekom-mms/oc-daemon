@@ -51,6 +51,7 @@ var (
 	userLookupGroup = user.LookupGroup
 	osChown         = os.Chown
 	osReadFile      = os.ReadFile
+	osWriteFile     = os.WriteFile
 	osFindProcess   = os.FindProcess
 	processSignal   = func(process *os.Process, sig os.Signal) error {
 		return process.Signal(sig)
@@ -97,7 +98,7 @@ func (c *Connect) setPIDGroup() {
 		return
 	}
 
-	group, err := user.LookupGroup(c.config.PIDGroup)
+	group, err := userLookupGroup(c.config.PIDGroup)
 	if err != nil {
 		log.WithError(err).Error("OC-Runner could not get GID of pid file group")
 		return
@@ -109,7 +110,7 @@ func (c *Connect) setPIDGroup() {
 		return
 	}
 
-	if err := os.Chown(c.config.PIDFile, -1, gid); err != nil {
+	if err := osChown(c.config.PIDFile, -1, gid); err != nil {
 		log.WithError(err).Error("OC-Runner could not change group of pid file")
 	}
 }
@@ -131,7 +132,7 @@ func (c *Connect) savePidFile() {
 	}
 
 	// write pid to file with permissions
-	err = os.WriteFile(c.config.PIDFile, []byte(pid), os.FileMode(perm))
+	err = osWriteFile(c.config.PIDFile, []byte(pid), os.FileMode(perm))
 	if err != nil {
 		log.WithError(err).Error("OC-Runner writing pid error")
 	}
@@ -192,8 +193,9 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 	c.command.Env = append(c.command.Env, e.env...)
 
 	if err := c.command.Start(); err != nil {
-		log.WithError(err).Error("OC-Runner executing connect error")
-		c.exits <- struct{}{}
+		go func() {
+			c.exits <- struct{}{}
+		}()
 		return
 	}
 
@@ -223,7 +225,7 @@ func (c *Connect) handleDisconnect() {
 			Error("OC-Runner disconnect error")
 		return
 	}
-	if err := c.command.Process.Signal(os.Interrupt); err != nil {
+	if err := processSignal(c.command.Process, os.Interrupt); err != nil {
 		// TODO: handle failed signal?
 		log.WithError(err).Error("OC-Runner sending interrupt for disconnect error")
 	}
