@@ -13,12 +13,13 @@ import (
 )
 
 // TestConnectStartStop tests Start and Stop of Connect
-func TestConnectStartStop(t *testing.T) {
+func TestConnectStartStop(_ *testing.T) {
 	c := NewConnect(NewConfig())
 	c.Start()
 	c.Stop()
 }
 
+// TestConnectSavePidFile tests savePidFile of Connect.
 func TestConnectSavePidFile(t *testing.T) {
 	// clean up after tests
 	defer func() {
@@ -95,6 +96,7 @@ func TestConnectSavePidFile(t *testing.T) {
 	c.savePidFile()
 }
 
+// TestConnectConnect tests Connect of Connect.
 func TestConnectConnect(t *testing.T) {
 	// clean up after tests
 	defer func() { execCommand = exec.Command }()
@@ -207,7 +209,7 @@ func TestNewConnect(t *testing.T) {
 }
 
 // TestCleanupConnect tests CleanupConnect.
-func TestCleanupConnect(t *testing.T) {
+func TestCleanupConnect(_ *testing.T) {
 	// clean up after tests
 	oldProcessSignal := processSignal
 	defer func() {
