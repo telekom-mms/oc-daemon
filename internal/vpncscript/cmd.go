@@ -1,6 +1,7 @@
 package vpncscript
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -14,17 +15,20 @@ const (
 	socketFile = runDir + "/daemon.sock"
 )
 
-// Run is the main entry point of vpnc script
-func Run() {
+func run(args []string) error {
 	// parse command line
-	verbose := flag.Bool("verbose", false, "enable verbose output")
-	version := flag.Bool("version", false, "print version")
-	flag.Parse()
+	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
+	verbose := flags.Bool("verbose", false, "enable verbose output")
+	version := flags.Bool("version", false, "print version")
+
+	if err := flags.Parse(args[1:]); err != nil {
+		return err
+	}
 
 	// print version?
 	if *version {
 		fmt.Println(daemon.Version)
-		os.Exit(0)
+		return nil
 	}
 
 	// parse environment variables
@@ -47,16 +51,26 @@ func Run() {
 	// handle reason environment variable
 	switch e.reason {
 	case "pre-init":
-		return
+		return nil
 	case "connect", "disconnect":
 		c := createConfigUpdate(e)
 		log.WithField("update", c).Debug("VPNCScript created config update")
-		runClient(socketFile, c)
+		return runClient(socketFile, c)
 	case "attempt-reconnect":
-		return
+		return nil
 	case "reconnect":
-		return
+		return nil
 	default:
-		log.Fatal("VPNCScript called with unknown reason")
+		return errors.New("VPNCScript called with unknown reason")
+	}
+}
+
+// Run is the main entry point of vpnc script
+func Run() {
+	if err := run(os.Args); err != nil {
+		if err != flag.ErrHelp {
+			log.Fatal(err)
+		}
+		return
 	}
 }

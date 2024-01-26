@@ -1,6 +1,7 @@
 package vpncscript
 
 import (
+	"fmt"
 	"net"
 
 	log "github.com/sirupsen/logrus"
@@ -9,11 +10,11 @@ import (
 )
 
 // runClient interacts with the daemon over the api
-func runClient(socketFile string, configUpdate *daemon.VPNConfigUpdate) {
+func runClient(socketFile string, configUpdate *daemon.VPNConfigUpdate) error {
 	// connect to daemon
 	conn, err := net.Dial("unix", socketFile)
 	if err != nil {
-		log.WithError(err).Fatal("VPNCScript could not connect to Daemon")
+		return fmt.Errorf("VPNCScript could not connect to Daemon: %w", err)
 	}
 	defer func() {
 		_ = conn.Close()
@@ -22,18 +23,18 @@ func runClient(socketFile string, configUpdate *daemon.VPNConfigUpdate) {
 	// send message to daemon
 	b, err := configUpdate.JSON()
 	if err != nil {
-		log.WithError(err).Fatal("VPNCScript could not convert config update to JSON")
+		return fmt.Errorf("VPNCScript could not convert config update to JSON: %w", err)
 	}
 	msg := api.NewMessage(api.TypeVPNConfigUpdate, b)
 	err = api.WriteMessage(conn, msg)
 	if err != nil {
-		log.WithError(err).Fatal("VPNCScript could not send message to Daemon")
+		return fmt.Errorf("VPNCScript could not send message to Daemon: %w", err)
 	}
 
 	// receive reply
 	reply, err := api.ReadMessage(conn)
 	if err != nil {
-		log.WithError(err).Fatal("VPNCScript could not receive reply from Daemon")
+		return fmt.Errorf("VPNCScript could not receive reply from Daemon: %w", err)
 	}
 	switch reply.Type {
 	case api.TypeOK:
@@ -43,4 +44,5 @@ func runClient(socketFile string, configUpdate *daemon.VPNConfigUpdate) {
 		log.WithField("error", string(reply.Value)).
 			Error("VPNCScript received error reply from Daemon")
 	}
+	return nil
 }

@@ -23,6 +23,22 @@ func TestParseEnvironmentSplit(t *testing.T) {
 		}
 	}
 
+	// test with invalid number in variable
+	os.Setenv("CISCO_SPLIT_EXC", "invalid")
+	want := []string{}
+	got := parseEnvironmentSplit("CISCO_SPLIT_EXC")
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with not matching numbers
+	os.Setenv("CISCO_SPLIT_EXC", "1")
+	want = []string{}
+	got = parseEnvironmentSplit("CISCO_SPLIT_EXC")
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
 	// test with environment variables set
 	os.Setenv("CISCO_SPLIT_EXC", "3")
 	os.Setenv("CISCO_SPLIT_EXC_0_ADDR", "192.168.1.0")
@@ -32,12 +48,12 @@ func TestParseEnvironmentSplit(t *testing.T) {
 	os.Setenv("CISCO_SPLIT_EXC_2_ADDR", "10.0.0.0")
 	os.Setenv("CISCO_SPLIT_EXC_2_MASKLEN", "8")
 
-	want := []string{
+	want = []string{
 		"192.168.1.0/24",
 		"172.16.0.0/16",
 		"10.0.0.0/8",
 	}
-	got := parseEnvironmentSplit("CISCO_SPLIT_EXC")
+	got = parseEnvironmentSplit("CISCO_SPLIT_EXC")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -348,6 +364,9 @@ X-CSTP-Disable-Always-On-VPN=true`,
 	} {
 		os.Setenv(k, v)
 	}
+
+	// print env
+	printDebugEnvironment()
 
 	// create expected env struct based on test environment
 	want := &env{
