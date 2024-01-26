@@ -23,21 +23,47 @@ func TestParseEnvironmentSplit(t *testing.T) {
 		}
 	}
 
-	// test with environment variables set
-	os.Setenv("CISCO_SPLIT_EXC", "3")
-	os.Setenv("CISCO_SPLIT_EXC_0_ADDR", "192.168.1.0")
-	os.Setenv("CISCO_SPLIT_EXC_0_MASKLEN", "24")
-	os.Setenv("CISCO_SPLIT_EXC_1_ADDR", "172.16.0.0")
-	os.Setenv("CISCO_SPLIT_EXC_1_MASKLEN", "16")
-	os.Setenv("CISCO_SPLIT_EXC_2_ADDR", "10.0.0.0")
-	os.Setenv("CISCO_SPLIT_EXC_2_MASKLEN", "8")
+	// test with invalid number in variable
+	if err := os.Setenv("CISCO_SPLIT_EXC", "invalid"); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{}
+	got := parseEnvironmentSplit("CISCO_SPLIT_EXC")
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
 
-	want := []string{
+	// test with not matching numbers
+	if err := os.Setenv("CISCO_SPLIT_EXC", "1"); err != nil {
+		t.Fatal(err)
+	}
+	want = []string{}
+	got = parseEnvironmentSplit("CISCO_SPLIT_EXC")
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with environment variables set
+	for k, v := range map[string]string{
+		"CISCO_SPLIT_EXC":           "3",
+		"CISCO_SPLIT_EXC_0_ADDR":    "192.168.1.0",
+		"CISCO_SPLIT_EXC_0_MASKLEN": "24",
+		"CISCO_SPLIT_EXC_1_ADDR":    "172.16.0.0",
+		"CISCO_SPLIT_EXC_1_MASKLEN": "16",
+		"CISCO_SPLIT_EXC_2_ADDR":    "10.0.0.0",
+		"CISCO_SPLIT_EXC_2_MASKLEN": "8",
+	} {
+		if err := os.Setenv(k, v); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	want = []string{
 		"192.168.1.0/24",
 		"172.16.0.0/16",
 		"10.0.0.0/8",
 	}
-	got := parseEnvironmentSplit("CISCO_SPLIT_EXC")
+	got = parseEnvironmentSplit("CISCO_SPLIT_EXC")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -346,8 +372,13 @@ X-CSTP-Disable-Always-On-VPN=true`,
 		"oc_daemon_socket_file": "/run/oc-daemon/test.socket",
 		"oc_daemon_verbose":     "true",
 	} {
-		os.Setenv(k, v)
+		if err := os.Setenv(k, v); err != nil {
+			t.Fatal(err)
+		}
 	}
+
+	// print env
+	printDebugEnvironment()
 
 	// create expected env struct based on test environment
 	want := &env{

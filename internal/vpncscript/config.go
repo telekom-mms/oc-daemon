@@ -79,17 +79,15 @@ func createConfigIPv4(env *env, config *vpnconfig.Config) {
 func createConfigIPv6(env *env, config *vpnconfig.Config) {
 	// set ip and netmask
 	// internalIP6Netmask should contain IP in CIDR representation
-	if env.internalIP6Netmask == "" {
-		// no ipv6 configuration
-		return
+	if env.internalIP6Netmask != "" {
+		ip, ipnet, err := net.ParseCIDR(env.internalIP6Netmask)
+		if err != nil {
+			log.WithError(err).
+				Fatal("VPNCScript could not parse IPv6 netmask")
+		}
+		config.IPv6.Address = ip
+		config.IPv6.Netmask = ipnet.Mask
 	}
-	ip, ipnet, err := net.ParseCIDR(env.internalIP6Netmask)
-	if err != nil {
-		log.WithError(err).
-			Fatal("VPNCScript could not parse IPv6 netmask")
-	}
-	config.IPv6.Address = ip
-	config.IPv6.Netmask = ipnet.Mask
 }
 
 // createConfigDNS creates the DNS configuration in config from env
@@ -158,11 +156,6 @@ func createConfigFlags(env *env, config *vpnconfig.Config) {
 // createConfig creates a VPN configuration from env
 func createConfig(env *env) *vpnconfig.Config {
 	config := vpnconfig.New()
-
-	// only use settings in env in connect case
-	if env.reason != "connect" {
-		return config
-	}
 
 	// set general configuration
 	createConfigGeneral(env, config)
