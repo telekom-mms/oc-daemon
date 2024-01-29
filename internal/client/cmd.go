@@ -45,6 +45,9 @@ func saveConfig() error {
 // clientLoadUserSystemConfig is client.LoadUserSystemConfig for testing.
 var clientLoadUserSystemConfig = client.LoadUserSystemConfig
 
+// clientSystemConfig is client.SystemConfig for testing.
+var clientSystemConfig = client.SystemConfig
+
 // setConfig sets the config from config files and the command line
 func setConfig(args []string) error {
 	// status subcommand
@@ -190,7 +193,7 @@ func setConfig(args []string) error {
 
 	// reset to system settings
 	if *sys {
-		systemConfig := client.SystemConfig()
+		systemConfig := clientSystemConfig()
 		c, err := client.LoadConfig(systemConfig)
 		if err != nil {
 			return fmt.Errorf("Client could not load system settings from system config %s: %w", systemConfig, err)
@@ -218,23 +221,22 @@ func run(args []string) error {
 	// handle command
 	switch command {
 	case "list":
-		listServers()
+		return listServers()
 	case "", "connect":
-		connectVPN()
+		return connectVPN()
 	case "disconnect":
-		disconnectVPN()
+		return disconnectVPN()
 	case "reconnect":
-		reconnectVPN()
+		return reconnectVPN()
 	case "status":
-		getStatus()
+		return getStatus()
 	case "monitor":
-		monitor()
+		return monitor()
 	case "save":
 		return saveConfig()
 	default:
 		return fmt.Errorf("unknown command: %s", command)
 	}
-	return nil
 }
 
 // Run is the main entry point of the oc client

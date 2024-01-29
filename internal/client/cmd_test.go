@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"flag"
 	"os"
 	"path/filepath"
@@ -47,7 +48,30 @@ func TestRun(t *testing.T) {
 		t.Errorf("invalid config should return error, got: %v", err)
 	}
 
-	// not existing system config
+	// not existing system config with "-system-settings"
+	clientSystemConfig = func() string {
+		return filepath.Join(dir, "system-config")
+	}
+	defer func() { clientSystemConfig = client.SystemConfig }()
+
+	if err := run([]string{"test",
+		"-system-settings",
+	}); err == nil || err == flag.ErrHelp {
+		t.Errorf("invalid command should return error, got: %v", err)
+	}
+
+	// invalid config with "-system-settings"
+	if err := os.WriteFile(filepath.Join(dir, "system-config"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := run([]string{"test",
+		"-system-settings",
+	}); err == nil || err == flag.ErrHelp {
+		t.Errorf("invalid command should return error, got: %v", err)
+	}
+
+	// not existing user/system config
 	clientLoadUserSystemConfig = func() *client.Config {
 		return nil
 	}
@@ -84,5 +108,34 @@ func TestRun(t *testing.T) {
 		"save",
 	}); err != nil {
 		t.Errorf("save should not return error, got: %v", err)
+	}
+
+	// test commands
+	clientNewClient = func(*client.Config) (client.Client, error) {
+		return nil, errors.New("test error")
+	}
+	defer func() { clientNewClient = client.NewClient }()
+
+	for _, cmd := range []string{
+		"list",
+		"",
+		"connect",
+		"disconnect",
+		"reconnect",
+		"status",
+		"monitor",
+	} {
+		if err := run([]string{"test",
+			//"-config", cfg,
+			"-cert", "cert-file",
+			"-key", "key-file",
+			"-ca", "ca-file",
+			"-profile", "profile-file",
+			"-server", "test-server",
+			"-user", "test-user",
+			cmd,
+		}); err == nil || err == flag.ErrHelp {
+			t.Errorf("command %s should return error, got: %v", cmd, err)
+		}
 	}
 }
