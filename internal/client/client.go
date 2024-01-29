@@ -10,24 +10,30 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
 )
 
-const (
+var (
 	// maxReconnectTries is the maximum amount or reconnect retries
 	maxReconnectTries = 5
+
+	// reconnectSleep is the sleep time between reconnect retries.
+	reconnectSleep = time.Second
 )
 
+// clientNewClient is client.NewClient for testing.
+var clientNewClient = client.NewClient
+
 // listServers gets the VPN status from the daemon and prints the VPN servers in it
-func listServers() {
+func listServers() error {
 	// create client
-	c, err := client.NewClient(config)
+	c, err := clientNewClient(config)
 	if err != nil {
-		log.WithError(err).Fatal("error creating client")
+		return fmt.Errorf("error creating client: %w", err)
 	}
 	defer func() { _ = c.Close() }()
 
 	// get status
 	status, err := c.Query()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("error getting server list: %w", err)
 	}
 
 	// print servers in status
@@ -35,14 +41,16 @@ func listServers() {
 	for _, server := range status.Servers {
 		fmt.Printf("  - \"%s\"\n", server)
 	}
+
+	return nil
 }
 
 // connectVPN connects to the VPN if necessary
-func connectVPN() {
+func connectVPN() error {
 	// create client
-	c, err := client.NewClient(config)
+	c, err := clientNewClient(config)
 	if err != nil {
-		log.WithError(err).Fatal("error creating client")
+		return fmt.Errorf("error creating client: %w", err)
 	}
 	defer func() { _ = c.Close() }()
 
@@ -51,7 +59,7 @@ func connectVPN() {
 
 	// authenticate
 	if err := c.Authenticate(); err != nil {
-		log.WithError(err).Fatal("error authenticating user for VPN")
+		return fmt.Errorf("error authenticating user for VPN: %w", err)
 	}
 
 	// warn user if profile changed
@@ -66,45 +74,51 @@ func connectVPN() {
 
 	// connect
 	if err := c.Connect(); err != nil {
-		log.WithError(err).Fatal("error connecting to VPN")
+		return fmt.Errorf("error connecting to VPN: %w", err)
 	}
+
+	return nil
 }
 
 // disconnectVPN disconnects the VPN
-func disconnectVPN() {
+func disconnectVPN() error {
 	// create client
-	c, err := client.NewClient(config)
+	c, err := clientNewClient(config)
 	if err != nil {
-		log.WithError(err).Fatal("error creating client")
+		return fmt.Errorf("error creating client: %w", err)
 	}
 	defer func() { _ = c.Close() }()
 
 	// disconnect
 	err = c.Disconnect()
 	if err != nil {
-		log.WithError(err).Fatal("error disconnecting from VPN")
+		return fmt.Errorf("error disconnecting from VPN: %w", err)
 	}
+
+	return nil
 }
 
 // reconnectVPN reconnects to the VPN
-func reconnectVPN() {
+func reconnectVPN() error {
 	// create client
-	client, err := client.NewClient(config)
+	client, err := clientNewClient(config)
 	if err != nil {
-		log.WithError(err).Fatal("error creating client")
+		return fmt.Errorf("error creating client: %w", err)
 	}
 	defer func() { _ = client.Close() }()
 
 	// check status
 	status, err := client.Query()
 	if err != nil {
-		log.WithError(err).Fatal("error reconnecting to VPN")
+		return fmt.Errorf("error reconnecting to VPN: %w", err)
 	}
 
 	// disconnect if needed
 	if status.OCRunning.Running() {
 		// send disconnect request
-		disconnectVPN()
+		if err := disconnectVPN(); err != nil {
+			return err
+		}
 	}
 
 	// wait for status to switch to untrusted network and not running
@@ -112,39 +126,37 @@ func reconnectVPN() {
 	for {
 		status, err := client.Query()
 		if err != nil {
-			log.WithError(err).Fatal("error reconnecting to VPN")
+			return fmt.Errorf("error reconnecting to VPN: %w", err)
 		}
 
 		if !status.TrustedNetwork.Trusted() &&
 			!status.ConnectionState.Connected() &&
 			!status.OCRunning.Running() {
 			// authenticate and connect
-			connectVPN()
-			return
+			return connectVPN()
 		}
 
 		try++
 		if try >= maxReconnectTries {
 			// too many tries, abort
-			log.Fatal("error reconnecting to VPN")
+			return fmt.Errorf("error reconnecting to VPN: too many tries")
 		}
 
 		// sleep a second before retry
-		time.Sleep(time.Second)
+		time.Sleep(reconnectSleep)
 	}
-
 }
 
 // printStatus prints status on the command line
-func printStatus(status *vpnstatus.Status) {
+func printStatus(status *vpnstatus.Status) error {
 	if json {
 		// print status as json
 		j, err := status.JSON()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		fmt.Println(string(j))
-		return
+		return nil
 	}
 
 	// print status
@@ -170,50 +182,56 @@ func printStatus(status *vpnstatus.Status) {
 
 	// verbose output
 	if !verbose {
-		return
+		return nil
 	}
 	if status.VPNConfig == nil {
 		fmt.Printf("VPN Config:\n")
 	} else {
 		fmt.Printf("VPN Config:       %+v\n", *status.VPNConfig)
 	}
+
+	return nil
 }
 
 // getStatus gets the VPN status from the daemon
-func getStatus() {
+func getStatus() error {
 	// create client
-	c, err := client.NewClient(config)
+	c, err := clientNewClient(config)
 	if err != nil {
-		log.WithError(err).Fatal("error creating client")
+		return fmt.Errorf("error creating client: %w", err)
 	}
 	defer func() { _ = c.Close() }()
 
 	// get status
 	status, err := c.Query()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("error getting status: %w", err)
 	}
 
 	// print status
-	printStatus(status)
+	return printStatus(status)
 }
 
 // monitor subscribes to VPN status updates from the daemon and displays them
-func monitor() {
+func monitor() error {
 	// create client
-	c, err := client.NewClient(config)
+	c, err := clientNewClient(config)
 	if err != nil {
-		log.WithError(err).Fatal("error creating client")
+		return fmt.Errorf("error creating client: %w", err)
 	}
 	defer func() { _ = c.Close() }()
 
 	// get status updates
 	updates, err := c.Subscribe()
 	if err != nil {
-		log.WithError(err).Fatal("error subscribing to status updates")
+		return fmt.Errorf("error subscribing to status updates: %w", err)
 	}
 	for u := range updates {
 		log.Println("Got status update:")
-		printStatus(u)
+		if err := printStatus(u); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
