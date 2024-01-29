@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -25,42 +26,58 @@ var (
 	json = false
 )
 
+// clientUserConfig is client.UserConfig for testing.
+var clientUserConfig = client.UserConfig
+
 // saveConfig saves the user config to the user dir
-func saveConfig() {
+func saveConfig() error {
 	userConfig := client.UserConfig()
 	userDir := filepath.Dir(userConfig)
 	if err := os.MkdirAll(userDir, 0700); err != nil {
-		log.WithError(err).Fatal("Client could not create user dir")
+		return fmt.Errorf("Client could not create user dir: %w", err)
 	}
 	if err := config.Save(userConfig); err != nil {
-		log.WithError(err).Fatal("Client could not save config to file")
+		return fmt.Errorf("Client could not save config to file: %w", err)
 	}
+	return nil
 }
 
+// clientLoadUserSystemConfig is client.LoadUserSystemConfig for testing.
+var clientLoadUserSystemConfig = client.LoadUserSystemConfig
+
 // setConfig sets the config from config files and the command line
-func setConfig() {
+func setConfig(args []string) error {
 	// status subcommand
-	statusCmd := flag.NewFlagSet("status", flag.ExitOnError)
+	statusCmd := flag.NewFlagSet("status", flag.ContinueOnError)
 	statusCmd.BoolVar(&verbose, "verbose", verbose, "set verbose output")
 	statusCmd.BoolVar(&json, "json", json, "set json output")
 
 	// define command line arguments
-	cfgFile := flag.String("config", "", "set config `file`")
-	cert := flag.String("cert", "", "set client certificate `file` or "+
+	// TODO: add verbose?
+	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
+	cfgFile := flags.String("config", "", "set config `file`")
+	cert := flags.String("cert", "", "set client certificate `file` or "+
 		"PKCS11 URI")
-	key := flag.String("key", "", "set client key `file` or PKCS11 URI")
-	ca := flag.String("ca", "", "set additional CA certificate `file`")
-	profile := flag.String("profile", "", "set XML profile `file`")
-	srv := flag.String("server", "", "set server `address`")
-	usr := flag.String("user", "", "set `username`")
-	sys := flag.Bool("system-settings", false, "use system settings "+
+	key := flags.String("key", "", "set client key `file` or PKCS11 URI")
+	ca := flags.String("ca", "", "set additional CA certificate `file`")
+	profile := flags.String("profile", "", "set XML profile `file`")
+	srv := flags.String("server", "", "set server `address`")
+	usr := flags.String("user", "", "set `username`")
+	// TODO: add args for new config options
+	// protocol
+	// user agent
+	// quiet
+	// no proxy
+	// extra env
+	// extra args
+	sys := flags.Bool("system-settings", false, "use system settings "+
 		"instead of user configuration")
-	ver := flag.Bool("version", false, "print version")
+	ver := flags.Bool("version", false, "print version")
 
 	// set usage output
-	flag.Usage = func() {
+	flags.Usage = func() {
 		cmd := os.Args[0]
-		w := flag.CommandLine.Output()
+		w := flags.Output()
 		usage := func(f string, args ...interface{}) {
 			_, err := fmt.Fprintf(w, f, args...)
 			if err != nil {
@@ -70,7 +87,7 @@ func setConfig() {
 		usage("Usage:\n")
 		usage("  %s [options] [command]\n", cmd)
 		usage("\nOptions:\n")
-		flag.PrintDefaults()
+		flags.PrintDefaults()
 		usage("\nCommands:\n")
 		usage("  connect\n")
 		usage("        connect to the VPN (default)\n")
@@ -100,37 +117,40 @@ func setConfig() {
 	}
 
 	// parse arguments
-	flag.Parse()
+	if err := flags.Parse(args[1:]); err != nil {
+		return err
+	}
 
 	// print version?
 	if *ver {
 		fmt.Println(daemon.Version)
-		os.Exit(0)
+		return flag.ErrHelp
 	}
 
 	// parse subcommands
-	command = flag.Arg(0)
+	command = flags.Arg(0)
 	switch command {
 	case "status":
-		_ = statusCmd.Parse(os.Args[2:])
+		if err := statusCmd.Parse(args[2:]); err != nil {
+			return err
+		}
 	}
 
 	// set command
-	command = flag.Arg(0)
+	command = flags.Arg(0)
 
 	// set config
 	if *cfgFile != "" {
 		// load config from command line
 		c, err := client.LoadConfig(*cfgFile)
 		if err != nil {
-			log.WithError(err).WithField("config", *cfgFile).
-				Fatal("Client could not load config")
+			return fmt.Errorf("Client could not load config %s: %w", *cfgFile, err)
 		}
 		c.Expand()
 		config = c
 	} else {
 		// load user or system configuration
-		config = client.LoadUserSystemConfig()
+		config = clientLoadUserSystemConfig()
 		if config == nil {
 			// fall back to default config
 			log.Warn("Client could not load user or system config, using default config")
@@ -173,25 +193,26 @@ func setConfig() {
 		systemConfig := client.SystemConfig()
 		c, err := client.LoadConfig(systemConfig)
 		if err != nil {
-			log.WithField("systemConfig", systemConfig).
-				WithError(err).
-				Fatal("Client could not load system settings from system config")
+			return fmt.Errorf("Client could not load system settings from system config %s: %w", systemConfig, err)
 		}
 		config = c
 	}
+	return nil
 }
 
-// Run is the main entry point of the oc client
-func Run() {
+func run(args []string) error {
 	// load configs and parse command line arguments
-	setConfig()
+	if err := setConfig(args); err != nil {
+		return err
+	}
 
 	// make sure config is not empty
 	if !config.Valid() {
-		log.Fatal("Client got invalid configuration. Make sure you " +
+		log.Error("Client got invalid configuration. Make sure you " +
 			"configure client certificate, client key and vpn " +
 			"server as a minimum. See -help for command line " +
 			"arguments")
+		return errors.New("invalid configuration")
 	}
 
 	// handle command
@@ -209,8 +230,19 @@ func Run() {
 	case "monitor":
 		monitor()
 	case "save":
-		saveConfig()
+		return saveConfig()
 	default:
-		log.Fatalf("unknown command: %s", command)
+		return fmt.Errorf("unknown command: %s", command)
+	}
+	return nil
+}
+
+// Run is the main entry point of the oc client
+func Run() {
+	if err := run(os.Args); err != nil {
+		if err != flag.ErrHelp {
+			log.Fatal(err)
+		}
+		return
 	}
 }
