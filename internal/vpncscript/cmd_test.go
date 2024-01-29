@@ -16,7 +16,7 @@ func TestRun(t *testing.T) {
 
 	// test with "-version"
 	if err := run([]string{"test", "-version"}); err != nil {
-		t.Errorf("help should not return error, got: %v", err)
+		t.Errorf("version should not return error, got: %v", err)
 	}
 
 	// test with "-help"
