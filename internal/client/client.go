@@ -10,9 +10,12 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
 )
 
-const (
+var (
 	// maxReconnectTries is the maximum amount or reconnect retries
 	maxReconnectTries = 5
+
+	// reconnectSleep is the sleep time between reconnect retries.
+	reconnectSleep = time.Second
 )
 
 // clientNewClient is client.NewClient for testing.
@@ -140,7 +143,7 @@ func reconnectVPN() error {
 		}
 
 		// sleep a second before retry
-		time.Sleep(time.Second)
+		time.Sleep(reconnectSleep)
 	}
 }
 
