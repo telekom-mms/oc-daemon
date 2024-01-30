@@ -12,8 +12,42 @@ import (
 func TestVPNConfigUpdateValid(t *testing.T) {
 	// test invalid
 	u := NewVPNConfigUpdate()
+
 	got := u.Valid()
 	want := false
+	if got != want {
+		t.Errorf("got %t, want %t", got, want)
+	}
+
+	// test invalid disconnect
+	u = NewVPNConfigUpdate()
+	u.Reason = "disconnect"
+
+	got = u.Valid()
+	want = false
+	if got != want {
+		t.Errorf("got %t, want %t", got, want)
+	}
+
+	// test invalid connect, no token and no config
+	u = NewVPNConfigUpdate()
+	u.Reason = "connect"
+
+	got = u.Valid()
+	want = false
+	if got != want {
+		t.Errorf("got %t, want %t", got, want)
+	}
+
+	// test invalid connect, invalid config
+	u = NewVPNConfigUpdate()
+	u.Reason = "connect"
+	u.Token = "some test token"
+	u.Config = vpnconfig.New()
+	u.Config.Device.Name = "name is too long for a network device"
+
+	got = u.Valid()
+	want = false
 	if got != want {
 		t.Errorf("got %t, want %t", got, want)
 	}
