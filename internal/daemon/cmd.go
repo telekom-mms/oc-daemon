@@ -22,6 +22,9 @@ const (
 	argVersion = "version"
 )
 
+// osMkdirAll is os.MkdirAll for testing.
+var osMkdirAll = os.MkdirAll
+
 // prepareFolders prepares directories used by the daemon
 func prepareFolders(config *Config) error {
 	for _, file := range []string{
@@ -31,7 +34,7 @@ func prepareFolders(config *Config) error {
 		config.OpenConnect.PIDFile,
 	} {
 		dir := filepath.Dir(file)
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := osMkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("Daemon could not create dir %s: %w", dir, err)
 		}
 	}
