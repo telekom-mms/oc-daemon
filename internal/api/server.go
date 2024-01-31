@@ -70,10 +70,7 @@ func (s *Server) handleRequest(conn net.Conn) {
 	}
 
 	// forward client's request to daemon
-	s.requests <- &Request{
-		msg:  msg,
-		conn: conn,
-	}
+	s.requests <- NewRequest(conn, msg)
 }
 
 // handleClients handles client connections

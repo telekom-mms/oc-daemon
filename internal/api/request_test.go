@@ -112,3 +112,17 @@ func TestRequestClose(t *testing.T) {
 		t.Errorf("got %d, want %d", msg.Type, TypeError)
 	}
 }
+
+// TestNewRequest tests NewRequest.
+func TestNewRequest(t *testing.T) {
+	conn, _ := net.Pipe()
+	msg := NewMessage(TypeVPNConfigUpdate, []byte("invalid"))
+
+	r := NewRequest(conn, msg)
+	if r.conn != conn {
+		t.Error("invalid conn")
+	}
+	if r.msg != msg {
+		t.Error("invalid msg")
+	}
+}
