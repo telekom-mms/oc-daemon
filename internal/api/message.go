@@ -8,7 +8,7 @@ import (
 
 const (
 	// MaxPayloadLength is the maximum allowed length of a message payload
-	MaxPayloadLength = 2048
+	MaxPayloadLength = 32768
 )
 
 // Message types
