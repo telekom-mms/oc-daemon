@@ -168,18 +168,27 @@ func TestDaemonDisconnect(t *testing.T) {
 }
 
 // testConn implements the dbusConn interface for testing
-type testConn struct{}
+type testConn struct {
+	reqNameReply dbus.RequestNameReply
+	reqNameError error
+	exportOKNum  int
+	exportError  error
+}
 
 func (tc *testConn) Close() error {
 	return nil
 }
 
 func (tc *testConn) Export(any, dbus.ObjectPath, string) error {
-	return nil
+	if tc.exportOKNum > 0 {
+		tc.exportOKNum--
+		return nil
+	}
+	return tc.exportError
 }
 
 func (tc *testConn) RequestName(string, dbus.RequestNameFlags) (dbus.RequestNameReply, error) {
-	return dbus.RequestNameReplyPrimaryOwner, nil
+	return tc.reqNameReply, tc.reqNameError
 }
 
 // testProperties implements the propProperties interface for testing
@@ -202,16 +211,95 @@ func (tp *testProperties) SetMust(_, property string, v any) {
 }
 
 // TestServiceStartStop tests Start and Stop of Service
-func TestServiceStartStop(_ *testing.T) {
+func TestServiceStartStop(t *testing.T) {
+	// clean up after tests
+	oldDbusConnectSystemBus := dbusConnectSystemBus
+	oldPropExport := propExport
+	defer func() {
+		dbusConnectSystemBus = oldDbusConnectSystemBus
+		propExport = oldPropExport
+	}()
+
+	// no errors
 	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
-		return &testConn{}, nil
+		return &testConn{
+			reqNameReply: dbus.RequestNameReplyPrimaryOwner,
+			exportOKNum:  2,
+		}, nil
 	}
 	propExport = func(conn dbusConn, path dbus.ObjectPath, props prop.Map) (propProperties, error) {
 		return &testProperties{}, nil
 	}
 	s := NewService()
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Error(err)
+	}
 	s.Stop()
+
+	// conn export introspectable error
+	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+		return &testConn{
+			reqNameReply: dbus.RequestNameReplyPrimaryOwner,
+			exportOKNum:  1,
+			exportError:  errors.New("test error"),
+		}, nil
+	}
+	s = NewService()
+	if err := s.Start(); err == nil {
+		t.Error("conn export introspectable error should return error")
+	}
+
+	// props export error
+	propExport = func(conn dbusConn, path dbus.ObjectPath, props prop.Map) (propProperties, error) {
+		return nil, errors.New("test error")
+	}
+	s = NewService()
+	if err := s.Start(); err == nil {
+		t.Error("props export error should return error")
+	}
+
+	// conn export methods error
+	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+		return &testConn{
+			reqNameReply: dbus.RequestNameReplyPrimaryOwner,
+			exportError:  errors.New("test error"),
+		}, nil
+	}
+	s = NewService()
+	if err := s.Start(); err == nil {
+		t.Error("conn export methods error should return error")
+	}
+
+	// bus name alredy taken
+	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+		return &testConn{
+			reqNameReply: dbus.RequestNameReplyExists,
+		}, nil
+	}
+	s = NewService()
+	if err := s.Start(); err == nil {
+		t.Error("bus name already taken should return error")
+	}
+
+	// conn request name error
+	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+		return &testConn{
+			reqNameError: errors.New("test error"),
+		}, nil
+	}
+	s = NewService()
+	if err := s.Start(); err == nil {
+		t.Error("conn request name error should return error")
+	}
+
+	// dbus connect error
+	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+		return nil, errors.New("test error")
+	}
+	s = NewService()
+	if err := s.Start(); err == nil {
+		t.Error("dbus connect error should return error")
+	}
 }
 
 // TestServiceRequests tests Requests of Service
@@ -226,15 +314,28 @@ func TestServiceRequests(t *testing.T) {
 
 // TestServiceSetProperty tests SetProperty of Service
 func TestServiceSetProperty(t *testing.T) {
+	// clean up after tests
+	oldDbusConnectSystemBus := dbusConnectSystemBus
+	oldPropExport := propExport
+	defer func() {
+		dbusConnectSystemBus = oldDbusConnectSystemBus
+		propExport = oldPropExport
+	}()
+
 	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
-		return &testConn{}, nil
+		return &testConn{
+			reqNameReply: dbus.RequestNameReplyPrimaryOwner,
+			exportOKNum:  2,
+		}, nil
 	}
 	properties := &testProperties{props: make(map[string]any)}
 	propExport = func(conn dbusConn, path dbus.ObjectPath, props prop.Map) (propProperties, error) {
 		return properties, nil
 	}
 	s := NewService()
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Error(err)
+	}
 
 	propName := "test-property"
 	want := "test-value"

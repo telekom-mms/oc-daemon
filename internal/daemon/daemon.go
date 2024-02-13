@@ -682,7 +682,9 @@ func (d *Daemon) start() {
 	defer d.server.Stop()
 
 	// start dbus api service
-	d.dbus.Start()
+	if err := d.dbus.Start(); err != nil {
+		log.WithError(err).Fatal("Daemon could not start D-Bus API")
+	}
 	defer d.dbus.Stop()
 
 	// start xml profile monitor

@@ -2,6 +2,7 @@ package dbusapi
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/godbus/dbus/v5"
 	"github.com/godbus/dbus/v5/introspect"
@@ -15,7 +16,7 @@ const (
 	Interface = "com.telekom_mms.oc_daemon.Daemon"
 )
 
-// DBus propeties changed signal
+// PropertiesChanged is the DBus properties changed signal
 const PropertiesChanged = "org.freedesktop.DBus.Properties.PropertiesChanged"
 
 // Properties
@@ -178,6 +179,9 @@ type propertyUpdate struct {
 
 // Service is a D-Bus Service
 type Service struct {
+	conn  dbusConn
+	props propProperties
+
 	requests chan *Request
 	propUps  chan *propertyUpdate
 	done     chan struct{}
@@ -210,28 +214,72 @@ var propExport = func(conn dbusConn, path dbus.ObjectPath, props prop.Map) (prop
 // start starts the service
 func (s *Service) start() {
 	defer close(s.closed)
+	defer func() { _ = s.conn.Close() }()
 
+	// set properties values to emit properties changed signal and make
+	// sure existing clients get updated values after restart
+	s.props.SetMust(Interface, PropertyTrustedNetwork, TrustedNetworkNotTrusted)
+	s.props.SetMust(Interface, PropertyConnectionState, ConnectionStateDisconnected)
+	s.props.SetMust(Interface, PropertyIP, IPInvalid)
+	s.props.SetMust(Interface, PropertyDevice, DeviceInvalid)
+	s.props.SetMust(Interface, PropertyServer, ServerInvalid)
+	s.props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
+	s.props.SetMust(Interface, PropertyServers, ServersInvalid)
+	s.props.SetMust(Interface, PropertyOCRunning, OCRunningNotRunning)
+	s.props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
+
+	// main loop
+	for {
+		select {
+		case u := <-s.propUps:
+			// update property
+			log.WithFields(log.Fields{
+				"name":  u.name,
+				"value": u.value,
+			}).Debug("D-Bus updating property")
+			s.props.SetMust(Interface, u.name, u.value)
+
+		case <-s.done:
+			log.Debug("D-Bus service stopping")
+			// set properties values to unknown/invalid to emit
+			// properties changed signal and inform clients
+			s.props.SetMust(Interface, PropertyTrustedNetwork, TrustedNetworkUnknown)
+			s.props.SetMust(Interface, PropertyConnectionState, ConnectionStateUnknown)
+			s.props.SetMust(Interface, PropertyIP, IPInvalid)
+			s.props.SetMust(Interface, PropertyDevice, DeviceInvalid)
+			s.props.SetMust(Interface, PropertyServer, ServerInvalid)
+			s.props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
+			s.props.SetMust(Interface, PropertyServers, ServersInvalid)
+			s.props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)
+			s.props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
+			return
+		}
+	}
+}
+
+// Start starts the service
+func (s *Service) Start() error {
 	// connect to session bus
 	conn, err := dbusConnectSystemBus()
 	if err != nil {
-		log.WithError(err).Fatal("Could not connect to D-Bus session bus")
+		return fmt.Errorf("could not connect to D-Bus session bus: %w", err)
 	}
-	defer func() { _ = conn.Close() }()
+	s.conn = conn
 
 	// request name
 	reply, err := conn.RequestName(Interface, dbus.NameFlagDoNotQueue)
 	if err != nil {
-		log.WithError(err).Fatal("Could not request D-Bus name")
+		return fmt.Errorf("could not request D-Bus name: %w", err)
 	}
 	if reply != dbus.RequestNameReplyPrimaryOwner {
-		log.Fatal("Requested D-Bus name is already taken")
+		return fmt.Errorf("requested D-Bus name is already taken")
 	}
 
 	// methods
 	meths := daemon{s.requests, s.done}
 	err = conn.Export(meths, Path, Interface)
 	if err != nil {
-		log.WithError(err).Fatal("Could not export D-Bus methods")
+		return fmt.Errorf("could not export D-Bus methods: %w", err)
 	}
 
 	// properties
@@ -295,8 +343,9 @@ func (s *Service) start() {
 	}
 	props, err := propExport(conn, Path, propsSpec)
 	if err != nil {
-		log.WithError(err).Fatal("Could not export D-Bus properties spec")
+		return fmt.Errorf("could not export D-Bus properties spec: %w", err)
 	}
+	s.props = props
 
 	// introspection
 	n := &introspect.Node{
@@ -314,53 +363,11 @@ func (s *Service) start() {
 	err = conn.Export(introspect.NewIntrospectable(n), Path,
 		"org.freedesktop.DBus.Introspectable")
 	if err != nil {
-		log.WithError(err).Fatal("Could not export D-Bus introspection")
+		return fmt.Errorf("could not export D-Bus introspection: %w", err)
 	}
 
-	// set properties values to emit properties changed signal and make
-	// sure existing clients get updated values after restart
-	props.SetMust(Interface, PropertyTrustedNetwork, TrustedNetworkNotTrusted)
-	props.SetMust(Interface, PropertyConnectionState, ConnectionStateDisconnected)
-	props.SetMust(Interface, PropertyIP, IPInvalid)
-	props.SetMust(Interface, PropertyDevice, DeviceInvalid)
-	props.SetMust(Interface, PropertyServer, ServerInvalid)
-	props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
-	props.SetMust(Interface, PropertyServers, ServersInvalid)
-	props.SetMust(Interface, PropertyOCRunning, OCRunningNotRunning)
-	props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
-
-	// main loop
-	for {
-		select {
-		case u := <-s.propUps:
-			// update property
-			log.WithFields(log.Fields{
-				"name":  u.name,
-				"value": u.value,
-			}).Debug("D-Bus updating property")
-			props.SetMust(Interface, u.name, u.value)
-
-		case <-s.done:
-			log.Debug("D-Bus service stopping")
-			// set properties values to unknown/invalid to emit
-			// properties changed signal and inform clients
-			props.SetMust(Interface, PropertyTrustedNetwork, TrustedNetworkUnknown)
-			props.SetMust(Interface, PropertyConnectionState, ConnectionStateUnknown)
-			props.SetMust(Interface, PropertyIP, IPInvalid)
-			props.SetMust(Interface, PropertyDevice, DeviceInvalid)
-			props.SetMust(Interface, PropertyServer, ServerInvalid)
-			props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
-			props.SetMust(Interface, PropertyServers, ServersInvalid)
-			props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)
-			props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
-			return
-		}
-	}
-}
-
-// Start starts the service
-func (s *Service) Start() {
 	go s.start()
+	return nil
 }
 
 // Stop stops the service
