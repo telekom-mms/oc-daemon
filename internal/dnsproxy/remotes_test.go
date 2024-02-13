@@ -72,7 +72,7 @@ func TestRemotesGet(t *testing.T) {
 	}
 
 	// test no domain name
-	got := r.Get("not a domain name!")
+	got := r.Get("...not a domain name!")
 	want := r.m["."]
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)

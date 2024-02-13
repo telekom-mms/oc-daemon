@@ -7,15 +7,23 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
+	"github.com/vishvananda/netlink"
 )
 
 // TestSetupVPNDevice tests setupVPNDevice
 func TestSetupVPNDevice(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 	c.Device.MTU = 1300
@@ -42,10 +50,41 @@ func TestSetupVPNDevice(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test with execs errors
+	// run test above multiple times, each time failing execs.RunCmd at a
+	// later time. Expect only parts of the results defined in want above
+	// depending on when execs.RunCmd failed.
+	numRuns := 0
+	failAt := 0
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		// fail after failAt runs
+		if numRuns == failAt {
+			return errors.New("test error")
+		}
+
+		numRuns++
+		got = append(got, strings.Join(arg, " "))
+		return nil
+	}
+	for _, f := range []int{0, 1, 2} {
+		got = []string{}
+		numRuns = 0
+		failAt = f
+
+		setupVPNDevice(context.Background(), c)
+		if !reflect.DeepEqual(got, want[:f]) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	}
 }
 
 // TestTeardownVPNDevice tests teardownVPNDevice
 func TestTeardownVPNDevice(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 
@@ -64,10 +103,20 @@ func TestTeardownVPNDevice(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test with execs error
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		return errors.New("test error")
+	}
+	teardownVPNDevice(context.Background(), c)
 }
 
 // TestVPNSetupSetupDNS tests setupDNS of VPNSetup
 func TestVPNSetupSetupDNS(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 	c.DNS.DefaultDomain = "mycompany.com"
@@ -90,10 +139,26 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test with execs errors
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
+		return errors.New("test error")
+	}
+
+	got = []string{}
+	v.setupDNS(context.Background(), c)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
 }
 
 // TestVPNSetupTeardownDNS tests teardownDNS of VPNSetup
 func TestVPNSetupTeardownDNS(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 
@@ -102,6 +167,7 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
+
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.teardownDNS(context.Background(), c)
 
@@ -110,6 +176,18 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 		"flush-caches",
 		"reset-server-features",
 	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with execs errors
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, strings.Join(arg, " "))
+		return errors.New("test error")
+	}
+
+	got = []string{}
+	v.teardownDNS(context.Background(), c)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -189,7 +267,14 @@ func TestVPNSetupCheckDNSDomain(t *testing.T) {
 	}
 }
 
+// TestVPNSetupEnsureDNS tests ensureDNS of VPNSetup.
 func TestVPNSetupEnsureDNS(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+	oldRunCmdOutput := execs.RunCmdOutput
+	defer func() { execs.RunCmdOutput = oldRunCmdOutput }()
+
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	ctx := context.Background()
 	vpnconf := vpnconfig.New()
@@ -198,17 +283,10 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 	v.dnsProxyConf.Address = "127.0.0.1:4253"
 	vpnconf.DNS.DefaultDomain = "test.example.com"
 
-	// override RunCmd and clean up after tests
-	oldCmd := execs.RunCmd
-	defer func() { execs.RunCmd = oldCmd }()
-
+	// override RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		return nil
 	}
-
-	// clean up RunCmdOutput after tests
-	oldCmdOutput := execs.RunCmdOutput
-	defer func() { execs.RunCmdOutput = oldCmdOutput }()
 
 	// test resolvectl error
 	execs.RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
@@ -254,9 +332,64 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 }
 
 // TestVPNSetupStartStop tests Start and Stop of VPNSetup
-func TestVPNSetupStartStop(t *testing.T) {
+func TestVPNSetupStartStop(_ *testing.T) {
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.Start()
+	v.Stop()
+}
+
+// TestVPNSetupSetupTeardown tests Setup and Teardown of VPNSetup.
+func TestVPNSetupSetupTeardown(_ *testing.T) {
+	// override functions
+	oldCmd := execs.RunCmd
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		return nil
+	}
+	defer func() { execs.RunCmd = oldCmd }()
+
+	oldCmdOutput := execs.RunCmdOutput
+	execs.RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
+		return nil, nil
+	}
+	defer func() { execs.RunCmdOutput = oldCmdOutput }()
+
+	oldRegisterAddrUpdates := addrmon.RegisterAddrUpdates
+	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) chan netlink.AddrUpdate {
+		return nil
+	}
+	defer func() { addrmon.RegisterAddrUpdates = oldRegisterAddrUpdates }()
+
+	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
+		return nil
+	}
+	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
+
+	// start vpn setup, prepare config
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v.Start()
+	vpnconf := vpnconfig.New()
+
+	// setup config and wait for setup event
+	v.Setup(vpnconf)
+	<-v.Events()
+
+	// send dns report while config is active
+	report := dnsproxy.NewReport("example.com", nil, 300)
+	go func() { report.Wait() }()
+	v.dnsProxy.Reports() <- report
+
+	// wait long enough for ensure timer
+	time.Sleep(time.Second * 2)
+
+	// teardown config, wait for teardown event
+	v.Teardown(vpnconf)
+	<-v.Events()
+
+	// send dns report while config is not active
+	v.dnsProxy.Reports() <- dnsproxy.NewReport("example.com", nil, 300)
+
+	// stop vpn setup
 	v.Stop()
 }
 
@@ -281,7 +414,8 @@ func TestNewVPNSetup(t *testing.T) {
 		v.splitrtConf != splitrtConfig ||
 		v.cmds == nil ||
 		v.events == nil ||
-		v.done == nil {
+		v.done == nil ||
+		v.closed == nil {
 		t.Errorf("invalid vpn setup")
 	}
 }

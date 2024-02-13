@@ -1,7 +1,7 @@
 package devmon
 
 import (
-	"log"
+	"net"
 	"testing"
 
 	"github.com/vishvananda/netlink"
@@ -10,58 +10,151 @@ import (
 
 // TestDevMonStartStop tests Start and Stop of DevMon
 func TestDevMonStartStop(t *testing.T) {
-	devMon := NewDevMon()
-
 	// test without LinkUpdates
 	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
 		return nil
 	}
+
+	devMon := NewDevMon()
 	devMon.Start()
 	devMon.Stop()
 
-	// helper function for LinkUpdates
-	linkUpdates := func(updates chan netlink.LinkUpdate, done chan struct{}) {
-		for {
+	// test with LinkUpdates
+	for i, test := range []struct {
+		update netlink.LinkUpdate
+		want   *Update
+	}{
+		{
+			// invalid link event
+			update: netlink.LinkUpdate{
+				Header: unix.NlMsghdr{Type: unix.RTM_NEWADDR},
+				Link:   &netlink.Device{},
+			},
+			want: nil,
+		},
+		{
+			// new link event
+			update: netlink.LinkUpdate{
+				Header: unix.NlMsghdr{Type: unix.RTM_NEWLINK},
+				Link:   &netlink.Device{},
+			},
+			want: &Update{Add: true, Type: "device"},
+		},
+		{
+			// del link event
+			update: netlink.LinkUpdate{
+				Header: unix.NlMsghdr{Type: unix.RTM_DELLINK},
+				Link:   &netlink.Device{},
+			},
+			want: &Update{Add: false, Type: "device"},
+		},
+		{
+			// loopback device
+			update: netlink.LinkUpdate{
+				Header: unix.NlMsghdr{Type: unix.RTM_NEWLINK},
+				Link: &netlink.Device{
+					LinkAttrs: netlink.LinkAttrs{Flags: net.FlagLoopback},
+				},
+			},
+			want: &Update{Add: true, Type: "loopback"},
+		},
+		{
+			// device that is actually virtual
+			update: netlink.LinkUpdate{
+				Header: unix.NlMsghdr{Type: unix.RTM_NEWLINK},
+				Link: &netlink.Device{
+					LinkAttrs: netlink.LinkAttrs{Name: "lo"},
+				},
+			},
+			want: &Update{Add: true, Type: "virtual"},
+		},
+		{
+			// device with invalid symlink
+			update: netlink.LinkUpdate{
+				Header: unix.NlMsghdr{Type: unix.RTM_NEWLINK},
+				Link: &netlink.Device{
+					LinkAttrs: netlink.LinkAttrs{Name: "device-does-not-exist"},
+				},
+			},
+			want: &Update{Add: true, Type: "device"},
+		},
+	} {
+		// send test update in goroutine spawned in RegisterLinkUpdates
+		// and signal sending complete
+		sendDone := make(chan struct{})
+		RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
+			updates := make(chan netlink.LinkUpdate)
+			go func(up netlink.LinkUpdate) {
+				defer close(sendDone)
+				updates <- up
+			}(test.update)
+			return updates
+		}
+
+		// start monitor, wait for result/sending complete and check
+		// result, stop monitor
+		devMon := NewDevMon()
+		devMon.Start()
+		if test.want != nil {
+			up := <-devMon.Updates()
+			if up.Add != test.want.Add || up.Type != test.want.Type {
+				t.Errorf("test %d, got %v,  want %v", i, up, test.want)
+			}
+		}
+		<-sendDone
+		devMon.Stop()
+	}
+
+	// test event after stop
+	sendDone := make(chan struct{})
+	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
+		updates := make(chan netlink.LinkUpdate)
+		go func() {
+			defer close(sendDone)
+
+			// wait for monitor closed
+			<-d.closed
+
+			// send update
 			up := netlink.LinkUpdate{}
 			up.Header.Type = unix.RTM_NEWLINK
 			up.Link = &netlink.Device{}
-			select {
-			case updates <- up:
-			case <-done:
-				return
-
-			}
-		}
-	}
-
-	// test with LinkUpdates
-	devMon = NewDevMon()
-	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
-		updates := make(chan netlink.LinkUpdate)
-		go linkUpdates(updates, d.upsDone)
+			updates <- up
+		}()
 		return updates
 	}
+
+	devMon = NewDevMon()
 	devMon.Start()
-	for i := 0; i < 3; i++ {
-		log.Println(<-devMon.Updates())
-	}
 	devMon.Stop()
+	<-sendDone
 
 	// test with unexpected close and LinkUpdates
-	devMon = NewDevMon()
 	runOnce := false
 	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
 		updates := make(chan netlink.LinkUpdate)
 		if !runOnce {
+			// on first run, close updates
 			runOnce = true
 			close(updates)
 		} else {
-			go linkUpdates(updates, d.upsDone)
+			// on subsequent run, send update
+			go func() {
+				up := netlink.LinkUpdate{}
+				up.Header.Type = unix.RTM_NEWLINK
+				up.Link = &netlink.Device{}
+				updates <- up
+			}()
 		}
 		return updates
 	}
+
+	devMon = NewDevMon()
 	devMon.Start()
-	log.Println(<-devMon.Updates())
+	up := <-devMon.Updates()
+	if !up.Add {
+		t.Errorf("add should be true")
+	}
 	devMon.Stop()
 }
 
@@ -80,7 +173,8 @@ func TestNewDevMon(t *testing.T) {
 	devMon := NewDevMon()
 	if devMon.updates == nil ||
 		devMon.upsDone == nil ||
-		devMon.done == nil {
+		devMon.done == nil ||
+		devMon.closed == nil {
 
 		t.Errorf("got nil, want != nil")
 	}

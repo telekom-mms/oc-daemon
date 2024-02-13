@@ -1,8 +1,44 @@
 package dnsmon
 
 import (
+	"errors"
 	"testing"
+
+	"github.com/fsnotify/fsnotify"
 )
+
+// TestDNSMonStartEvents tests start of DNSMon, events.
+func TestDNSMonStartEvents(t *testing.T) {
+	dnsMon := NewDNSMon(NewConfig())
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dnsMon.watcher = watcher
+
+	// test valid file events
+	go dnsMon.start()
+	<-dnsMon.Updates()
+	for _, name := range []string{
+		dnsMon.config.ETCResolvConf,
+		dnsMon.config.StubResolvConf,
+		dnsMon.config.SystemdResolvConf,
+	} {
+		dnsMon.watcher.Events <- fsnotify.Event{Name: name}
+		<-dnsMon.Updates()
+	}
+
+	// test invalid file event
+	dnsMon.watcher.Events <- fsnotify.Event{Name: "something else..."}
+	dnsMon.watcher.Events <- fsnotify.Event{Name: "... shouldn't block"}
+
+	// test error event
+	dnsMon.watcher.Errors <- errors.New("test error")
+
+	// test unexpected close
+	watcher.Close()
+	<-dnsMon.closed
+}
 
 // TestDNSMonStartStop tests Start and Stop of DNSMon
 func TestDNSMonStartStop(t *testing.T) {
@@ -29,7 +65,8 @@ func TestNewDNSMon(t *testing.T) {
 		t.Errorf("got %v, want %v", dnsMon.config, config)
 	}
 	if dnsMon.updates == nil ||
-		dnsMon.done == nil {
+		dnsMon.done == nil ||
+		dnsMon.closed == nil {
 
 		t.Errorf("got nil, want != nil")
 	}

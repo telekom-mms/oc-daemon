@@ -15,7 +15,7 @@ func TestCreateConfigSplit(t *testing.T) {
 		ciscoSplitInc:              []string{},
 		ciscoSplitExc:              []string{"172.16.0.0/16"},
 		ciscoIPv6SplitInc:          []string{},
-		ciscoIPv6SplitExc:          []string{},
+		ciscoIPv6SplitExc:          []string{"2001:2:3:4::/64"},
 		dnsSplitExc:                []string{"some.example.com", "other.example.com", "www.example.com"},
 		bypassVirtualSubnetsOnlyV4: true,
 	}
@@ -68,6 +68,9 @@ func TestCreateConfigUpdate(t *testing.T) {
 		internalIP4NetAddr:         "192.168.1.0",
 		internalIP4DNS:             "192.168.1.1",
 		internalIP4NBNS:            "192.168.1.1",
+		internalIP6Address:         "2001:3:2:1::1",
+		internalIP6Netmask:         "2001:3:2:1::1/64",
+		internalIP6DNS:             "2001:53:53:53::53",
 		ciscoDefDomain:             "example.com",
 		ciscoBanner:                "some banner",
 		ciscoSplitInc:              []string{}, // splits are tested in TestCreateConfigSplit
@@ -95,9 +98,14 @@ func TestCreateConfigUpdate(t *testing.T) {
 			Address: net.IPv4(192, 168, 1, 123),
 			Netmask: net.IPv4Mask(255, 255, 255, 0),
 		},
+		IPv6: vpnconfig.Address{
+			Address: net.ParseIP("2001:3:2:1::1"),
+			Netmask: net.CIDRMask(64, 128),
+		},
 		DNS: vpnconfig.DNS{
 			DefaultDomain: "example.com",
 			ServersIPv4:   []net.IP{net.IPv4(192, 168, 1, 1)},
+			ServersIPv6:   []net.IP{net.ParseIP("2001:53:53:53::53")},
 		},
 		Split: vpnconfig.Split{
 			ExcludeDNS: []string{"some.example.com", "other.example.com", "www.example.com"},

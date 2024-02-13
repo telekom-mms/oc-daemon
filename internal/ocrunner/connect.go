@@ -40,9 +40,32 @@ type Connect struct {
 	// channels for commands from user
 	commands chan *ConnectEvent
 	done     chan struct{}
+	closed   chan struct{}
 
 	// channel for user facing events
 	events chan *ConnectEvent
+}
+
+// function wrappers for testing.
+var (
+	userLookup      = user.Lookup
+	userLookupGroup = user.LookupGroup
+	osChown         = os.Chown
+	osReadFile      = os.ReadFile
+	osWriteFile     = os.WriteFile
+	osFindProcess   = os.FindProcess
+	processSignal   = func(process *os.Process, sig os.Signal) error {
+		return process.Signal(sig)
+	}
+	execCommand = exec.Command
+)
+
+// sendEvent sends event over the event channel.
+func (c *Connect) sendEvent(event *ConnectEvent) {
+	select {
+	case c.events <- event:
+	case <-c.done:
+	}
 }
 
 // setPIDOwner sets the owner of the pid file
@@ -52,7 +75,7 @@ func (c *Connect) setPIDOwner() {
 		return
 	}
 
-	user, err := user.Lookup(c.config.PIDOwner)
+	user, err := userLookup(c.config.PIDOwner)
 	if err != nil {
 		log.WithError(err).Error("OC-Runner could not get UID of pid file owner")
 		return
@@ -64,7 +87,7 @@ func (c *Connect) setPIDOwner() {
 		return
 	}
 
-	if err := os.Chown(c.config.PIDFile, uid, -1); err != nil {
+	if err := osChown(c.config.PIDFile, uid, -1); err != nil {
 		log.WithError(err).Error("OC-Runner could not change owner of pid file")
 	}
 }
@@ -76,7 +99,7 @@ func (c *Connect) setPIDGroup() {
 		return
 	}
 
-	group, err := user.LookupGroup(c.config.PIDGroup)
+	group, err := userLookupGroup(c.config.PIDGroup)
 	if err != nil {
 		log.WithError(err).Error("OC-Runner could not get GID of pid file group")
 		return
@@ -88,7 +111,7 @@ func (c *Connect) setPIDGroup() {
 		return
 	}
 
-	if err := os.Chown(c.config.PIDFile, -1, gid); err != nil {
+	if err := osChown(c.config.PIDFile, -1, gid); err != nil {
 		log.WithError(err).Error("OC-Runner could not change group of pid file")
 	}
 }
@@ -110,7 +133,7 @@ func (c *Connect) savePidFile() {
 	}
 
 	// write pid to file with permissions
-	err = os.WriteFile(c.config.PIDFile, []byte(pid), os.FileMode(perm))
+	err = osWriteFile(c.config.PIDFile, []byte(pid), os.FileMode(perm))
 	if err != nil {
 		log.WithError(err).Error("OC-Runner writing pid error")
 	}
@@ -160,7 +183,7 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 		parameters = append(parameters, device)
 	}
 	parameters = append(parameters, c.config.ExtraArgs...)
-	c.command = exec.Command(c.config.OpenConnect, parameters...)
+	c.command = execCommand(c.config.OpenConnect, parameters...)
 
 	// run command, pass login info to stdin
 	b := bytes.NewBufferString(e.login.Cookie)
@@ -171,8 +194,9 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 	c.command.Env = append(c.command.Env, e.env...)
 
 	if err := c.command.Start(); err != nil {
-		log.WithError(err).Error("OC-Runner executing connect error")
-		c.exits <- struct{}{}
+		go func() {
+			c.exits <- struct{}{}
+		}()
 		return
 	}
 
@@ -180,9 +204,9 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 	c.savePidFile()
 
 	// signal connect to user
-	c.events <- &ConnectEvent{
+	c.sendEvent(&ConnectEvent{
 		Connect: true,
-	}
+	})
 
 	// wait for program termination and signal disconnect
 	go func() {
@@ -202,7 +226,7 @@ func (c *Connect) handleDisconnect() {
 			Error("OC-Runner disconnect error")
 		return
 	}
-	if err := c.command.Process.Signal(os.Interrupt); err != nil {
+	if err := processSignal(c.command.Process, os.Interrupt); err != nil {
 		// TODO: handle failed signal?
 		log.WithError(err).Error("OC-Runner sending interrupt for disconnect error")
 	}
@@ -214,7 +238,7 @@ func (c *Connect) handleOCExit() {
 	c.command = nil
 
 	// signal disconnect to user
-	c.events <- &ConnectEvent{}
+	c.sendEvent(&ConnectEvent{})
 }
 
 // handleStop handles stopping the runner
@@ -229,6 +253,7 @@ func (c *Connect) handleStop() {
 
 // start starts the connect runner
 func (c *Connect) start() {
+	defer close(c.closed)
 	defer close(c.events)
 	for {
 		select {
@@ -257,9 +282,7 @@ func (c *Connect) Start() {
 // Stop stops the connect runner
 func (c *Connect) Stop() {
 	close(c.done)
-	for range c.events {
-		// wait for event channel close
-	}
+	<-c.closed
 }
 
 // Connect connects the vpn by starting openconnect
@@ -292,6 +315,7 @@ func NewConnect(config *Config) *Connect {
 
 		commands: make(chan *ConnectEvent),
 		done:     make(chan struct{}),
+		closed:   make(chan struct{}),
 
 		events: make(chan *ConnectEvent),
 	}
@@ -300,7 +324,7 @@ func NewConnect(config *Config) *Connect {
 // CleanupConnect cleans up connect after a failed shutdown
 func CleanupConnect(config *Config) {
 	// get pid from file
-	b, err := os.ReadFile(config.PIDFile)
+	b, err := osReadFile(config.PIDFile)
 	if err != nil {
 		return
 	}
@@ -311,7 +335,7 @@ func CleanupConnect(config *Config) {
 	}
 
 	// check if it is running and command line starts with openconnect
-	cmdLine, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+	cmdLine, err := osReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
 	if err != nil {
 		return
 	}
@@ -321,12 +345,12 @@ func CleanupConnect(config *Config) {
 	}
 
 	// find process and send interrupt signal
-	process, err := os.FindProcess(pid)
+	process, err := osFindProcess(pid)
 	if err != nil {
 		return
 	}
 
-	if err := process.Signal(os.Interrupt); err == nil {
+	if err := processSignal(process, os.Interrupt); err == nil {
 		log.Warn("OC-Runner cleaned up process")
 	}
 }

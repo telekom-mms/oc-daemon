@@ -2,6 +2,7 @@ package splitrt
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net"
 	"reflect"
@@ -102,10 +103,12 @@ func TestExcludesRemove(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, s)
 		return nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test removing not existing excludes
 	want := []string{
@@ -147,6 +150,22 @@ func TestExcludesRemove(t *testing.T) {
 	got = []string{}
 	for _, exclude := range excludes {
 		e.AddDynamic(ctx, exclude, 300)
+	}
+	for _, exclude := range excludes {
+		e.Remove(ctx, exclude)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with nft error
+	got = []string{}
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+		got = append(got, s)
+		return errors.New("test error")
+	}
+	for _, exclude := range excludes {
+		e.AddStatic(ctx, exclude)
 	}
 	for _, exclude := range excludes {
 		e.Remove(ctx, exclude)

@@ -655,7 +655,9 @@ func (d *Daemon) start() {
 	d.initToken()
 
 	// start sleep monitor
-	d.sleepmon.Start()
+	if err := d.sleepmon.Start(); err != nil {
+		log.WithError(err).Fatal("Daemon could not start sleep monitor")
+	}
 	defer d.sleepmon.Stop()
 
 	// start traffic policing

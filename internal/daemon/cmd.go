@@ -22,8 +22,11 @@ const (
 	argVersion = "version"
 )
 
+// osMkdirAll is os.MkdirAll for testing.
+var osMkdirAll = os.MkdirAll
+
 // prepareFolders prepares directories used by the daemon
-func prepareFolders(config *Config) {
+func prepareFolders(config *Config) error {
 	for _, file := range []string{
 		config.Config,
 		config.SocketServer.SocketFile,
@@ -31,17 +34,18 @@ func prepareFolders(config *Config) {
 		config.OpenConnect.PIDFile,
 	} {
 		dir := filepath.Dir(file)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			log.WithError(err).WithField("dir", dir).
-				Fatal("Daemon could not create dir")
+		if err := osMkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("Daemon could not create dir %s: %w", dir, err)
 		}
 	}
+
+	return nil
 }
 
 // flagIsSet returns whether flag with name is set as command line argument
-func flagIsSet(name string) bool {
+func flagIsSet(flags *flag.FlagSet, name string) bool {
 	isSet := false
-	flag.Visit(func(f *flag.Flag) {
+	flags.Visit(func(f *flag.Flag) {
 		if name == f.Name {
 			isSet = true
 		}
@@ -49,24 +53,27 @@ func flagIsSet(name string) bool {
 	return isSet
 }
 
-// Run is the main entry point for the daemon
-func Run() {
+// run is the main entry point for the daemon
+func run(args []string) error {
 	// parse command line arguments
 	defaults := NewConfig()
-	cfgFile := flag.String(argConfig, defaults.Config, "set config `file`")
-	verbose := flag.Bool(argVerbose, defaults.Verbose, "enable verbose output")
-	version := flag.Bool(argVersion, false, "print version")
-	flag.Parse()
+	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
+	cfgFile := flags.String(argConfig, defaults.Config, "set config `file`")
+	verbose := flags.Bool(argVerbose, defaults.Verbose, "enable verbose output")
+	version := flags.Bool(argVersion, false, "print version")
+	if err := flags.Parse(args[1:]); err != nil {
+		return err
+	}
 
 	// print version?
 	if *version {
 		fmt.Println(Version)
-		os.Exit(0)
+		return nil
 	}
 
 	// load config
 	config := NewConfig()
-	if flagIsSet(argConfig) {
+	if flagIsSet(flags, argConfig) {
 		config.Config = *cfgFile
 	}
 	if err := config.Load(); err != nil {
@@ -79,11 +86,11 @@ func Run() {
 
 	// check executables
 	if err := config.Executables.CheckExecutables(); err != nil {
-		log.WithError(err).Fatal("Daemon could not find all executables")
+		return fmt.Errorf("Daemon could not find all executables: %w", err)
 	}
 
 	// overwrite config settings with command line arguments
-	if flagIsSet(argVerbose) {
+	if flagIsSet(flags, argVerbose) {
 		config.Verbose = *verbose
 	}
 
@@ -93,7 +100,9 @@ func Run() {
 	}
 
 	// prepare directories
-	prepareFolders(config)
+	if err := prepareFolders(config); err != nil {
+		return err
+	}
 
 	// start daemon
 	daemon := NewDaemon(config)
@@ -104,4 +113,16 @@ func Run() {
 	signal.Notify(c, os.Interrupt)
 	<-c
 	daemon.Stop()
+
+	return nil
+}
+
+// Run is the main entry point for the daemon
+func Run() {
+	if err := run(os.Args); err != nil {
+		if err != flag.ErrHelp {
+			log.Fatal(err)
+		}
+		return
+	}
 }

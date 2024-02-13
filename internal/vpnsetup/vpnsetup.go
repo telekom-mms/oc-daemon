@@ -52,6 +52,7 @@ type VPNSetup struct {
 	cmds   chan *command
 	events chan *Event
 	done   chan struct{}
+	closed chan struct{}
 }
 
 // sendEvents sends the event
@@ -443,6 +444,7 @@ func (v *VPNSetup) handleDNSReport(r *dnsproxy.Report) {
 
 // start starts the VPN setup
 func (v *VPNSetup) start() {
+	defer close(v.closed)
 	defer close(v.events)
 
 	// create context
@@ -472,9 +474,7 @@ func (v *VPNSetup) Start() {
 // Stop stops the VPN setup
 func (v *VPNSetup) Stop() {
 	close(v.done)
-	for range v.events {
-		// wait until channel closed
-	}
+	<-v.closed
 }
 
 // Setup sets the VPN config up
@@ -511,6 +511,7 @@ func NewVPNSetup(
 		cmds:   make(chan *command),
 		events: make(chan *Event),
 		done:   make(chan struct{}),
+		closed: make(chan struct{}),
 	}
 }
 

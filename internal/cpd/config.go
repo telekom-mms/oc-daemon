@@ -12,6 +12,9 @@ var (
 	// ProbeCount is the number of probes to run
 	ProbeCount = 3
 
+	// ProbeWait is the time between probes
+	ProbeWait = time.Second
+
 	// ProbeTimer is the probe timer in case of no detected portal
 	// in seconds
 	ProbeTimer = 300 * time.Second
@@ -26,6 +29,7 @@ type Config struct {
 	Host               string
 	HTTPTimeout        time.Duration
 	ProbeCount         int
+	ProbeWait          time.Duration
 	ProbeTimer         time.Duration
 	ProbeTimerDetected time.Duration
 }
@@ -36,6 +40,7 @@ func (c *Config) Valid() bool {
 		c.Host == "" ||
 		c.HTTPTimeout <= 0 ||
 		c.ProbeCount <= 0 ||
+		c.ProbeWait <= 0 ||
 		c.ProbeTimer <= 0 ||
 		c.ProbeTimerDetected <= 0 {
 
@@ -50,6 +55,7 @@ func NewConfig() *Config {
 		Host:               Host,
 		HTTPTimeout:        HTTPTimeout,
 		ProbeCount:         ProbeCount,
+		ProbeWait:          ProbeWait,
 		ProbeTimer:         ProbeTimer,
 		ProbeTimerDetected: ProbeTimerDetected,
 	}
