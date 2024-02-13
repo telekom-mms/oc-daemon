@@ -225,9 +225,12 @@ func (c *Config) Valid() bool {
 	return true
 }
 
+// jsonMarshal is json.Marshal for testing.
+var jsonMarshal = json.Marshal
+
 // JSON returns the configuration as JSON
 func (c *Config) JSON() ([]byte, error) {
-	b, err := json.Marshal(c)
+	b, err := jsonMarshal(c)
 	if err != nil {
 		return nil, err
 	}

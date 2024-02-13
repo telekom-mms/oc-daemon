@@ -126,9 +126,12 @@ func (s *Status) Copy() *Status {
 	}
 }
 
+// jsonMarshal is json.Marshal for testing.
+var jsonMarshal = json.Marshal
+
 // JSON returns the Status as JSON
 func (s *Status) JSON() ([]byte, error) {
-	b, err := json.Marshal(s)
+	b, err := jsonMarshal(s)
 	if err != nil {
 		return nil, err
 	}

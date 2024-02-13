@@ -66,9 +66,12 @@ func (l *LoginInfo) ParseLine(line string) {
 	}
 }
 
+// jsonMarshal is json.Marshal for testing.
+var jsonMarshal = json.Marshal
+
 // JSON returns the login info as JSON
 func (l *LoginInfo) JSON() ([]byte, error) {
-	b, err := json.Marshal(l)
+	b, err := jsonMarshal(l)
 	if err != nil {
 		return nil, err
 	}
