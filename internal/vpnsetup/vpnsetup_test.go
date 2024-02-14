@@ -20,6 +20,10 @@ import (
 
 // TestSetupVPNDevice tests setupVPNDevice
 func TestSetupVPNDevice(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 	c.Device.MTU = 1300
@@ -36,12 +40,10 @@ func TestSetupVPNDevice(t *testing.T) {
 		"address add 2001::1/64 dev tun0",
 	}
 	got := []string{}
-	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
-	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test
 	setupVPNDevice(context.Background(), c)
@@ -50,7 +52,7 @@ func TestSetupVPNDevice(t *testing.T) {
 	}
 
 	// test with execs errors
-	// run above test multiple times, each time failing execs.RunCmd at a
+	// run test above multiple times, each time failing execs.RunCmd at a
 	// later time. Expect only parts of the results defined in want above
 	// depending on when execs.RunCmd failed.
 	numRuns := 0
@@ -79,6 +81,10 @@ func TestSetupVPNDevice(t *testing.T) {
 
 // TestTeardownVPNDevice tests teardownVPNDevice
 func TestTeardownVPNDevice(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 
@@ -87,12 +93,10 @@ func TestTeardownVPNDevice(t *testing.T) {
 		"link set tun0 down",
 	}
 	got := []string{}
-	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
-	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test
 	teardownVPNDevice(context.Background(), c)
@@ -109,17 +113,19 @@ func TestTeardownVPNDevice(t *testing.T) {
 
 // TestVPNSetupSetupDNS tests setupDNS of VPNSetup
 func TestVPNSetupSetupDNS(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 	c.DNS.DefaultDomain = "mycompany.com"
 
 	got := []string{}
-	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
-	defer func() { execs.RunCmd = oldRunCmd }()
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.setupDNS(context.Background(), c)
 
@@ -149,16 +155,18 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 
 // TestVPNSetupTeardownDNS tests teardownDNS of VPNSetup
 func TestVPNSetupTeardownDNS(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 
 	got := []string{}
-	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		got = append(got, strings.Join(arg, " "))
 		return nil
 	}
-	defer func() { execs.RunCmd = oldRunCmd }()
 
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.teardownDNS(context.Background(), c)
@@ -259,7 +267,14 @@ func TestVPNSetupCheckDNSDomain(t *testing.T) {
 	}
 }
 
+// TestVPNSetupEnsureDNS tests ensureDNS of VPNSetup.
 func TestVPNSetupEnsureDNS(t *testing.T) {
+	// clean up after tests
+	oldRunCmd := execs.RunCmd
+	defer func() { execs.RunCmd = oldRunCmd }()
+	oldRunCmdOutput := execs.RunCmdOutput
+	defer func() { execs.RunCmdOutput = oldRunCmdOutput }()
+
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	ctx := context.Background()
 	vpnconf := vpnconfig.New()
@@ -268,17 +283,10 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 	v.dnsProxyConf.Address = "127.0.0.1:4253"
 	vpnconf.DNS.DefaultDomain = "test.example.com"
 
-	// override RunCmd and clean up after tests
-	oldCmd := execs.RunCmd
-	defer func() { execs.RunCmd = oldCmd }()
-
+	// override RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		return nil
 	}
-
-	// clean up RunCmdOutput after tests
-	oldCmdOutput := execs.RunCmdOutput
-	defer func() { execs.RunCmdOutput = oldCmdOutput }()
 
 	// test resolvectl error
 	execs.RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
@@ -324,13 +332,15 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 }
 
 // TestVPNSetupStartStop tests Start and Stop of VPNSetup
-func TestVPNSetupStartStop(t *testing.T) {
+func TestVPNSetupStartStop(_ *testing.T) {
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.Start()
 	v.Stop()
 }
 
-func TestVPNSetupSetupTeardown(t *testing.T) {
+// TestVPNSetupSetupTeardown tests Setup and Teardown of VPNSetup.
+func TestVPNSetupSetupTeardown(_ *testing.T) {
+	// override functions
 	oldCmd := execs.RunCmd
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
 		return nil
@@ -355,22 +365,31 @@ func TestVPNSetupSetupTeardown(t *testing.T) {
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
+	// start vpn setup, prepare config
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.Start()
 	vpnconf := vpnconfig.New()
 
+	// setup config and wait for setup event
 	v.Setup(vpnconf)
 	<-v.Events()
 
-	go func() { <-v.splitrt.DNSReports() }()
-	v.dnsProxy.Reports() <- dnsproxy.NewReport("example.com", nil, 300)
+	// send dns report while config is active
+	report := dnsproxy.NewReport("example.com", nil, 300)
+	go func() { report.Wait() }()
+	v.dnsProxy.Reports() <- report
 
+	// wait long enough for ensure timer
 	time.Sleep(time.Second * 2)
+
+	// teardown config, wait for teardown event
 	v.Teardown(vpnconf)
 	<-v.Events()
 
+	// send dns report while config is not active
 	v.dnsProxy.Reports() <- dnsproxy.NewReport("example.com", nil, 300)
 
+	// stop vpn setup
 	v.Stop()
 }
 
