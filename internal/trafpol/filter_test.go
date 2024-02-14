@@ -23,7 +23,7 @@ func TestFilterFunctionsErrors(_ *testing.T) {
 	setFilterRules(ctx, "123")
 	unsetFilterRules(ctx)
 
-	// allowd devices
+	// allowed devices
 	addAllowedDevice(ctx, "eth0")
 	removeAllowedDevice(ctx, "eth0")
 
