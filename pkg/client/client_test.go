@@ -224,7 +224,7 @@ func TestDBusClientSubscribe(t *testing.T) {
 	}
 
 	if _, err := client.Subscribe(); err == nil {
-		t.Error("add match signal should return error")
+		t.Error("subscribe with add match signal error should return error")
 	}
 
 	// test query error
@@ -234,7 +234,7 @@ func TestDBusClientSubscribe(t *testing.T) {
 		return nil, errors.New("test error")
 	}
 	if _, err := client.Subscribe(); err == nil {
-		t.Error("query error should return error")
+		t.Error("subscribe with query error should return error")
 	}
 
 	// test double subscribe
@@ -242,7 +242,7 @@ func TestDBusClientSubscribe(t *testing.T) {
 
 	_, _ = client.Subscribe()
 	if _, err := client.Subscribe(); err == nil {
-		t.Error("doube subscribe should return error")
+		t.Error("double subscribe should return error")
 	}
 }
 
@@ -412,7 +412,7 @@ func TestNewDBusClient(t *testing.T) {
 	}
 
 	if _, err := NewDBusClient(NewConfig()); err == nil {
-		t.Error("system bus error shold return error")
+		t.Error("system bus error should return error")
 	}
 
 	// test without errors
