@@ -126,7 +126,7 @@ func (s *Status) Copy() *Status {
 	}
 }
 
-// jsonMarshal is json.Marhsal for testing.
+// jsonMarshal is json.Marshal for testing.
 var jsonMarshal = json.Marshal
 
 // JSON returns the Status as JSON
