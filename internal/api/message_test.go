@@ -57,31 +57,23 @@ func TestReadMessageErrors(t *testing.T) {
 		t.Errorf("reading empty message should return error")
 	}
 
-	// invalid type
-	msg := &Message{Header: Header{Type: TypeUndefined}}
-	if err := WriteMessage(buf, msg); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := ReadMessage(buf); err == nil {
-		t.Errorf("reading message %v should return error", msg)
-	}
+	// invalid messages
+	for _, msg := range []*Message{
+		// invalid type
+		{Header: Header{Type: TypeUndefined}},
 
-	// invalid length
-	msg = &Message{Header: Header{Type: TypeOK, Length: MaxPayloadLength + 1}}
-	if err := WriteMessage(buf, msg); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := ReadMessage(buf); err == nil {
-		t.Errorf("reading message %v should return error", msg)
-	}
+		// invalid length
+		{Header: Header{Type: TypeOK, Length: MaxPayloadLength + 1}},
 
-	// short message
-	msg = &Message{Header: Header{Type: TypeOK, Length: MaxPayloadLength}}
-	if err := WriteMessage(buf, msg); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := ReadMessage(buf); err == nil {
-		t.Errorf("reading message %v should return error", msg)
+		// short message
+		{Header: Header{Type: TypeOK, Length: MaxPayloadLength}},
+	} {
+		if err := WriteMessage(buf, msg); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := ReadMessage(buf); err == nil {
+			t.Errorf("reading message %v should return error", msg)
+		}
 	}
 }
 

@@ -19,32 +19,30 @@ func TestServerHandleRequest(t *testing.T) {
 
 	server.handleRequest(c1)
 
-	// invalid message
-	c1, c2 = net.Pipe()
-	go server.handleRequest(c1)
+	// invalid messages
+	for _, msg := range []*Message{
+		// invalid message type
+		{Header: Header{Type: TypeUndefined}},
 
-	msg := &Message{Header: Header{Type: TypeUndefined}}
-	if err := WriteMessage(c2, msg); err != nil {
-		t.Fatal(err)
-	}
+		// unhandled message type
+		{Header: Header{Type: TypeError}},
+	} {
+		c1, c2 := net.Pipe()
+		go server.handleRequest(c1)
 
-	// unhandled message type
-	c1, c2 = net.Pipe()
-	go server.handleRequest(c1)
-
-	msg = &Message{Header: Header{Type: TypeError}}
-	if err := WriteMessage(c2, msg); err != nil {
-		t.Fatal(err)
-	}
-	if err := c2.Close(); err != nil {
-		t.Fatal(err)
+		if err := WriteMessage(c2, msg); err != nil {
+			t.Fatal(err)
+		}
+		if err := c2.Close(); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// valid request
 	c1, c2 = net.Pipe()
 	go server.handleRequest(c1)
 
-	msg = &Message{Header: Header{Type: TypeVPNConfigUpdate}}
+	msg := &Message{Header: Header{Type: TypeVPNConfigUpdate}}
 	if err := WriteMessage(c2, msg); err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +57,7 @@ func TestServerHandleRequest(t *testing.T) {
 }
 
 // TestServerSetSocketOwner tests setSocketOwner of Server.
-func TestServerSetSocketOwner(t *testing.T) {
+func TestServerSetSocketOwner(_ *testing.T) {
 	config := NewConfig()
 	server := NewServer(config)
 
@@ -77,7 +75,7 @@ func TestServerSetSocketOwner(t *testing.T) {
 }
 
 // TestServerSetSocketGroup tests setSocketGroup of Server.
-func TestServerSetSocketGroup(t *testing.T) {
+func TestServerSetSocketGroup(_ *testing.T) {
 	config := NewConfig()
 	server := NewServer(config)
 
@@ -95,8 +93,7 @@ func TestServerSetSocketGroup(t *testing.T) {
 }
 
 // TestServerSetSocketPermissions tests setSocketPermissions of Server.
-// TODO: can we check anything? return errors in method?
-func TestServerSetSocketPermissions(t *testing.T) {
+func TestServerSetSocketPermissions(_ *testing.T) {
 	config := NewConfig()
 	server := NewServer(config)
 
@@ -114,7 +111,7 @@ func TestServerSetSocketPermissions(t *testing.T) {
 }
 
 // TestServerStartStop tests Start and Stop of Server
-func TestServerStartStop(t *testing.T) {
+func TestServerStartStop(_ *testing.T) {
 	config := NewConfig()
 	config.SocketFile = "test.sock"
 	server := NewServer(config)
