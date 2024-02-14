@@ -46,6 +46,7 @@ type Connect struct {
 	events chan *ConnectEvent
 }
 
+// function wrappers for testing.
 var (
 	userLookup      = user.Lookup
 	userLookupGroup = user.LookupGroup
