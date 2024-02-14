@@ -73,11 +73,14 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c2.Close()
 }
 
+// TestNewDaemon tests NewDaemon.
 func TestNewDaemon(t *testing.T) {
+	// create daemon
 	c := NewConfig()
 	c.OpenConnect.XMLProfile = filepath.Join(t.TempDir(), "does-not-exist")
 	d := NewDaemon(c)
 
+	// check daemon
 	if d == nil {
 		t.Fatal("daemon is nil")
 	}
