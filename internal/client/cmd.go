@@ -31,7 +31,7 @@ var clientUserConfig = client.UserConfig
 
 // saveConfig saves the user config to the user dir
 func saveConfig() error {
-	userConfig := client.UserConfig()
+	userConfig := clientUserConfig()
 	userDir := filepath.Dir(userConfig)
 	if err := os.MkdirAll(userDir, 0700); err != nil {
 		return fmt.Errorf("Client could not create user dir: %w", err)

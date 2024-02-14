@@ -57,7 +57,7 @@ func TestRun(t *testing.T) {
 	if err := run([]string{"test",
 		"-system-settings",
 	}); err == nil || err == flag.ErrHelp {
-		t.Errorf("invalid command should return error, got: %v", err)
+		t.Errorf("no config should return error, got: %v", err)
 	}
 
 	// invalid config with "-system-settings"
@@ -68,7 +68,7 @@ func TestRun(t *testing.T) {
 	if err := run([]string{"test",
 		"-system-settings",
 	}); err == nil || err == flag.ErrHelp {
-		t.Errorf("invalid command should return error, got: %v", err)
+		t.Errorf("invalid config should return error, got: %v", err)
 	}
 
 	// not existing user/system config
@@ -79,7 +79,6 @@ func TestRun(t *testing.T) {
 
 	// invalid command
 	if err := run([]string{"test",
-		//"-config", cfg,
 		"-cert", "cert-file",
 		"-key", "key-file",
 		"-ca", "ca-file",
@@ -98,7 +97,6 @@ func TestRun(t *testing.T) {
 	defer func() { clientUserConfig = client.UserConfig }()
 
 	if err := run([]string{"test",
-		//"-config", cfg,
 		"-cert", "cert-file",
 		"-key", "key-file",
 		"-ca", "ca-file",
@@ -126,7 +124,6 @@ func TestRun(t *testing.T) {
 		"monitor",
 	} {
 		if err := run([]string{"test",
-			//"-config", cfg,
 			"-cert", "cert-file",
 			"-key", "key-file",
 			"-ca", "ca-file",

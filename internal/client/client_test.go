@@ -64,23 +64,23 @@ func TestListServers(t *testing.T) {
 func TestConnectVPN(t *testing.T) {
 	defer func() { clientNewClient = client.NewClient }()
 
-	// test with connect error
-	clientNewClient = func(*client.Config) (client.Client, error) {
-		return &testClient{connErr: errors.New("test error")}, nil
+	// test with errors
+	for _, c := range []*testClient{
+		// connect error
+		{connErr: errors.New("test error")},
+
+		// authenticate error
+		{authErr: errors.New("test error")},
+	} {
+		clientNewClient = func(*client.Config) (client.Client, error) {
+			return c, nil
+		}
+
+		if err := connectVPN(); err == nil {
+			t.Errorf("%v should return error", c)
+		}
 	}
 
-	if err := connectVPN(); err == nil {
-		t.Error("connect error should return error")
-	}
-
-	// test with authenticate error
-	clientNewClient = func(*client.Config) (client.Client, error) {
-		return &testClient{authErr: errors.New("test error")}, nil
-	}
-
-	if err := connectVPN(); err == nil {
-		t.Error("authenticate error should return error")
-	}
 	// test without error
 	clientNewClient = func(*client.Config) (client.Client, error) {
 		return &testClient{}, nil
@@ -125,7 +125,7 @@ func TestReconnectVPN(t *testing.T) {
 		t.Error("query error should return error")
 	}
 
-	// test with oc always running
+	// test with oc already running
 	reconnectSleep = 0
 	clientNewClient = func(*client.Config) (client.Client, error) {
 		status := vpnstatus.New()
@@ -134,7 +134,7 @@ func TestReconnectVPN(t *testing.T) {
 	}
 
 	if err := reconnectVPN(); err == nil {
-		t.Error("oc always running should return error")
+		t.Error("oc already running should return error")
 	}
 }
 
