@@ -104,7 +104,9 @@ func (t *TrafPol) start() {
 	defer t.devmon.Stop()
 
 	// start dns monitor
-	t.dnsmon.Start()
+	if err := t.dnsmon.Start(); err != nil {
+		log.WithError(err).Fatal("TrafPol could not start DNSMon")
+	}
 	defer t.dnsmon.Stop()
 
 	// enter main loop

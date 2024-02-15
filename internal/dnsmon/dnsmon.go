@@ -1,6 +1,8 @@
 package dnsmon
 
 import (
+	"fmt"
+
 	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
 )
@@ -79,11 +81,11 @@ func (d *DNSMon) start() {
 }
 
 // Start starts the DNSMon
-func (d *DNSMon) Start() {
+func (d *DNSMon) Start() error {
 	// create watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.WithError(err).Fatal("DNSMon file watcher error")
+		return fmt.Errorf("could not create file watcher: %w", err)
 	}
 
 	// add resolv.conf folders to watcher
@@ -95,6 +97,7 @@ func (d *DNSMon) Start() {
 
 	d.watcher = watcher
 	go d.start()
+	return nil
 }
 
 // Stop stops the DNSMon
