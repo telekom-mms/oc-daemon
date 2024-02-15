@@ -2,6 +2,7 @@ package trafpol
 
 import (
 	"context"
+	"fmt"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
@@ -75,40 +76,12 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 }
 
 // start starts the traffic policing component
-func (t *TrafPol) start() {
-	log.Debug("TrafPol starting")
+func (t *TrafPol) start(ctx context.Context) {
 	defer close(t.loopDone)
-
-	// create context
-	ctx := context.Background()
-
-	// set firewall config
-	setFilterRules(ctx, t.config.FirewallMark)
 	defer unsetFilterRules(ctx)
-
-	// add CPD hosts to allowed hosts
-	for _, h := range t.cpd.Hosts() {
-		t.allowHosts.Add(h)
-	}
-
-	// start allowed hosts
-	t.allowHosts.Start()
 	defer t.allowHosts.Stop()
-
-	// start captive portal detection
-	t.cpd.Start()
 	defer t.cpd.Stop()
-
-	// start device monitor
-	if err := t.devmon.Start(); err != nil {
-		log.WithError(err).Fatal("TrafPol could not start DevMon")
-	}
 	defer t.devmon.Stop()
-
-	// start dns monitor
-	if err := t.dnsmon.Start(); err != nil {
-		log.WithError(err).Fatal("TrafPol could not start DNSMon")
-	}
 	defer t.dnsmon.Stop()
 
 	// enter main loop
@@ -137,8 +110,52 @@ func (t *TrafPol) start() {
 }
 
 // Start starts the traffic policing component
-func (t *TrafPol) Start() {
-	go t.start()
+func (t *TrafPol) Start() error {
+	log.Debug("TrafPol starting")
+
+	// create context
+	ctx := context.Background()
+
+	// set firewall config
+	setFilterRules(ctx, t.config.FirewallMark)
+
+	// add CPD hosts to allowed hosts
+	for _, h := range t.cpd.Hosts() {
+		t.allowHosts.Add(h)
+	}
+
+	// start allowed hosts
+	t.allowHosts.Start()
+
+	// start captive portal detection
+	t.cpd.Start()
+
+	// start device monitor
+	err := t.devmon.Start()
+	if err != nil {
+		err = fmt.Errorf("TrafPol could not start DevMon: %w", err)
+		goto cleanup_devmon
+	}
+
+	// start dns monitor
+	err = t.dnsmon.Start()
+	if err != nil {
+		err = fmt.Errorf("TrafPol could not start DNSMon: %w", err)
+		goto cleanup_dnsmon
+	}
+
+	go t.start(ctx)
+	return nil
+
+	// clean up after error
+cleanup_dnsmon:
+	t.devmon.Stop()
+cleanup_devmon:
+	t.cpd.Stop()
+	t.allowHosts.Stop()
+	unsetFilterRules(ctx)
+
+	return err
 }
 
 // Stop stops the traffic policing component

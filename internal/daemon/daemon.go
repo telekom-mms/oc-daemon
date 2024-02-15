@@ -602,7 +602,9 @@ func (d *Daemon) startTrafPol() {
 	c.AllowedHosts = append(c.AllowedHosts, d.getProfileAllowedHosts()...)
 	c.FirewallMark = d.config.SplitRouting.FirewallMark
 	d.trafpol = trafpol.NewTrafPol(c)
-	d.trafpol.Start()
+	if err := d.trafpol.Start(); err != nil {
+		log.WithError(err).Fatal("Daemon could not start TrafPol")
+	}
 }
 
 // stopTrafPol stops traffic policing if it's running
