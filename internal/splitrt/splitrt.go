@@ -229,7 +229,9 @@ func (s *SplitRouting) start() {
 	defer s.teardownRouting(ctx)
 
 	// start device monitor
-	s.devmon.Start()
+	if err := s.devmon.Start(); err != nil {
+		log.WithError(err).Fatal("SplitRouting DevMon start error")
+	}
 	defer s.devmon.Stop()
 
 	// start address monitor

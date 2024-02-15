@@ -200,8 +200,8 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	defer func() { addrmon.RegisterAddrUpdates = oldRegisterAddrUpdates }()
 
 	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
-	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
-		return nil
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 

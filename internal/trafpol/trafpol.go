@@ -100,7 +100,9 @@ func (t *TrafPol) start() {
 	defer t.cpd.Stop()
 
 	// start device monitor
-	t.devmon.Start()
+	if err := t.devmon.Start(); err != nil {
+		log.WithError(err).Fatal("TrafPol could not start DevMon")
+	}
 	defer t.devmon.Stop()
 
 	// start dns monitor

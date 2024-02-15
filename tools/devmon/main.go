@@ -8,7 +8,9 @@ import (
 func main() {
 	log.SetLevel(log.DebugLevel)
 	d := devmon.NewDevMon()
-	go d.Start()
+	if err := d.Start(); err != nil {
+		log.WithError(err).Fatal("could not start DevMon")
+	}
 	for u := range d.Updates() {
 		log.Println(u)
 	}

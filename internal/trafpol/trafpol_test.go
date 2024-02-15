@@ -105,8 +105,8 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 func TestTrafPolStartEvents(_ *testing.T) {
 	// set dummy low level function for devmon
 	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
-	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
-		return nil
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
@@ -122,8 +122,8 @@ func TestTrafPolStartEvents(_ *testing.T) {
 func TestTrafPolStartStop(_ *testing.T) {
 	// set dummy low level function for devmon
 	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
-	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
-		return nil
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 

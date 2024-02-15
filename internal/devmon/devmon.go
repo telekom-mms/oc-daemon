@@ -1,6 +1,7 @@
 package devmon
 
 import (
+	"fmt"
 	"net"
 	"path/filepath"
 
@@ -19,6 +20,7 @@ type Update struct {
 
 // DevMon is a device monitor
 type DevMon struct {
+	events  chan netlink.LinkUpdate
 	updates chan *Update
 	upsDone chan struct{}
 	done    chan struct{}
@@ -76,17 +78,17 @@ func (d *DevMon) handleLink(add bool, link netlink.Link) {
 }
 
 // RegisterLinkUpdates registers for link update events
-var RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
+var RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
 	// register for link update events
 	events := make(chan netlink.LinkUpdate)
 	options := netlink.LinkSubscribeOptions{
 		ListExisting: true,
 	}
 	if err := netlink.LinkSubscribeWithOptions(events, d.upsDone, options); err != nil {
-		log.WithError(err).Fatal("DevMon link update subscribe error")
+		return nil, fmt.Errorf("could not subscribe to link updates: %w", err)
 	}
 
-	return events
+	return events, nil
 }
 
 // start starts the device monitor
@@ -95,17 +97,18 @@ func (d *DevMon) start() {
 	defer close(d.updates)
 	defer close(d.upsDone)
 
-	// register for link update events
-	events := RegisterLinkUpdates(d)
-
 	// handle link update events
 	for {
 		select {
-		case e, ok := <-events:
+		case e, ok := <-d.events:
 			if !ok {
 				// unexpected close of events, try to re-open
 				log.Error("DevMon got unexpected close of link events")
-				events = RegisterLinkUpdates(d)
+				events, err := RegisterLinkUpdates(d)
+				if err != nil {
+					log.WithError(err).Error("DevMon register link update error")
+				}
+				d.events = events
 				break
 			}
 			switch e.Header.Type {
@@ -121,7 +124,7 @@ func (d *DevMon) start() {
 			// drain events and wait for channel shutdown; this
 			// could take until the next link update
 			go func() {
-				for range events {
+				for range d.events {
 					// wait for channel shutdown
 				}
 			}()
@@ -131,8 +134,16 @@ func (d *DevMon) start() {
 }
 
 // Start starts the device monitor
-func (d *DevMon) Start() {
+func (d *DevMon) Start() error {
+	// register for link update events
+	events, err := RegisterLinkUpdates(d)
+	if err != nil {
+		return err
+	}
+	d.events = events
+
 	go d.start()
+	return nil
 }
 
 // Stop stops the device monitor
