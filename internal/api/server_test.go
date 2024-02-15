@@ -111,11 +111,13 @@ func TestServerSetSocketPermissions(_ *testing.T) {
 }
 
 // TestServerStartStop tests Start and Stop of Server
-func TestServerStartStop(_ *testing.T) {
+func TestServerStartStop(t *testing.T) {
 	config := NewConfig()
 	config.SocketFile = "test.sock"
 	server := NewServer(config)
-	server.Start()
+	if err := server.Start(); err != nil {
+		t.Error(err)
+	}
 	server.Stop()
 }
 

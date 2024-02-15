@@ -678,7 +678,9 @@ func (d *Daemon) start() {
 	defer d.runner.Stop()
 
 	// start unix server
-	d.server.Start()
+	if err := d.server.Start(); err != nil {
+		log.WithError(err).Fatal("Daemon could not start Socket API server")
+	}
 	defer d.server.Stop()
 
 	// start dbus api service
