@@ -3,7 +3,6 @@ package vpnstatus
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"reflect"
 	"testing"
 )
@@ -139,11 +138,11 @@ func TestJSON(t *testing.T) {
 	s := New()
 	b, err := s.JSON()
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	n, err := NewFromJSON(b)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(n, s) {
 		t.Errorf("got %v, want %v", n, s)
