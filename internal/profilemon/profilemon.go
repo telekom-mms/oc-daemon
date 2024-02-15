@@ -3,6 +3,7 @@ package profilemon
 import (
 	"bytes"
 	"crypto/sha256"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -89,11 +90,11 @@ func (p *ProfileMon) start() {
 }
 
 // Start starts the profile monitor
-func (p *ProfileMon) Start() {
+func (p *ProfileMon) Start() error {
 	// create watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.WithError(err).Fatal("XML Profile watcher create error")
+		return fmt.Errorf("could not create file watcher: %w", err)
 	}
 
 	// add xml profile folder to watcher
@@ -104,6 +105,7 @@ func (p *ProfileMon) Start() {
 
 	p.watcher = watcher
 	go p.start()
+	return nil
 }
 
 // Stop stops the profile monitor

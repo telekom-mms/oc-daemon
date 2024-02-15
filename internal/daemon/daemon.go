@@ -688,7 +688,9 @@ func (d *Daemon) start() {
 	defer d.dbus.Stop()
 
 	// start xml profile monitor
-	d.profmon.Start()
+	if err := d.profmon.Start(); err != nil {
+		log.WithError(err).Fatal("Daemon could not start ProfileMon")
+	}
 	defer d.profmon.Stop()
 
 	// set initial status

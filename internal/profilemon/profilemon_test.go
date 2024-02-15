@@ -3,7 +3,6 @@ package profilemon
 import (
 	"bytes"
 	"errors"
-	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,17 +11,17 @@ import (
 )
 
 // createProfileMonTestFile creates a temporary file for ProfileMon testing
-func createProfileMonTestFile() string {
+func createProfileMonTestFile(t *testing.T) string {
 	f, err := os.CreateTemp("", "profilemon-test")
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	return f.Name()
 }
 
 // TestProfileMonHandleEvent tests handleEvent of ProfileMon
 func TestProfileMonHandleEvent(t *testing.T) {
-	f := createProfileMonTestFile()
+	f := createProfileMonTestFile(t)
 	defer func() { _ = os.Remove(f) }()
 
 	p := NewProfileMon(f)
@@ -51,7 +50,7 @@ func TestProfileMonHandleEvent(t *testing.T) {
 
 // TestProfileMonStartEvents tests start of ProfileMon, events.
 func TestProfileMonStartEvents(t *testing.T) {
-	f := createProfileMonTestFile()
+	f := createProfileMonTestFile(t)
 	defer func() { _ = os.Remove(f) }()
 
 	p := NewProfileMon(f)
@@ -77,12 +76,14 @@ func TestProfileMonStartEvents(t *testing.T) {
 }
 
 // TestProfileMonStartStop tests Start and Stop of ProfileMon
-func TestProfileMonStartStop(_ *testing.T) {
-	f := createProfileMonTestFile()
+func TestProfileMonStartStop(t *testing.T) {
+	f := createProfileMonTestFile(t)
 	defer func() { _ = os.Remove(f) }()
 
 	p := NewProfileMon(f)
-	p.Start()
+	if err := p.Start(); err != nil {
+		t.Error(err)
+	}
 	p.Stop()
 }
 
