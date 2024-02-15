@@ -21,7 +21,9 @@ func TestRunClient(t *testing.T) {
 			r.Close()
 		}
 	}()
-	server.Start()
+	if err := server.Start(); err != nil {
+		t.Fatal(err)
+	}
 	if err := runClient(sockfile, &daemon.VPNConfigUpdate{}); err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +37,9 @@ func TestRunClient(t *testing.T) {
 			r.Close()
 		}
 	}()
-	server.Start()
+	if err := server.Start(); err != nil {
+		t.Fatal(err)
+	}
 	if err := runClient(sockfile, &daemon.VPNConfigUpdate{}); err != nil {
 		t.Fatal(err)
 	}

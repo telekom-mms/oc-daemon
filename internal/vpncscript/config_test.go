@@ -32,7 +32,9 @@ func TestCreateConfigSplit(t *testing.T) {
 	got := vpnconfig.New()
 
 	// update config from test environment
-	createConfigSplit(env, got)
+	if err := createConfigSplit(env, got); err != nil {
+		t.Fatal(err)
+	}
 
 	// check results
 	if len(got.Split.ExcludeIPv4) != len(ipv4) {
@@ -118,7 +120,10 @@ func TestCreateConfigUpdate(t *testing.T) {
 	}
 
 	// pare environment and get update
-	got := createConfigUpdate(env)
+	got, err := createConfigUpdate(env)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// compare results
 	if got.Reason != reason {
