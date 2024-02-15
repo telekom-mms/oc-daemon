@@ -233,7 +233,9 @@ func (s *SplitRouting) start() {
 	defer s.devmon.Stop()
 
 	// start address monitor
-	s.addrmon.Start()
+	if err := s.addrmon.Start(); err != nil {
+		log.WithError(err).Fatal("SplitRouting AddrMon start error")
+	}
 	defer s.addrmon.Stop()
 
 	// main loop

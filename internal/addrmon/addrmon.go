@@ -1,6 +1,7 @@
 package addrmon
 
 import (
+	"fmt"
 	"net"
 
 	log "github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ type Update struct {
 
 // AddrMon is an address monitor
 type AddrMon struct {
+	events  chan netlink.AddrUpdate
 	updates chan *Update
 	upsDone chan struct{}
 	done    chan struct{}
@@ -34,17 +36,17 @@ func (a *AddrMon) sendUpdate(update *Update) {
 var netlinkAddrSubscribeWithOptions = netlink.AddrSubscribeWithOptions
 
 // RegisterAddrUpdates registers for addr update events
-var RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
+var RegisterAddrUpdates = func(a *AddrMon) (chan netlink.AddrUpdate, error) {
 	// register for addr update events
 	events := make(chan netlink.AddrUpdate)
 	options := netlink.AddrSubscribeOptions{
 		ListExisting: true,
 	}
 	if err := netlinkAddrSubscribeWithOptions(events, a.upsDone, options); err != nil {
-		log.WithError(err).Fatal("AddrMon address subscribe error")
+		return nil, fmt.Errorf("could not subscribe to address events: %w", err)
 	}
 
-	return events
+	return events, nil
 }
 
 // start starts the address monitor
@@ -53,17 +55,18 @@ func (a *AddrMon) start() {
 	defer close(a.updates)
 	defer close(a.upsDone)
 
-	// register for addr update events
-	events := RegisterAddrUpdates(a)
-
 	// handle events
 	for {
 		select {
-		case e, ok := <-events:
+		case e, ok := <-a.events:
 			if !ok {
 				// unexpected close of events, try to re-open
 				log.Error("AddrMon got unexpected close of addr events")
-				events = RegisterAddrUpdates(a)
+				events, err := RegisterAddrUpdates(a)
+				if err != nil {
+					log.WithError(err).Error("AddrMon register addr updates error")
+				}
+				a.events = events
 				break
 			}
 
@@ -79,7 +82,7 @@ func (a *AddrMon) start() {
 			// drain events and wait for channel shutdown; this
 			// could take until the next addr update
 			go func() {
-				for range events {
+				for range a.events {
 					// wait for channel shutdown
 				}
 			}()
@@ -91,8 +94,16 @@ func (a *AddrMon) start() {
 }
 
 // Start starts the address monitor
-func (a *AddrMon) Start() {
+func (a *AddrMon) Start() error {
+	// register for addr update events
+	events, err := RegisterAddrUpdates(a)
+	if err != nil {
+		return err
+	}
+	a.events = events
+
 	go a.start()
+	return nil
 }
 
 // Stop stops the address monitor

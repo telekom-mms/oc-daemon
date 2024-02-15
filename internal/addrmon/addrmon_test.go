@@ -24,17 +24,21 @@ func TestAddrMonStartStop(t *testing.T) {
 		return nil
 	}
 
-	addrMon.Start()
+	if err := addrMon.Start(); err != nil {
+		t.Error(err)
+	}
 	addrMon.Stop()
 
 	// test without AddrUpdates
 	addrMon = NewAddrMon()
 
-	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
-		return nil
+	RegisterAddrUpdates = func(a *AddrMon) (chan netlink.AddrUpdate, error) {
+		return nil, nil
 	}
 
-	addrMon.Start()
+	if err := addrMon.Start(); err != nil {
+		t.Error(err)
+	}
 	addrMon.Stop()
 
 	// helper function for AddrUpdates
@@ -53,13 +57,15 @@ func TestAddrMonStartStop(t *testing.T) {
 	// test with AddrUpdates
 	addrMon = NewAddrMon()
 
-	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
+	RegisterAddrUpdates = func(a *AddrMon) (chan netlink.AddrUpdate, error) {
 		updates := make(chan netlink.AddrUpdate)
 		go addrUpdates(updates, a.upsDone)
-		return updates
+		return updates, nil
 	}
 
-	addrMon.Start()
+	if err := addrMon.Start(); err != nil {
+		t.Error(err)
+	}
 	for i := 0; i < 3; i++ {
 		log.Println(<-addrMon.Updates())
 	}
@@ -69,7 +75,7 @@ func TestAddrMonStartStop(t *testing.T) {
 	addrMon = NewAddrMon()
 	runOnce := false
 
-	RegisterAddrUpdates = func(a *AddrMon) chan netlink.AddrUpdate {
+	RegisterAddrUpdates = func(a *AddrMon) (chan netlink.AddrUpdate, error) {
 		updates := make(chan netlink.AddrUpdate)
 		if !runOnce {
 			runOnce = true
@@ -77,10 +83,12 @@ func TestAddrMonStartStop(t *testing.T) {
 		} else {
 			go addrUpdates(updates, a.upsDone)
 		}
-		return updates
+		return updates, nil
 	}
 
-	addrMon.Start()
+	if err := addrMon.Start(); err != nil {
+		t.Error(err)
+	}
 	log.Println(<-addrMon.Updates())
 	addrMon.Stop()
 }
