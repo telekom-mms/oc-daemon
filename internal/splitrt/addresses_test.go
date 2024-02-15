@@ -1,7 +1,6 @@
 package splitrt
 
 import (
-	"log"
 	"net"
 	"reflect"
 	"testing"
@@ -10,10 +9,10 @@ import (
 )
 
 // getTestAddrMonUpdate returns an AddrMon update for testing
-func getTestAddrMonUpdate(addr string) *addrmon.Update {
+func getTestAddrMonUpdate(t *testing.T, addr string) *addrmon.Update {
 	_, ipnet, err := net.ParseCIDR(addr)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	return &addrmon.Update{
@@ -26,7 +25,7 @@ func getTestAddrMonUpdate(addr string) *addrmon.Update {
 // TestAddressesAdd tests Add of Addresses
 func TestAddressesAdd(t *testing.T) {
 	a := NewAddresses()
-	update := getTestAddrMonUpdate("192.168.1.0/24")
+	update := getTestAddrMonUpdate(t, "192.168.1.0/24")
 
 	// test adding
 	a.Add(update)
@@ -39,9 +38,9 @@ func TestAddressesAdd(t *testing.T) {
 func TestAddressesRemove(t *testing.T) {
 	a := NewAddresses()
 	updates := []*addrmon.Update{
-		getTestAddrMonUpdate("192.168.1.0/24"),
-		getTestAddrMonUpdate("192.168.2.0/24"),
-		getTestAddrMonUpdate("192.168.3.0/24"),
+		getTestAddrMonUpdate(t, "192.168.1.0/24"),
+		getTestAddrMonUpdate(t, "192.168.2.0/24"),
+		getTestAddrMonUpdate(t, "192.168.3.0/24"),
 	}
 
 	// add elements
@@ -69,8 +68,8 @@ func TestAddressesRemove(t *testing.T) {
 // TestAddressesGet tests Get of Addresses
 func TestAddressesGet(t *testing.T) {
 	a := NewAddresses()
-	update1 := getTestAddrMonUpdate("192.168.1.0/24")
-	update2 := getTestAddrMonUpdate("192.168.2.0/24")
+	update1 := getTestAddrMonUpdate(t, "192.168.1.0/24")
+	update2 := getTestAddrMonUpdate(t, "192.168.2.0/24")
 
 	// get empty
 	var want []*net.IPNet

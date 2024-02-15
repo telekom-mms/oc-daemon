@@ -124,7 +124,9 @@ func (v *VPNSetup) setupRouting(vpnconf *vpnconfig.Config) {
 		return
 	}
 	v.splitrt = splitrt.NewSplitRouting(v.splitrtConf, vpnconf)
-	v.splitrt.Start()
+	if err := v.splitrt.Start(); err != nil {
+		log.WithError(err).Error("VPNSetup error setting split routing")
+	}
 }
 
 // teardownRouting tears down the routing configuration

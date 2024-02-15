@@ -3,7 +3,6 @@ package splitrt
 import (
 	"context"
 	"errors"
-	"log"
 	"net"
 	"reflect"
 	"testing"
@@ -12,7 +11,7 @@ import (
 )
 
 // getTestExcludes returns excludes for testing
-func getTestExcludes() []*net.IPNet {
+func getTestExcludes(t *testing.T) []*net.IPNet {
 	excludes := []*net.IPNet{}
 	for _, s := range []string{
 		"192.168.1.0/24",
@@ -20,7 +19,7 @@ func getTestExcludes() []*net.IPNet {
 	} {
 		_, exclude, err := net.ParseCIDR(s)
 		if err != nil {
-			log.Fatal(err)
+			t.Fatal(err)
 		}
 		excludes = append(excludes, exclude)
 	}
@@ -31,7 +30,7 @@ func getTestExcludes() []*net.IPNet {
 func TestExcludesAddStatic(t *testing.T) {
 	ctx := context.Background()
 	e := NewExcludes()
-	excludes := getTestExcludes()
+	excludes := getTestExcludes(t)
 
 	// set testing runNft function
 	got := []string{}
@@ -65,7 +64,7 @@ func TestExcludesAddStatic(t *testing.T) {
 func TestExcludesAddDynamic(t *testing.T) {
 	ctx := context.Background()
 	e := NewExcludes()
-	excludes := getTestExcludes()
+	excludes := getTestExcludes(t)
 
 	// set testing runNft function
 	got := []string{}
@@ -99,7 +98,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 func TestExcludesRemove(t *testing.T) {
 	ctx := context.Background()
 	e := NewExcludes()
-	excludes := getTestExcludes()
+	excludes := getTestExcludes(t)
 
 	// set testing runNft function
 	got := []string{}
@@ -179,7 +178,7 @@ func TestExcludesRemove(t *testing.T) {
 func TestExcludesCleanup(t *testing.T) {
 	ctx := context.Background()
 	e := NewExcludes()
-	excludes := getTestExcludes()
+	excludes := getTestExcludes(t)
 
 	// set testing runNft function
 	got := []string{}

@@ -89,7 +89,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	want := []string{
 		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
 	}
-	update := getTestAddrMonUpdate("192.168.1.1/32")
+	update := getTestAddrMonUpdate(t, "192.168.1.1/32")
 	s.handleAddressUpdate(ctx, update)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -127,7 +127,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	want = []string{
 		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
 	}
-	update = getTestAddrMonUpdate("192.168.1.1/32")
+	update = getTestAddrMonUpdate(t, "192.168.1.1/32")
 	s.handleAddressUpdate(ctx, update)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -207,7 +207,9 @@ func TestSplitRoutingStartStop(t *testing.T) {
 
 	// test with new configs
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Error(err)
+	}
 	s.Stop()
 
 	// test with excludes
@@ -233,7 +235,9 @@ func TestSplitRoutingStartStop(t *testing.T) {
 		},
 	}
 	s = NewSplitRouting(NewConfig(), vpnconf)
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Error(err)
+	}
 	s.Stop()
 
 	// test with vpn address
@@ -241,14 +245,18 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	vpnconf.IPv4.Address = net.IPv4(192, 168, 1, 1)
 	vpnconf.IPv4.Netmask = net.CIDRMask(24, 32)
 	s = NewSplitRouting(NewConfig(), vpnconf)
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Error(err)
+	}
 	s.Stop()
 
 	// test with events
 	s = NewSplitRouting(NewConfig(), vpnconfig.New())
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Error(err)
+	}
 	s.devmon.Updates() <- getTestDevMonUpdate()
-	s.addrmon.Updates() <- getTestAddrMonUpdate("192.168.1.1/32")
+	s.addrmon.Updates() <- getTestAddrMonUpdate(t, "192.168.1.1/32")
 	report := dnsproxy.NewReport("example.com", net.ParseIP("192.168.1.1"), 300)
 	s.dnsreps <- report
 	report.Wait()
@@ -259,7 +267,9 @@ func TestSplitRoutingStartStop(t *testing.T) {
 		return errors.New("test error")
 	}
 	s = NewSplitRouting(NewConfig(), vpnconfig.New())
-	s.Start()
+	if err := s.Start(); err != nil {
+		t.Error(err)
+	}
 	s.Stop()
 }
 
