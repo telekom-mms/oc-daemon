@@ -5,6 +5,18 @@ import (
 	"testing"
 )
 
+// TestDaemonErrors tests Errors of Daemon.
+func TestDaemonErrors(t *testing.T) {
+	// create daemon
+	c := NewConfig()
+	c.OpenConnect.XMLProfile = filepath.Join(t.TempDir(), "does-not-exist")
+	d := NewDaemon(c)
+
+	if d.Errors() == nil || d.Errors() != d.errors {
+		t.Errorf("invalid errors channel: %v", d.Errors())
+	}
+}
+
 // TestNewDaemon tests NewDaemon.
 func TestNewDaemon(t *testing.T) {
 	// create daemon
@@ -28,6 +40,7 @@ func TestNewDaemon(t *testing.T) {
 		d.vpnsetup,
 		d.runner,
 		d.status,
+		d.errors,
 		d.done,
 		d.closed,
 		d.profile,

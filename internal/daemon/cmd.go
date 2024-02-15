@@ -106,15 +106,23 @@ func run(args []string) error {
 
 	// start daemon
 	daemon := NewDaemon(config)
-	daemon.Start()
+	if err := daemon.Start(); err != nil {
+		return err
+	}
+	defer daemon.Stop()
 
-	// catch interrupt and clean up
+	// catch interrupt signal
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-	<-c
-	daemon.Stop()
 
-	return nil
+	// wait for interrupt signal or daemon error
+	var err error
+	select {
+	case <-c:
+	case err = <-daemon.Errors():
+	}
+
+	return err
 }
 
 // Run is the main entry point for the daemon

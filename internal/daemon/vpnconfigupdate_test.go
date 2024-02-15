@@ -102,11 +102,11 @@ func TestVPNConfigUpdateJSON(t *testing.T) {
 
 		b, err := u.JSON()
 		if err != nil {
-			log.Fatal(err)
+			t.Fatal(err)
 		}
 		n, err := VPNConfigUpdateFromJSON(b)
 		if err != nil {
-			log.Fatal(err)
+			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(u, n) {
 			t.Errorf("got %v, want %v", n, u)
