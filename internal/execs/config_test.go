@@ -1,7 +1,6 @@
 package execs
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -36,7 +35,7 @@ func TestConfigCheckExecutables(t *testing.T) {
 	// create temporary dir for executables
 	dir, err := os.MkdirTemp("", "execs-test")
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 
@@ -65,7 +64,7 @@ func TestConfigCheckExecutables(t *testing.T) {
 
 		// create executable file
 		if err := os.WriteFile(f, []byte{}, 0777); err != nil {
-			log.Fatal(err)
+			t.Fatal(err)
 		}
 	}
 

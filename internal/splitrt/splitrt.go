@@ -2,6 +2,7 @@ package splitrt
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	log "github.com/sirupsen/logrus"
@@ -217,23 +218,10 @@ func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) 
 }
 
 // start starts split routing
-func (s *SplitRouting) start() {
-	log.Debug("SplitRouting starting")
+func (s *SplitRouting) start(ctx context.Context) {
 	defer close(s.closed)
-
-	// create context
-	ctx := context.Background()
-
-	// configure routing
-	s.setupRouting(ctx)
 	defer s.teardownRouting(ctx)
-
-	// start device monitor
-	s.devmon.Start()
 	defer s.devmon.Stop()
-
-	// start address monitor
-	s.addrmon.Start()
 	defer s.addrmon.Stop()
 
 	// main loop
@@ -252,8 +240,30 @@ func (s *SplitRouting) start() {
 }
 
 // Start starts split routing
-func (s *SplitRouting) Start() {
-	go s.start()
+func (s *SplitRouting) Start() error {
+	log.Debug("SplitRouting starting")
+
+	// create context
+	ctx := context.Background()
+
+	// configure routing
+	s.setupRouting(ctx)
+
+	// start device monitor
+	if err := s.devmon.Start(); err != nil {
+		s.teardownRouting(ctx)
+		return fmt.Errorf("SplitRouting could not start DevMon: %w", err)
+	}
+
+	// start address monitor
+	if err := s.addrmon.Start(); err != nil {
+		s.devmon.Stop()
+		s.teardownRouting(ctx)
+		return fmt.Errorf("SplitRouting could not start AddrMon: %w", err)
+	}
+
+	go s.start(ctx)
+	return nil
 }
 
 // Stop stops split routing

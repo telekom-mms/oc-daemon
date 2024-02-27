@@ -11,12 +11,14 @@ import (
 // TestDevMonStartStop tests Start and Stop of DevMon
 func TestDevMonStartStop(t *testing.T) {
 	// test without LinkUpdates
-	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
-		return nil
+	RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
 	}
 
 	devMon := NewDevMon()
-	devMon.Start()
+	if err := devMon.Start(); err != nil {
+		t.Error(err)
+	}
 	devMon.Stop()
 
 	// test with LinkUpdates
@@ -82,19 +84,21 @@ func TestDevMonStartStop(t *testing.T) {
 		// send test update in goroutine spawned in RegisterLinkUpdates
 		// and signal sending complete
 		sendDone := make(chan struct{})
-		RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
+		RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
 			updates := make(chan netlink.LinkUpdate)
 			go func(up netlink.LinkUpdate) {
 				defer close(sendDone)
 				updates <- up
 			}(test.update)
-			return updates
+			return updates, nil
 		}
 
 		// start monitor, wait for result/sending complete and check
 		// result, stop monitor
 		devMon := NewDevMon()
-		devMon.Start()
+		if err := devMon.Start(); err != nil {
+			t.Error(err)
+		}
 		if test.want != nil {
 			up := <-devMon.Updates()
 			if up.Add != test.want.Add || up.Type != test.want.Type {
@@ -107,7 +111,7 @@ func TestDevMonStartStop(t *testing.T) {
 
 	// test event after stop
 	sendDone := make(chan struct{})
-	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
+	RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
 		updates := make(chan netlink.LinkUpdate)
 		go func() {
 			defer close(sendDone)
@@ -121,17 +125,19 @@ func TestDevMonStartStop(t *testing.T) {
 			up.Link = &netlink.Device{}
 			updates <- up
 		}()
-		return updates
+		return updates, nil
 	}
 
 	devMon = NewDevMon()
-	devMon.Start()
+	if err := devMon.Start(); err != nil {
+		t.Error(err)
+	}
 	devMon.Stop()
 	<-sendDone
 
 	// test with unexpected close and LinkUpdates
 	runOnce := false
-	RegisterLinkUpdates = func(d *DevMon) chan netlink.LinkUpdate {
+	RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
 		updates := make(chan netlink.LinkUpdate)
 		if !runOnce {
 			// on first run, close updates
@@ -146,11 +152,13 @@ func TestDevMonStartStop(t *testing.T) {
 				updates <- up
 			}()
 		}
-		return updates
+		return updates, nil
 	}
 
 	devMon = NewDevMon()
-	devMon.Start()
+	if err := devMon.Start(); err != nil {
+		t.Error(err)
+	}
 	up := <-devMon.Updates()
 	if !up.Add {
 		t.Errorf("add should be true")

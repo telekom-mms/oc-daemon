@@ -36,14 +36,16 @@ func TestDNSMonStartEvents(t *testing.T) {
 	dnsMon.watcher.Errors <- errors.New("test error")
 
 	// test unexpected close
-	watcher.Close()
+	_ = watcher.Close()
 	<-dnsMon.closed
 }
 
 // TestDNSMonStartStop tests Start and Stop of DNSMon
 func TestDNSMonStartStop(t *testing.T) {
 	dnsMon := NewDNSMon(NewConfig())
-	dnsMon.Start()
+	if err := dnsMon.Start(); err != nil {
+		t.Error(err)
+	}
 	dnsMon.Stop()
 }
 

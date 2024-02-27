@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"net"
 	"reflect"
 	"strconv"
@@ -47,6 +48,9 @@ type Daemon struct {
 
 	// token is used for client authentication
 	token string
+
+	// channel for errors
+	errors chan error
 
 	// channels for shutdown
 	done   chan struct{}
@@ -187,7 +191,9 @@ func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 	// update json config
 	b, err := config.JSON()
 	if err != nil {
-		log.WithError(err).Fatal("Daemon could not convert status to JSON")
+		log.WithError(err).Error("Daemon could not convert status to JSON")
+		d.dbus.SetProperty(dbusapi.PropertyVPNConfig, dbusapi.VPNConfigInvalid)
+		return
 	}
 	d.dbus.SetProperty(dbusapi.PropertyVPNConfig, string(b))
 }
@@ -399,11 +405,11 @@ func (d *Daemon) checkDisconnectVPN() {
 }
 
 // handleTNDResult handles a TND result
-func (d *Daemon) handleTNDResult(trusted bool) {
+func (d *Daemon) handleTNDResult(trusted bool) error {
 	log.WithField("trusted", trusted).Debug("Daemon handling TND result")
 	d.setStatusTrustedNetwork(trusted)
 	d.checkDisconnectVPN()
-	d.checkTrafPol()
+	return d.checkTrafPol()
 }
 
 // handleRunnerDisconnect handles a disconnect event from the OC runner,
@@ -467,14 +473,19 @@ func readXMLProfile(xmlProfile string) *xmlprofile.Profile {
 }
 
 // handleProfileUpdate handles a xml profile update
-func (d *Daemon) handleProfileUpdate() {
+func (d *Daemon) handleProfileUpdate() error {
 	log.Debug("Daemon handling XML profile update")
 	d.profile = readXMLProfile(d.config.OpenConnect.XMLProfile)
 	d.stopTND()
 	d.stopTrafPol()
-	d.checkTrafPol()
-	d.checkTND()
+	if err := d.checkTrafPol(); err != nil {
+		return err
+	}
+	if err := d.checkTND(); err != nil {
+		return err
+	}
 	d.setStatusServers(d.profile.GetVPNServerHostNames())
+	return nil
 }
 
 // cleanup cleans up after a failed shutdown
@@ -485,14 +496,15 @@ func (d *Daemon) cleanup(ctx context.Context) {
 }
 
 // initToken creates the daemon token for client authentication
-func (d *Daemon) initToken() {
+func (d *Daemon) initToken() error {
 	// TODO: is this good enough for us?
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	if err != nil {
-		log.WithError(err).Fatal("Daemon could not init token")
+		return err
 	}
 	d.token = base64.RawURLEncoding.EncodeToString(b)
+	return nil
 }
 
 // getProfileAllowedHosts returns the allowed hosts
@@ -554,16 +566,17 @@ func (d *Daemon) setTNDDialer() {
 }
 
 // startTND starts TND if it's not running
-func (d *Daemon) startTND() {
+func (d *Daemon) startTND() error {
 	if d.tnd != nil {
-		return
+		return nil
 	}
 	d.tnd = tnd.NewDetector(d.config.TND)
 	d.initTNDServers()
 	d.setTNDDialer()
 	if err := d.tnd.Start(); err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Daemon could not start TND: %w", err)
 	}
+	return nil
 }
 
 // stopTND stops TND if it's running
@@ -576,12 +589,12 @@ func (d *Daemon) stopTND() {
 }
 
 // checkTND checks if TND should be running and starts or stops it
-func (d *Daemon) checkTND() {
+func (d *Daemon) checkTND() error {
 	if len(d.profile.GetTNDServers()) == 0 {
 		d.stopTND()
-		return
+		return nil
 	}
-	d.startTND()
+	return d.startTND()
 }
 
 // getTNDResults returns the TND results channel
@@ -594,15 +607,18 @@ func (d *Daemon) getTNDResults() chan bool {
 }
 
 // startTrafPol starts traffic policing if it's not running
-func (d *Daemon) startTrafPol() {
+func (d *Daemon) startTrafPol() error {
 	if d.trafpol != nil {
-		return
+		return nil
 	}
 	c := trafpol.NewConfig()
 	c.AllowedHosts = append(c.AllowedHosts, d.getProfileAllowedHosts()...)
 	c.FirewallMark = d.config.SplitRouting.FirewallMark
 	d.trafpol = trafpol.NewTrafPol(c)
-	d.trafpol.Start()
+	if err := d.trafpol.Start(); err != nil {
+		return fmt.Errorf("Daemon could not start TrafPol: %w", err)
+	}
+	return nil
 }
 
 // stopTrafPol stops traffic policing if it's running
@@ -616,82 +632,40 @@ func (d *Daemon) stopTrafPol() {
 
 // checkTrafPol checks if traffic policing should be running and
 // starts or stops it
-func (d *Daemon) checkTrafPol() {
+func (d *Daemon) checkTrafPol() error {
 	// check if traffic policing is disabled in the daemon
 	if d.disableTrafPol {
 		d.stopTrafPol()
-		return
+		return nil
 	}
 
 	// check if traffic policing is enabled in the xml profile
 	if !d.profile.GetAlwaysOn() {
 		d.stopTrafPol()
-		return
+		return nil
 	}
 
 	// check if we are connected to a trusted network
 	if d.status.TrustedNetwork.Trusted() {
 		d.stopTrafPol()
-		return
+		return nil
 	}
 
-	d.startTrafPol()
+	return d.startTrafPol()
 }
 
 // start starts the daemon
 func (d *Daemon) start() {
 	defer close(d.closed)
-
-	// create context
-	ctx := context.Background()
-
-	// set executables
-	execs.SetExecutables(d.config.Executables)
-
-	// cleanup after a failed shutdown
-	d.cleanup(ctx)
-
-	// init token
-	d.initToken()
-
-	// start sleep monitor
-	if err := d.sleepmon.Start(); err != nil {
-		log.WithError(err).Fatal("Daemon could not start sleep monitor")
-	}
 	defer d.sleepmon.Stop()
-
-	// start traffic policing
-	d.checkTrafPol()
 	defer d.stopTrafPol()
-
-	// start TND
-	d.checkTND()
 	defer d.stopTND()
-
-	// start VPN setup
-	d.vpnsetup.Start()
 	defer d.vpnsetup.Stop()
-
-	// start OC runner
-	d.runner.Start()
 	defer d.handleRunnerDisconnect() // clean up vpn config
 	defer d.runner.Stop()
-
-	// start unix server
-	d.server.Start()
 	defer d.server.Stop()
-
-	// start dbus api service
-	d.dbus.Start()
 	defer d.dbus.Stop()
-
-	// start xml profile monitor
-	d.profmon.Start()
 	defer d.profmon.Stop()
-
-	// set initial status
-	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
-	d.setStatusServers(d.profile.GetVPNServerHostNames())
 
 	// run main loop
 	for {
@@ -703,7 +677,11 @@ func (d *Daemon) start() {
 			d.handleDBusRequest(req)
 
 		case r := <-d.getTNDResults():
-			d.handleTNDResult(r)
+			if err := d.handleTNDResult(r); err != nil {
+				// send error event and stop daemon
+				d.errors <- fmt.Errorf("Daemon could not handle TND result: %w", err)
+				return
+			}
 
 		case e := <-d.runner.Events():
 			d.handleRunnerEvent(e)
@@ -715,7 +693,11 @@ func (d *Daemon) start() {
 			d.handleSleepMonEvent(e)
 
 		case <-d.profmon.Updates():
-			d.handleProfileUpdate()
+			if err := d.handleProfileUpdate(); err != nil {
+				// send error event and stop daemon
+				d.errors <- fmt.Errorf("Daemon could not handle Profile update: %w", err)
+				return
+			}
 
 		case <-d.done:
 			return
@@ -724,8 +706,83 @@ func (d *Daemon) start() {
 }
 
 // Start starts the daemon
-func (d *Daemon) Start() {
+func (d *Daemon) Start() error {
+	// create context
+	ctx := context.Background()
+
+	// set executables
+	execs.SetExecutables(d.config.Executables)
+
+	// cleanup after a failed shutdown
+	d.cleanup(ctx)
+
+	// init token
+	if err := d.initToken(); err != nil {
+		return fmt.Errorf("Daemon could not init token: %w", err)
+	}
+
+	// start sleep monitor
+	if err := d.sleepmon.Start(); err != nil {
+		return fmt.Errorf("Daemon could not start sleep monitor: %w", err)
+	}
+
+	// start traffic policing
+	if err := d.checkTrafPol(); err != nil {
+		return err
+	}
+
+	// start TND
+	if err := d.checkTND(); err != nil {
+		return err
+	}
+
+	// start VPN setup
+	d.vpnsetup.Start()
+
+	// start OC runner
+	d.runner.Start()
+
+	// start unix server
+	err := d.server.Start()
+	if err != nil {
+		err = fmt.Errorf("Daemon could not start Socket API server: %w", err)
+		goto cleanup_unix
+	}
+
+	// start dbus api service
+	err = d.dbus.Start()
+	if err != nil {
+		err = fmt.Errorf("Daemon could not start D-Bus API: %w", err)
+		goto cleanup_dbus
+	}
+
+	// start xml profile monitor
+	err = d.profmon.Start()
+	if err != nil {
+		err = fmt.Errorf("Daemon could not start ProfileMon: %w", err)
+		goto cleanup_profmon
+	}
+
+	// set initial status
+	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
+	d.setStatusServers(d.profile.GetVPNServerHostNames())
+
 	go d.start()
+	return nil
+
+	// clean up after error
+cleanup_profmon:
+	d.dbus.Stop()
+cleanup_dbus:
+	d.server.Stop()
+cleanup_unix:
+	d.runner.Stop()
+	d.vpnsetup.Stop()
+	d.stopTND()
+	d.stopTrafPol()
+	d.sleepmon.Stop()
+
+	return err
 }
 
 // Stop stops the daemon
@@ -733,6 +790,11 @@ func (d *Daemon) Stop() {
 	// stop daemon and wait for main loop termination
 	close(d.done)
 	<-d.closed
+}
+
+// Errors returns the error channel of the daemon.
+func (d *Daemon) Errors() chan error {
+	return d.errors
 }
 
 // NewDaemon returns a new Daemon
@@ -751,6 +813,8 @@ func NewDaemon(config *Config) *Daemon {
 		runner: ocrunner.NewConnect(config.OpenConnect),
 
 		status: vpnstatus.New(),
+
+		errors: make(chan error, 1),
 
 		done:   make(chan struct{}),
 		closed: make(chan struct{}),

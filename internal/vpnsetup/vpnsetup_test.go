@@ -354,14 +354,14 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	defer func() { execs.RunCmdOutput = oldCmdOutput }()
 
 	oldRegisterAddrUpdates := addrmon.RegisterAddrUpdates
-	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) chan netlink.AddrUpdate {
-		return nil
+	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) (chan netlink.AddrUpdate, error) {
+		return nil, nil
 	}
 	defer func() { addrmon.RegisterAddrUpdates = oldRegisterAddrUpdates }()
 
 	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
-	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
-		return nil
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 

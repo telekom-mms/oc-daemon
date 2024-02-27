@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"log"
 	"net"
 	"testing"
 )
@@ -91,7 +90,7 @@ func TestRequestClose(t *testing.T) {
 	go req.Close()
 	msg, err := ReadMessage(c2)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	if msg.Type != TypeOK {
 		t.Errorf("got %d, want %d", msg.Type, TypeOK)
@@ -106,7 +105,7 @@ func TestRequestClose(t *testing.T) {
 	go req.Close()
 	msg, err = ReadMessage(c2)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	if msg.Type != TypeError {
 		t.Errorf("got %d, want %d", msg.Type, TypeError)

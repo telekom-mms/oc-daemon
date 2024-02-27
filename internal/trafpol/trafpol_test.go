@@ -102,16 +102,18 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 }
 
 // TestTrafPolStartEvents tests start of TrafPol, events.
-func TestTrafPolStartEvents(_ *testing.T) {
+func TestTrafPolStartEvents(t *testing.T) {
 	// set dummy low level function for devmon
 	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
-	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
-		return nil
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	tp := NewTrafPol(NewConfig())
-	tp.Start()
+	if err := tp.Start(); err != nil {
+		t.Fatal(err)
+	}
 	tp.devmon.Updates() <- &devmon.Update{Type: "device"}
 	tp.dnsmon.Updates() <- struct{}{}
 	tp.cpd.Results() <- &cpd.Report{}
@@ -119,16 +121,18 @@ func TestTrafPolStartEvents(_ *testing.T) {
 }
 
 // TestTrafPolStartStop tests Start and Stop of TrafPol
-func TestTrafPolStartStop(_ *testing.T) {
+func TestTrafPolStartStop(t *testing.T) {
 	// set dummy low level function for devmon
 	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
-	devmon.RegisterLinkUpdates = func(*devmon.DevMon) chan netlink.LinkUpdate {
-		return nil
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	tp := NewTrafPol(NewConfig())
-	tp.Start()
+	if err := tp.Start(); err != nil {
+		t.Fatal(err)
+	}
 	tp.Stop()
 }
 

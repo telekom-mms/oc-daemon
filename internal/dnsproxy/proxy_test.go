@@ -19,20 +19,20 @@ func getTestConfig() *Config {
 }
 
 // getTestDNSServer returns a dns server for testing.
-func getTestDNSServer(handler dns.Handler) *dns.Server {
+func getTestDNSServer(t *testing.T, handler dns.Handler) *dns.Server {
 	s := &dns.Server{
 		Addr: "127.0.0.1:4255",
 		Net:  "udp",
 	}
 	p, err := net.ListenPacket("udp", s.Addr)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	s.PacketConn = p
 	s.Handler = handler
 	go func() {
 		if err := s.ActivateAndServe(); err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 	}()
 	return s
@@ -51,7 +51,7 @@ func (r *responseWriter) TsigTimersOnly(bool)       {}
 func (r *responseWriter) Hijack()                   {}
 
 // TestProxyHandleRequest tests handleRequest of Proxy.
-func TestProxyHandleRequest(_ *testing.T) {
+func TestProxyHandleRequest(t *testing.T) {
 	p := NewProxy(getTestConfig())
 
 	// without question in request
@@ -65,7 +65,7 @@ func TestProxyHandleRequest(_ *testing.T) {
 	p.handleRequest(nil, &dns.Msg{Question: []dns.Question{{Name: "test"}}})
 
 	// start remote
-	s := getTestDNSServer(dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+	s := getTestDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
 		reply := &dns.Msg{}
 		reply.SetReply(r)
 

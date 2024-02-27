@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"os/user"
@@ -168,7 +169,7 @@ func (s *Server) setSocketPermissions() {
 }
 
 // Start starts the API server
-func (s *Server) Start() {
+func (s *Server) Start() error {
 	// cleanup existing sock file, this should normally fail
 	if err := os.Remove(s.config.SocketFile); err == nil {
 		log.Warn("Removed existing unix socket file")
@@ -177,7 +178,7 @@ func (s *Server) Start() {
 	// start listener
 	listen, err := net.Listen("unix", s.config.SocketFile)
 	if err != nil {
-		log.WithError(err).Fatal("Daemon could not start unix listener")
+		return fmt.Errorf("could not start unix listener: %w", err)
 	}
 	s.listen = listen
 
@@ -192,6 +193,7 @@ func (s *Server) Start() {
 
 	// handle client connections
 	go s.handleClients()
+	return nil
 }
 
 // Stop stops the API server
@@ -200,7 +202,7 @@ func (s *Server) Stop() {
 	s.setStopping()
 	err := s.listen.Close()
 	if err != nil {
-		log.WithError(err).Fatal("Daemon could not close unix listener")
+		log.WithError(err).Error("Daemon could not close unix listener")
 	}
 	for range s.requests {
 		// wait for clients channel close

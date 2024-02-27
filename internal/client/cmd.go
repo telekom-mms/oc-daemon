@@ -74,10 +74,7 @@ func setConfig(args []string) error {
 		cmd := os.Args[0]
 		w := flags.Output()
 		usage := func(f string, args ...interface{}) {
-			_, err := fmt.Fprintf(w, f, args...)
-			if err != nil {
-				log.WithError(err).Fatal("Client could not print usage")
-			}
+			_, _ = fmt.Fprintf(w, f, args...)
 		}
 		usage("Usage:\n")
 		usage("  %s [options] [command]\n", cmd)
