@@ -229,7 +229,7 @@ func TestExcludesCleanup(t *testing.T) {
 }
 
 // TestExcludesStartStop tests Start and Stop of Excludes
-func TestExcludesStartStop(t *testing.T) {
+func TestExcludesStartStop(_ *testing.T) {
 	e := NewExcludes()
 	e.Start()
 	e.Stop()

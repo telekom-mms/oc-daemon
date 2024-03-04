@@ -21,11 +21,11 @@ type testClient struct {
 	subsCha chan *vpnstatus.Status
 }
 
-func (t *testClient) SetConfig(config *client.Config)            {}
+func (t *testClient) SetConfig(*client.Config)                   {}
 func (t *testClient) GetConfig() *client.Config                  { return nil }
-func (t *testClient) SetEnv(env []string)                        {}
+func (t *testClient) SetEnv([]string)                            {}
 func (t *testClient) GetEnv() []string                           { return nil }
-func (t *testClient) SetLogin(login *logininfo.LoginInfo)        {}
+func (t *testClient) SetLogin(*logininfo.LoginInfo)              {}
 func (t *testClient) GetLogin() *logininfo.LoginInfo             { return nil }
 func (t *testClient) Ping() error                                { return nil }
 func (t *testClient) Query() (*vpnstatus.Status, error)          { return t.status, t.querErr }
