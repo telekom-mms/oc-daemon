@@ -1,3 +1,4 @@
+// Package dnsproxy contains the DNS proxy.
 package dnsproxy
 
 import (

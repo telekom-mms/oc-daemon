@@ -1,3 +1,4 @@
+// Package sleepmon contains the sleep monitor.
 package sleepmon
 
 import (

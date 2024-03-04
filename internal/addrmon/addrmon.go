@@ -1,3 +1,4 @@
+// Package addrmon contains the address monitor.
 package addrmon
 
 import (

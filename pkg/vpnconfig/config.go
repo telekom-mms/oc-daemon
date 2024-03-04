@@ -1,3 +1,4 @@
+// Package vpnconfig contains the VPN configuration.
 package vpnconfig
 
 import (

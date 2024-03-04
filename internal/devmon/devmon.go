@@ -1,3 +1,4 @@
+// Package devmon contains the device monitor.
 package devmon
 
 import (

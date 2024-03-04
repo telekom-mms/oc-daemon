@@ -1,3 +1,4 @@
+// Package trafpol contains the traffic policing.
 package trafpol
 
 import (

@@ -1,3 +1,4 @@
+// Package splitrt contains the split routing.
 package splitrt
 
 import (

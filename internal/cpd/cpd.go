@@ -1,3 +1,4 @@
+// Package cpd contains the Captive Portal Detection.
 package cpd
 
 import (

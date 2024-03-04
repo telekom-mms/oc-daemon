@@ -1,3 +1,4 @@
+// Package profilemon contains the XML profile monitor.
 package profilemon
 
 import (

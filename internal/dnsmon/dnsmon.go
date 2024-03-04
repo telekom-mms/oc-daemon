@@ -1,3 +1,4 @@
+// Package dnsmon contains the DNS monitor.
 package dnsmon
 
 import (

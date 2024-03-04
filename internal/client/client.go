@@ -1,3 +1,4 @@
+// Package client contains the OC-Daemon client.
 package client
 
 import (

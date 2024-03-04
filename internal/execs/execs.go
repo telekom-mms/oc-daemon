@@ -1,3 +1,4 @@
+// Package execs contains external executables.
 package execs
 
 import (

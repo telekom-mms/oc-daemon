@@ -1,3 +1,4 @@
+// Package vpnsetup contains the VPN setup component.
 package vpnsetup
 
 import (

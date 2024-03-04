@@ -1,3 +1,6 @@
+/*
+Dnsproxy is a DNS proxy example.
+*/
 package main
 
 import (

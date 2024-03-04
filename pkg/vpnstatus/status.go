@@ -1,3 +1,4 @@
+// Package vpnstatus contains the VPN status.
 package vpnstatus
 
 import (

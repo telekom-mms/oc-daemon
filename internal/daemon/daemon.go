@@ -1,3 +1,4 @@
+// Package daemon contains the OC-Daemon.
 package daemon
 
 import (

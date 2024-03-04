@@ -1,3 +1,4 @@
+// Package dbusapi contains the D-Bus API.
 package dbusapi
 
 import (

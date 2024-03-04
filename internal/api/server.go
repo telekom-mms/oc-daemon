@@ -1,3 +1,4 @@
+// Package api contains the Unix Domain Socket API.
 package api
 
 import (

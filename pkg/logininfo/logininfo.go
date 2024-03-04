@@ -1,3 +1,4 @@
+// Package logininfo contains the login information for OpenConnect.
 package logininfo
 
 import (

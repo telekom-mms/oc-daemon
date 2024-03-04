@@ -1,3 +1,4 @@
+// Package vpncscript contains the vpncscript.
 package vpncscript
 
 import (

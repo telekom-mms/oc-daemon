@@ -1,3 +1,4 @@
+// Package xmlprofile contains the XML profile.
 package xmlprofile
 
 import (
