@@ -135,10 +135,14 @@ func TestServerRequests(t *testing.T) {
 func TestNewServer(t *testing.T) {
 	config := NewConfig()
 	server := NewServer(config)
+
+	if server == nil ||
+		server.requests == nil ||
+		server.done == nil ||
+		server.closed == nil {
+		t.Errorf("got nil, want != nil")
+	}
 	if server.config != config {
 		t.Errorf("got %p, want %p", server.config, config)
-	}
-	if server.requests == nil {
-		t.Errorf("got nil, want != nil")
 	}
 }

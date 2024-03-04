@@ -18,6 +18,8 @@ type Server struct {
 	config   *Config
 	listen   net.Listener
 	requests chan *Request
+	done     chan struct{}
+	closed   chan struct{}
 
 	mutex sync.Mutex
 	stop  bool
@@ -72,9 +74,12 @@ func (s *Server) handleRequest(conn net.Conn) {
 	}
 
 	// forward client's request to daemon
-	s.requests <- &Request{
+	select {
+	case s.requests <- &Request{
 		msg:  msg,
 		conn: conn,
+	}:
+	case <-s.done:
 	}
 }
 
@@ -83,6 +88,7 @@ func (s *Server) handleClients() {
 	defer func() {
 		_ = s.listen.Close()
 		close(s.requests)
+		close(s.closed)
 	}()
 	for {
 		// wait for new client connection
@@ -199,15 +205,16 @@ func (s *Server) Start() error {
 
 // Stop stops the API server
 func (s *Server) Stop() {
+	close(s.done)
+
 	// stop listener
 	s.setStopping()
 	err := s.listen.Close()
 	if err != nil {
 		log.WithError(err).Error("Daemon could not close unix listener")
 	}
-	for range s.requests {
-		// wait for clients channel close
-	}
+
+	<-s.closed
 }
 
 // Requests returns the clients channel
@@ -220,5 +227,7 @@ func NewServer(config *Config) *Server {
 	return &Server{
 		config:   config,
 		requests: make(chan *Request),
+		done:     make(chan struct{}),
+		closed:   make(chan struct{}),
 	}
 }
