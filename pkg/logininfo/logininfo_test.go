@@ -82,8 +82,8 @@ func TestLoginInfoParseLine(t *testing.T) {
 	}
 }
 
-// TestLoginInfoFromJSON tests JSON of LoginInfo and LoginInfoFromJSON
-func TestLoginInfoFromJSON(t *testing.T) {
+// TestFromJSON tests JSON of LoginInfo and FromJSON
+func TestFromJSON(t *testing.T) {
 	// create login info
 	want := getTestLoginInfo()
 
@@ -94,7 +94,7 @@ func TestLoginInfoFromJSON(t *testing.T) {
 	}
 
 	// parse json
-	got, err := LoginInfoFromJSON(b)
+	got, err := FromJSON(b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestLoginInfoFromJSON(t *testing.T) {
 	if err == nil {
 		t.Error("Marshal error should return error")
 	}
-	if _, err = LoginInfoFromJSON(b); err == nil {
+	if _, err = FromJSON(b); err == nil {
 		t.Error("parsing nil should return error")
 	}
 }

@@ -80,8 +80,8 @@ func (l *LoginInfo) JSON() ([]byte, error) {
 	return b, nil
 }
 
-// LoginInfoFromJSON parses and returns the login info in b
-func LoginInfoFromJSON(b []byte) (*LoginInfo, error) {
+// FromJSON parses and returns the login info in b
+func FromJSON(b []byte) (*LoginInfo, error) {
 	l := &LoginInfo{}
 	err := json.Unmarshal(b, l)
 	if err != nil {
