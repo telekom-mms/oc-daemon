@@ -85,6 +85,7 @@ func (a *AddrMon) start() {
 			go func() {
 				for range a.events {
 					// wait for channel shutdown
+					log.Debug("AddrMon dropping event after stop")
 				}
 			}()
 
