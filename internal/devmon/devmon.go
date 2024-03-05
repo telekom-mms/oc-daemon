@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Update is a device update
+// Update is a device update.
 type Update struct {
 	Add    bool
 	Device string
@@ -19,7 +19,7 @@ type Update struct {
 	Index  int
 }
 
-// DevMon is a device monitor
+// DevMon is a device monitor.
 type DevMon struct {
 	events  chan netlink.LinkUpdate
 	updates chan *Update
@@ -28,7 +28,7 @@ type DevMon struct {
 	closed  chan struct{}
 }
 
-// sendUpdate sends update over the update channel
+// sendUpdate sends update over the update channel.
 func (d *DevMon) sendUpdate(update *Update) {
 	// send update or abort if we are shutting down
 	select {
@@ -37,7 +37,7 @@ func (d *DevMon) sendUpdate(update *Update) {
 	}
 }
 
-// handleLink handles a link update
+// handleLink handles a link update.
 func (d *DevMon) handleLink(add bool, link netlink.Link) {
 	log.WithFields(log.Fields{
 		"add":  add,
@@ -78,7 +78,7 @@ func (d *DevMon) handleLink(add bool, link netlink.Link) {
 	d.sendUpdate(update)
 }
 
-// RegisterLinkUpdates registers for link update events
+// RegisterLinkUpdates registers for link update events.
 var RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
 	// register for link update events
 	events := make(chan netlink.LinkUpdate)
@@ -92,7 +92,7 @@ var RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
 	return events, nil
 }
 
-// start starts the device monitor
+// start starts the device monitor.
 func (d *DevMon) start() {
 	defer close(d.closed)
 	defer close(d.updates)
@@ -135,7 +135,7 @@ func (d *DevMon) start() {
 	}
 }
 
-// Start starts the device monitor
+// Start starts the device monitor.
 func (d *DevMon) Start() error {
 	// register for link update events
 	events, err := RegisterLinkUpdates(d)
@@ -148,18 +148,18 @@ func (d *DevMon) Start() error {
 	return nil
 }
 
-// Stop stops the device monitor
+// Stop stops the device monitor.
 func (d *DevMon) Stop() {
 	close(d.done)
 	<-d.closed
 }
 
-// Updates returns the Update channel for device updates
+// Updates returns the Update channel for device updates.
 func (d *DevMon) Updates() chan *Update {
 	return d.updates
 }
 
-// NewDevMon returns a new device monitor
+// NewDevMon returns a new device monitor.
 func NewDevMon() *DevMon {
 	return &DevMon{
 		updates: make(chan *Update),

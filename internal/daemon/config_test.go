@@ -15,7 +15,7 @@ import (
 	"github.com/telekom-mms/tnd/pkg/tnd"
 )
 
-// TestConfigValid tests Valid of Config
+// TestConfigValid tests Valid of Config.
 func TestConfigValid(t *testing.T) {
 	// test invalid
 	for _, invalid := range []*Config{
@@ -40,7 +40,7 @@ func TestConfigValid(t *testing.T) {
 	}
 }
 
-// TestConfigLoad tests Load of Config
+// TestConfigLoad tests Load of Config.
 func TestConfigLoad(t *testing.T) {
 	config := NewConfig()
 	config.Config = "does not exist"
@@ -192,7 +192,7 @@ func TestConfigLoad(t *testing.T) {
 	}
 }
 
-// TestNewConfig tests NewConfig
+// TestNewConfig tests NewConfig.
 func TestNewConfig(t *testing.T) {
 	want := &Config{
 		Config:          "/var/lib/oc-daemon/oc-daemon.json",

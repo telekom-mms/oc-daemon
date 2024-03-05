@@ -3,41 +3,41 @@ package ocrunner
 import "strconv"
 
 var (
-	// OpenConnect is the default openconnect executable
+	// OpenConnect is the default openconnect executable.
 	OpenConnect = "openconnect"
 
-	// XMLProfile is the default AnyConnect Profile
+	// XMLProfile is the default AnyConnect Profile.
 	XMLProfile = "/var/lib/oc-daemon/profile.xml"
 
-	// VPNCScript is the default vpnc-script
+	// VPNCScript is the default vpnc-script.
 	VPNCScript = "/usr/bin/oc-daemon-vpncscript"
 
-	// VPNDevice is the default vpn network device name
+	// VPNDevice is the default vpn network device name.
 	VPNDevice = "oc-daemon-tun0"
 
-	// PIDFile is the default file path of the PID file for openconnect
+	// PIDFile is the default file path of the PID file for openconnect.
 	PIDFile = "/run/oc-daemon/openconnect.pid"
 
-	// PIDOwner is the default owner of the PID file
+	// PIDOwner is the default owner of the PID file.
 	PIDOwner = ""
 
-	// PIDGroup is the default group of the PID file
+	// PIDGroup is the default group of the PID file.
 	PIDGroup = ""
 
-	// PIDPermissions are the default file permissions of the PID file
+	// PIDPermissions are the default file permissions of the PID file.
 	PIDPermissions = "0600"
 
-	// NoProxy specifies whether the no proxy flag is set in openconnect
+	// NoProxy specifies whether the no proxy flag is set in openconnect.
 	NoProxy = true
 
-	// ExtraEnv are extra environment variables used by openconnect
+	// ExtraEnv are extra environment variables used by openconnect.
 	ExtraEnv = []string{}
 
-	// ExtraArgs are extra command line arguments used by openconnect
+	// ExtraArgs are extra command line arguments used by openconnect.
 	ExtraArgs = []string{}
 )
 
-// Config is the configuration for an openconnect connection runner
+// Config is the configuration for an openconnect connection runner.
 type Config struct {
 	OpenConnect string
 
@@ -55,7 +55,7 @@ type Config struct {
 	ExtraArgs []string
 }
 
-// Valid returns whether the openconnect configuration is valid
+// Valid returns whether the openconnect configuration is valid.
 func (c *Config) Valid() bool {
 	if c == nil ||
 		c.OpenConnect == "" ||
@@ -79,7 +79,7 @@ func (c *Config) Valid() bool {
 	return true
 }
 
-// NewConfig returns a new configuration for an openconnect connection runner
+// NewConfig returns a new configuration for an openconnect connection runner.
 func NewConfig() *Config {
 	return &Config{
 		OpenConnect: OpenConnect,

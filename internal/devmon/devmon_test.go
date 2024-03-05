@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// TestDevMonStartStop tests Start and Stop of DevMon
+// TestDevMonStartStop tests Start and Stop of DevMon.
 func TestDevMonStartStop(t *testing.T) {
 	// test without LinkUpdates
 	RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
@@ -166,7 +166,7 @@ func TestDevMonStartStop(t *testing.T) {
 	devMon.Stop()
 }
 
-// TestDevMonUpdates tests Updates of DevMon
+// TestDevMonUpdates tests Updates of DevMon.
 func TestDevMonUpdates(t *testing.T) {
 	devMon := NewDevMon()
 	got := devMon.Updates()
@@ -176,7 +176,7 @@ func TestDevMonUpdates(t *testing.T) {
 	}
 }
 
-// TestNewDevMon tests NewDevMon
+// TestNewDevMon tests NewDevMon.
 func TestNewDevMon(t *testing.T) {
 	devMon := NewDevMon()
 	if devMon.updates == nil ||

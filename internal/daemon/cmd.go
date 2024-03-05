@@ -11,11 +11,11 @@ import (
 )
 
 var (
-	// Version is the daemon version, to be set at compile time
+	// Version is the daemon version, to be set at compile time.
 	Version = "unknown"
 )
 
-// command line argument names
+// command line argument names.
 const (
 	argConfig  = "config"
 	argVerbose = "verbose"
@@ -25,7 +25,7 @@ const (
 // osMkdirAll is os.MkdirAll for testing.
 var osMkdirAll = os.MkdirAll
 
-// prepareFolders prepares directories used by the daemon
+// prepareFolders prepares directories used by the daemon.
 func prepareFolders(config *Config) error {
 	for _, file := range []string{
 		config.Config,
@@ -42,7 +42,7 @@ func prepareFolders(config *Config) error {
 	return nil
 }
 
-// flagIsSet returns whether flag with name is set as command line argument
+// flagIsSet returns whether flag with name is set as command line argument.
 func flagIsSet(flags *flag.FlagSet, name string) bool {
 	isSet := false
 	flags.Visit(func(f *flag.Flag) {
@@ -53,7 +53,7 @@ func flagIsSet(flags *flag.FlagSet, name string) bool {
 	return isSet
 }
 
-// run is the main entry point for the daemon
+// run is the main entry point for the daemon.
 func run(args []string) error {
 	// parse command line arguments
 	defaults := NewConfig()
@@ -125,7 +125,7 @@ func run(args []string) error {
 	return err
 }
 
-// Run is the main entry point for the daemon
+// Run is the main entry point for the daemon.
 func Run() {
 	if err := run(os.Args); err != nil {
 		if err != flag.ErrHelp {

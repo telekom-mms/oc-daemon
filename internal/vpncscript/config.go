@@ -10,7 +10,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
-// createConfigGeneral creates the general configuration in config from env
+// createConfigGeneral creates the general configuration in config from env.
 func createConfigGeneral(env *env, config *vpnconfig.Config) error {
 	// set gateway address
 	if env.vpnGateway != "" {
@@ -39,7 +39,7 @@ func createConfigGeneral(env *env, config *vpnconfig.Config) error {
 	return nil
 }
 
-// createConfigDevice creates the device configuration in config from env
+// createConfigDevice creates the device configuration in config from env.
 func createConfigDevice(env *env, config *vpnconfig.Config) error {
 	// set device name
 	if env.tunDev != "" {
@@ -58,7 +58,7 @@ func createConfigDevice(env *env, config *vpnconfig.Config) error {
 	return nil
 }
 
-// createConfigIPv4 creates the IPv4 configuration in config from env
+// createConfigIPv4 creates the IPv4 configuration in config from env.
 func createConfigIPv4(env *env, config *vpnconfig.Config) error {
 	// set ip
 	if env.internalIP4Address != "" {
@@ -80,7 +80,7 @@ func createConfigIPv4(env *env, config *vpnconfig.Config) error {
 	return nil
 }
 
-// createConfigIPv6 creates the IPv6 configuration in config from env
+// createConfigIPv6 creates the IPv6 configuration in config from env.
 func createConfigIPv6(env *env, config *vpnconfig.Config) error {
 	// set ip and netmask
 	// internalIP6Netmask should contain IP in CIDR representation
@@ -96,7 +96,7 @@ func createConfigIPv6(env *env, config *vpnconfig.Config) error {
 	return nil
 }
 
-// createConfigDNS creates the DNS configuration in config from env
+// createConfigDNS creates the DNS configuration in config from env.
 func createConfigDNS(env *env, config *vpnconfig.Config) error {
 	// set default domain
 	if env.ciscoDefDomain != "" {
@@ -133,7 +133,7 @@ func createConfigDNS(env *env, config *vpnconfig.Config) error {
 	return nil
 }
 
-// createConfigSplit creates the split routing configuration in config from env
+// createConfigSplit creates the split routing configuration in config from env.
 func createConfigSplit(env *env, config *vpnconfig.Config) error {
 	// set ipv4 and ipv6 excludes
 	parse := func(list []string) ([]*net.IPNet, error) {
@@ -172,12 +172,12 @@ func createConfigSplit(env *env, config *vpnconfig.Config) error {
 	return nil
 }
 
-// createConfigFlags creates the flags configuration in config from env
+// createConfigFlags creates the flags configuration in config from env.
 func createConfigFlags(env *env, config *vpnconfig.Config) {
 	config.Flags.DisableAlwaysOnVPN = env.disableAlwaysOnVPN
 }
 
-// createConfig creates a VPN configuration from env
+// createConfig creates a VPN configuration from env.
 func createConfig(env *env) (*vpnconfig.Config, error) {
 	config := vpnconfig.New()
 
@@ -217,7 +217,7 @@ func createConfig(env *env) (*vpnconfig.Config, error) {
 	return config, nil
 }
 
-// createConfigUpdate creates a VPN configuration update from env
+// createConfigUpdate creates a VPN configuration update from env.
 func createConfigUpdate(env *env) (*daemon.VPNConfigUpdate, error) {
 	update := daemon.NewVPNConfigUpdate()
 	update.Reason = env.reason

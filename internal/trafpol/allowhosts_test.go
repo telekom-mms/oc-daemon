@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// TestAllowHostsAdd tests Add of AllowHosts
+// TestAllowHostsAdd tests Add of AllowHosts.
 func TestAllowHostsAdd(t *testing.T) {
 	config := NewConfig()
 	a := NewAllowHosts(config)
@@ -17,7 +17,7 @@ func TestAllowHostsAdd(t *testing.T) {
 	}
 }
 
-// TestAllowHostsRemove tests Add of AllowHosts
+// TestAllowHostsRemove tests Add of AllowHosts.
 func TestAllowHostsRemove(t *testing.T) {
 	config := NewConfig()
 	a := NewAllowHosts(config)
@@ -29,7 +29,7 @@ func TestAllowHostsRemove(t *testing.T) {
 	}
 }
 
-// TestAllowHostsStartStop tests Start and Stop of AllowHosts
+// TestAllowHostsStartStop tests Start and Stop of AllowHosts.
 func TestAllowHostsStartStop(_ *testing.T) {
 	config := NewConfig()
 	a := NewAllowHosts(config)
@@ -37,7 +37,7 @@ func TestAllowHostsStartStop(_ *testing.T) {
 	a.Stop()
 }
 
-// TestAllowHostsUpdate tests Update of AllowHosts
+// TestAllowHostsUpdate tests Update of AllowHosts.
 func TestAllowHostsUpdate(_ *testing.T) {
 	config := NewConfig()
 	config.ResolveTriesSleep = 0
@@ -58,7 +58,7 @@ func TestAllowHostsUpdate(_ *testing.T) {
 	a.Stop()
 }
 
-// TestNewAllowHosts tests NewAllowHosts
+// TestNewAllowHosts tests NewAllowHosts.
 func TestNewAllowHosts(t *testing.T) {
 	config := NewConfig()
 	a := NewAllowHosts(config)

@@ -8,7 +8,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
-// TestCreateConfigSplit tests createConfigSplit
+// TestCreateConfigSplit tests createConfigSplit.
 func TestCreateConfigSplit(t *testing.T) {
 	// create test environment
 	env := &env{
@@ -54,7 +54,7 @@ func TestCreateConfigSplit(t *testing.T) {
 	}
 }
 
-// TestCreateConfigUpdate tests createConfigUpdate
+// TestCreateConfigUpdate tests createConfigUpdate.
 func TestCreateConfigUpdate(t *testing.T) {
 	// create test environment
 	env := &env{

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// getTestRemotes returns remotes for testing
+// getTestRemotes returns remotes for testing.
 func getTestRemotes() map[string][]string {
 	return map[string][]string{
 		".":                {"192.168.1.1:53"},
@@ -14,7 +14,7 @@ func getTestRemotes() map[string][]string {
 	}
 }
 
-// TestRemotesAdd tests Add of Remotes
+// TestRemotesAdd tests Add of Remotes.
 func TestRemotesAdd(t *testing.T) {
 	r := NewRemotes()
 	want := getTestRemotes()
@@ -28,7 +28,7 @@ func TestRemotesAdd(t *testing.T) {
 	}
 }
 
-// TestRemotesRemove tests Remove of Remotes
+// TestRemotesRemove tests Remove of Remotes.
 func TestRemotesRemove(t *testing.T) {
 	r := NewRemotes()
 	remotes := getTestRemotes()
@@ -47,7 +47,7 @@ func TestRemotesRemove(t *testing.T) {
 	}
 }
 
-// TestRemotesFlush tests Flush of Remotes
+// TestRemotesFlush tests Flush of Remotes.
 func TestRemotesFlush(t *testing.T) {
 	r := NewRemotes()
 	remotes := getTestRemotes()
@@ -63,7 +63,7 @@ func TestRemotesFlush(t *testing.T) {
 	}
 }
 
-// TestRemotesGet tests Get of Remotes
+// TestRemotesGet tests Get of Remotes.
 func TestRemotesGet(t *testing.T) {
 	r := NewRemotes()
 	remotes := getTestRemotes()
@@ -103,7 +103,7 @@ func TestRemotesGet(t *testing.T) {
 
 }
 
-// TestNewRemotes tests NewRemotes
+// TestNewRemotes tests NewRemotes.
 func TestNewRemotes(t *testing.T) {
 	r := NewRemotes()
 	if r.m == nil {

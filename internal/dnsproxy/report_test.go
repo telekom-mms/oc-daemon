@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestReportString tests String of Report
+// TestReportString tests String of Report.
 func TestReportString(t *testing.T) {
 	name := "example.com."
 	ip := net.IPv4(192, 168, 1, 1)
@@ -19,7 +19,7 @@ func TestReportString(t *testing.T) {
 	}
 }
 
-// TestReportDone tests Wait and Done of Report
+// TestReportDone tests Wait and Done of Report.
 func TestReportWaitDone(_ *testing.T) {
 	name := "example.com."
 	ip := net.IPv4(192, 168, 1, 1)
@@ -30,7 +30,7 @@ func TestReportWaitDone(_ *testing.T) {
 	r.Wait()
 }
 
-// TestNewReport tests NewReport
+// TestNewReport tests NewReport.
 func TestNewReport(t *testing.T) {
 	name := "example.com."
 	ip := net.IPv4(192, 168, 1, 1)

@@ -8,7 +8,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
-// TestVPNConfigUpdateValid tests Valid of VPNConfigUpdate
+// TestVPNConfigUpdateValid tests Valid of VPNConfigUpdate.
 func TestVPNConfigUpdateValid(t *testing.T) {
 	// test invalid
 	u := NewVPNConfigUpdate()
@@ -76,7 +76,7 @@ func TestVPNConfigUpdateValid(t *testing.T) {
 	}
 }
 
-// TestVPNConfigUpdateJSON tests JSON and VPNConfigUpdateFromJSON of VPNConfigUpdate
+// TestVPNConfigUpdateJSON tests JSON and VPNConfigUpdateFromJSON of VPNConfigUpdate.
 func TestVPNConfigUpdateJSON(t *testing.T) {
 	updates := []*VPNConfigUpdate{}
 
@@ -114,7 +114,7 @@ func TestVPNConfigUpdateJSON(t *testing.T) {
 	}
 }
 
-// TestNewVPNConfigUpdate tests NewUpdate
+// TestNewVPNConfigUpdate tests NewUpdate.
 func TestNewVPNConfigUpdate(t *testing.T) {
 	u := NewVPNConfigUpdate()
 	if u == nil {

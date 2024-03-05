@@ -16,7 +16,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// TestSplitRoutingHandleDeviceUpdate tests handleDeviceUpdate of SplitRouting
+// TestSplitRoutingHandleDeviceUpdate tests handleDeviceUpdate of SplitRouting.
 func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 	ctx := context.Background()
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
@@ -62,7 +62,7 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 	}
 }
 
-// TestSplitRoutingHandleAddressUpdate tests handleAddressUpdate of SplitRouting
+// TestSplitRoutingHandleAddressUpdate tests handleAddressUpdate of SplitRouting.
 func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	ctx := context.Background()
 
@@ -152,7 +152,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	}
 }
 
-// TestSplitRoutingHandleDNSReport tests handleDNSReport of SplitRouting
+// TestSplitRoutingHandleDNSReport tests handleDNSReport of SplitRouting.
 func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	ctx := context.Background()
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
@@ -184,7 +184,7 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	}
 }
 
-// TestSplitRoutingStartStop tests Start and Stop of SplitRouting
+// TestSplitRoutingStartStop tests Start and Stop of SplitRouting.
 func TestSplitRoutingStartStop(t *testing.T) {
 	// set dummy low level functions for testing
 	oldRunCmd := execs.RunCmd
@@ -273,7 +273,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	s.Stop()
 }
 
-// TestSplitRoutingDNSReports tests DNSReports of SplitRouting
+// TestSplitRoutingDNSReports tests DNSReports of SplitRouting.
 func TestSplitRoutingDNSReports(t *testing.T) {
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 	want := s.dnsreps
@@ -283,7 +283,7 @@ func TestSplitRoutingDNSReports(t *testing.T) {
 	}
 }
 
-// TestNewSplitRouting tests NewSplitRouting
+// TestNewSplitRouting tests NewSplitRouting.
 func TestNewSplitRouting(t *testing.T) {
 	config := NewConfig()
 	vpnconf := vpnconfig.New()
@@ -307,7 +307,7 @@ func TestNewSplitRouting(t *testing.T) {
 	}
 }
 
-// TestCleanup tests Cleanup
+// TestCleanup tests Cleanup.
 func TestCleanup(t *testing.T) {
 	got := []string{}
 

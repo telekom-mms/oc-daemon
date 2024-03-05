@@ -6,12 +6,12 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 )
 
-// Addresses is a set of addresses
+// Addresses is a set of addresses.
 type Addresses struct {
 	m map[int][]*addrmon.Update
 }
 
-// contains checks if address info in addr is in addresses
+// contains checks if address info in addr is in addresses.
 func (a *Addresses) contains(addr *addrmon.Update) bool {
 	if a.m[addr.Index] == nil {
 		return false
@@ -24,7 +24,7 @@ func (a *Addresses) contains(addr *addrmon.Update) bool {
 	return false
 }
 
-// Add adds address info in addr to addresses
+// Add adds address info in addr to addresses.
 func (a *Addresses) Add(addr *addrmon.Update) {
 	if a.contains(addr) {
 		return
@@ -32,7 +32,7 @@ func (a *Addresses) Add(addr *addrmon.Update) {
 	a.m[addr.Index] = append(a.m[addr.Index], addr)
 }
 
-// Remove removes address info in addr from addresses
+// Remove removes address info in addr from addresses.
 func (a *Addresses) Remove(addr *addrmon.Update) {
 	if !a.contains(addr) {
 		return
@@ -50,7 +50,7 @@ func (a *Addresses) Remove(addr *addrmon.Update) {
 	a.m[addr.Index] = removed
 }
 
-// Get returns the addresses of the device identified by index
+// Get returns the addresses of the device identified by index.
 func (a *Addresses) Get(index int) (addrs []*net.IPNet) {
 	for _, x := range a.m[index] {
 		addrs = append(addrs, &x.Address)
@@ -58,7 +58,7 @@ func (a *Addresses) Get(index int) (addrs []*net.IPNet) {
 	return
 }
 
-// NewAddresses returns new Addresses
+// NewAddresses returns new Addresses.
 func NewAddresses() *Addresses {
 	return &Addresses{
 		m: make(map[int][]*addrmon.Update),

@@ -6,13 +6,13 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Remotes contains a mapping from domain names to remote DNS servers
+// Remotes contains a mapping from domain names to remote DNS servers.
 type Remotes struct {
 	sync.RWMutex
 	m map[string][]string
 }
 
-// Add adds a mapping from domain to servers
+// Add adds a mapping from domain to servers.
 func (r *Remotes) Add(domain string, servers []string) {
 	r.Lock()
 	defer r.Unlock()
@@ -20,7 +20,7 @@ func (r *Remotes) Add(domain string, servers []string) {
 	r.m[domain] = servers
 }
 
-// Remove removes a mapping from domain to servers
+// Remove removes a mapping from domain to servers.
 func (r *Remotes) Remove(domain string) {
 	r.Lock()
 	defer r.Unlock()
@@ -28,7 +28,7 @@ func (r *Remotes) Remove(domain string) {
 	delete(r.m, domain)
 }
 
-// Flush removes all mappings
+// Flush removes all mappings.
 func (r *Remotes) Flush() {
 	r.Lock()
 	defer r.Unlock()
@@ -36,7 +36,7 @@ func (r *Remotes) Flush() {
 	r.m = make(map[string][]string)
 }
 
-// Get returns the servers for domain
+// Get returns the servers for domain.
 func (r *Remotes) Get(domain string) []string {
 	r.RLock()
 	defer r.RUnlock()
@@ -67,7 +67,7 @@ func (r *Remotes) Get(domain string) []string {
 	return r.m["."]
 }
 
-// NewRemotes returns a new Remotes
+// NewRemotes returns a new Remotes.
 func NewRemotes() *Remotes {
 	return &Remotes{
 		m: make(map[string][]string),

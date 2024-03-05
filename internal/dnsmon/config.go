@@ -3,24 +3,24 @@ package dnsmon
 import "path/filepath"
 
 var (
-	// ETCResolvConf is the default resolv.conf in /etc
+	// ETCResolvConf is the default resolv.conf in /etc.
 	ETCResolvConf = "/etc/resolv.conf"
 
-	// StubResolvConf is the stub resolv.conf of systemd-resolved
+	// StubResolvConf is the stub resolv.conf of systemd-resolved.
 	StubResolvConf = "/run/systemd/resolve/stub-resolv.conf"
 
-	// SystemdResolvConf is the systemd resolv.conf
+	// SystemdResolvConf is the systemd resolv.conf.
 	SystemdResolvConf = "/run/systemd/resolve/resolv.conf"
 )
 
-// Config is a DNSMon configuration
+// Config is a DNSMon configuration.
 type Config struct {
 	ETCResolvConf     string
 	StubResolvConf    string
 	SystemdResolvConf string
 }
 
-// resolvConfDirs returns a list of resolv.conf directories watched by DNSMon
+// resolvConfDirs returns a list of resolv.conf directories watched by DNSMon.
 func (c *Config) resolvConfDirs() []string {
 	// use map to remove duplicate directories
 	m := make(map[string]struct{})
@@ -43,7 +43,7 @@ func (c *Config) resolvConfDirs() []string {
 	return dirs
 }
 
-// NewConfig returns a new DNSMon config
+// NewConfig returns a new DNSMon config.
 func NewConfig() *Config {
 	return &Config{
 		ETCResolvConf:     ETCResolvConf,

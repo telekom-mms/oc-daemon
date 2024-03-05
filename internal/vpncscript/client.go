@@ -9,7 +9,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/daemon"
 )
 
-// runClient interacts with the daemon over the api
+// runClient interacts with the daemon over the api.
 func runClient(socketFile string, configUpdate *daemon.VPNConfigUpdate) error {
 	// connect to daemon
 	conn, err := net.Dial("unix", socketFile)

@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ProfileMon is a XML profile monitor
+// ProfileMon is a XML profile monitor.
 type ProfileMon struct {
 	watcher *fsnotify.Watcher
 	file    string
@@ -22,7 +22,7 @@ type ProfileMon struct {
 	hash    [sha256.Size]byte
 }
 
-// sendUpdate sends an update over the updates channel
+// sendUpdate sends an update over the updates channel.
 func (p *ProfileMon) sendUpdate() {
 	// send an update or abort if we are shutting down
 	select {
@@ -32,7 +32,7 @@ func (p *ProfileMon) sendUpdate() {
 }
 
 // handleEvent compares file hashes to see if the file changed and sends an
-// update notification
+// update notification.
 func (p *ProfileMon) handleEvent() {
 	b, err := os.ReadFile(p.file)
 	if err != nil {
@@ -49,7 +49,7 @@ func (p *ProfileMon) handleEvent() {
 	p.sendUpdate()
 }
 
-// start starts the profile monitor
+// start starts the profile monitor.
 func (p *ProfileMon) start() {
 	defer close(p.closed)
 	defer close(p.updates)
@@ -90,7 +90,7 @@ func (p *ProfileMon) start() {
 	}
 }
 
-// Start starts the profile monitor
+// Start starts the profile monitor.
 func (p *ProfileMon) Start() error {
 	// create watcher
 	watcher, err := fsnotify.NewWatcher()
@@ -109,18 +109,18 @@ func (p *ProfileMon) Start() error {
 	return nil
 }
 
-// Stop stops the profile monitor
+// Stop stops the profile monitor.
 func (p *ProfileMon) Stop() {
 	close(p.done)
 	<-p.closed
 }
 
-// Updates returns the channel for profile updates
+// Updates returns the channel for profile updates.
 func (p *ProfileMon) Updates() chan struct{} {
 	return p.updates
 }
 
-// NewProfileMon returns a new profile monitor
+// NewProfileMon returns a new profile monitor.
 func NewProfileMon(file string) *ProfileMon {
 	return &ProfileMon{
 		file:    file,

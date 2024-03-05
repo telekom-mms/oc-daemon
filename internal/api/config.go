@@ -6,24 +6,24 @@ import (
 )
 
 var (
-	// SocketFile is the unix socket file
+	// SocketFile is the unix socket file.
 	SocketFile = "/run/oc-daemon/daemon.sock"
 
-	// SocketOwner is the owner of the socket file
+	// SocketOwner is the owner of the socket file.
 	SocketOwner = ""
 
-	// SocketGroup is the group of the socket file
+	// SocketGroup is the group of the socket file.
 	SocketGroup = ""
 
-	// SocketPermissions are the file permissions of the socket file
+	// SocketPermissions are the file permissions of the socket file.
 	SocketPermissions = "0700"
 
 	// RequestTimeout is the timeout for an entire request/response
-	// exchange initiated by a client
+	// exchange initiated by a client.
 	RequestTimeout = 30 * time.Second
 )
 
-// Config is a server configuration
+// Config is a server configuration.
 type Config struct {
 	SocketFile        string
 	SocketOwner       string
@@ -32,7 +32,7 @@ type Config struct {
 	RequestTimeout    time.Duration
 }
 
-// Valid returns whether server config is valid
+// Valid returns whether server config is valid.
 func (c *Config) Valid() bool {
 	if c == nil ||
 		c.SocketFile == "" ||
@@ -51,7 +51,7 @@ func (c *Config) Valid() bool {
 	return true
 }
 
-// NewConfig returns a new server configuration
+// NewConfig returns a new server configuration.
 func NewConfig() *Config {
 	return &Config{
 		SocketFile:        SocketFile,

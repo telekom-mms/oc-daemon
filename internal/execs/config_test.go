@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TestConfigValid tests Valid of Config
+// TestConfigValid tests Valid of Config.
 func TestConfigValid(t *testing.T) {
 	// test invalid
 	for _, invalid := range []*Config{
@@ -30,7 +30,7 @@ func TestConfigValid(t *testing.T) {
 	}
 }
 
-// TestConfigCheckExecutables tests CheckExecutables of Config
+// TestConfigCheckExecutables tests CheckExecutables of Config.
 func TestConfigCheckExecutables(t *testing.T) {
 	// create temporary dir for executables
 	dir, err := os.MkdirTemp("", "execs-test")
@@ -74,7 +74,7 @@ func TestConfigCheckExecutables(t *testing.T) {
 	}
 }
 
-// TestNewConfig tests NewConfig
+// TestNewConfig tests NewConfig.
 func TestNewConfig(t *testing.T) {
 	want := &Config{IP, Nft, Resolvectl, Sysctl}
 	got := NewConfig()

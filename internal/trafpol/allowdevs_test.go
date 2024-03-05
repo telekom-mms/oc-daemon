@@ -8,7 +8,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
-// TestAllowDevsAdd tests Add of AllowDevs
+// TestAllowDevsAdd tests Add of AllowDevs.
 func TestAllowDevsAdd(t *testing.T) {
 	a := NewAllowDevs()
 	ctx := context.Background()
@@ -36,7 +36,7 @@ func TestAllowDevsAdd(t *testing.T) {
 	}
 }
 
-// TestAllowDevsRemove tests Remove of AllowDevs
+// TestAllowDevsRemove tests Remove of AllowDevs.
 func TestAllowDevsRemove(t *testing.T) {
 	a := NewAllowDevs()
 	ctx := context.Background()
@@ -66,7 +66,7 @@ func TestAllowDevsRemove(t *testing.T) {
 	}
 }
 
-// TestNewAllowDevs tests NewAllowDevs
+// TestNewAllowDevs tests NewAllowDevs.
 func TestNewAllowDevs(t *testing.T) {
 	a := NewAllowDevs()
 	if a.m == nil {

@@ -22,7 +22,7 @@ var (
 // clientNewClient is client.NewClient for testing.
 var clientNewClient = client.NewClient
 
-// listServers gets the VPN status from the daemon and prints the VPN servers in it
+// listServers gets the VPN status from the daemon and prints the VPN servers in it.
 func listServers() error {
 	// create client
 	c, err := clientNewClient(config)
@@ -46,7 +46,7 @@ func listServers() error {
 	return nil
 }
 
-// connectVPN connects to the VPN if necessary
+// connectVPN connects to the VPN if necessary.
 func connectVPN() error {
 	// create client
 	c, err := clientNewClient(config)
@@ -81,7 +81,7 @@ func connectVPN() error {
 	return nil
 }
 
-// disconnectVPN disconnects the VPN
+// disconnectVPN disconnects the VPN.
 func disconnectVPN() error {
 	// create client
 	c, err := clientNewClient(config)
@@ -99,7 +99,7 @@ func disconnectVPN() error {
 	return nil
 }
 
-// reconnectVPN reconnects to the VPN
+// reconnectVPN reconnects to the VPN.
 func reconnectVPN() error {
 	// create client
 	client, err := clientNewClient(config)
@@ -148,7 +148,7 @@ func reconnectVPN() error {
 	}
 }
 
-// printStatus prints status on the command line
+// printStatus prints status on the command line.
 func printStatus(status *vpnstatus.Status) error {
 	if json {
 		// print status as json
@@ -194,7 +194,7 @@ func printStatus(status *vpnstatus.Status) error {
 	return nil
 }
 
-// getStatus gets the VPN status from the daemon
+// getStatus gets the VPN status from the daemon.
 func getStatus() error {
 	// create client
 	c, err := clientNewClient(config)
@@ -213,7 +213,7 @@ func getStatus() error {
 	return printStatus(status)
 }
 
-// monitor subscribes to VPN status updates from the daemon and displays them
+// monitor subscribes to VPN status updates from the daemon and displays them.
 func monitor() error {
 	// create client
 	c, err := clientNewClient(config)

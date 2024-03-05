@@ -11,7 +11,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
-// setFilterRules sets the filter rules
+// setFilterRules sets the filter rules.
 func setFilterRules(ctx context.Context, fwMark string) {
 	const filterRules = `
 table inet oc-daemon-filter {
@@ -160,14 +160,14 @@ table inet oc-daemon-filter {
 	}
 }
 
-// unsetFilterRules unsets the filter rules
+// unsetFilterRules unsets the filter rules.
 func unsetFilterRules(ctx context.Context) {
 	if err := execs.RunNft(ctx, "delete table inet oc-daemon-filter"); err != nil {
 		log.WithError(err).Error("TrafPol error unsetting routing rules")
 	}
 }
 
-// addAllowedDevice adds device to the allowed devices
+// addAllowedDevice adds device to the allowed devices.
 func addAllowedDevice(ctx context.Context, device string) {
 	nftconf := fmt.Sprintf("add element inet oc-daemon-filter allowdevs { %s }", device)
 	if err := execs.RunNft(ctx, nftconf); err != nil {
@@ -175,7 +175,7 @@ func addAllowedDevice(ctx context.Context, device string) {
 	}
 }
 
-// removeAllowedDevice removes device from the allowed devices
+// removeAllowedDevice removes device from the allowed devices.
 func removeAllowedDevice(ctx context.Context, device string) {
 	nftconf := fmt.Sprintf("delete element inet oc-daemon-filter allowdevs { %s }", device)
 	if err := execs.RunNft(ctx, nftconf); err != nil {
@@ -183,7 +183,7 @@ func removeAllowedDevice(ctx context.Context, device string) {
 	}
 }
 
-// setAllowedIPs set the allowed hosts
+// setAllowedIPs set the allowed hosts.
 func setAllowedIPs(ctx context.Context, ips []*net.IPNet) {
 	// we perform all nft commands separately here and not as one atomic
 	// operation to avoid issues where the whole update fails because nft
@@ -216,7 +216,7 @@ func setAllowedIPs(ctx context.Context, ips []*net.IPNet) {
 	}
 }
 
-// portsToString returns ports as string
+// portsToString returns ports as string.
 func portsToString(ports []uint16) string {
 	s := []string{}
 	for _, port := range ports {
@@ -225,7 +225,7 @@ func portsToString(ports []uint16) string {
 	return strings.Join(s, ", ")
 }
 
-// addPortalPorts adds ports for a captive portal to the allowed ports
+// addPortalPorts adds ports for a captive portal to the allowed ports.
 func addPortalPorts(ctx context.Context, ports []uint16) {
 	p := portsToString(ports)
 	nftconf := fmt.Sprintf("add element inet oc-daemon-filter allowports { %s }", p)
@@ -234,7 +234,7 @@ func addPortalPorts(ctx context.Context, ports []uint16) {
 	}
 }
 
-// removePortalPorts removes ports for a captive portal from the allowed ports
+// removePortalPorts removes ports for a captive portal from the allowed ports.
 func removePortalPorts(ctx context.Context, ports []uint16) {
 	p := portsToString(ports)
 	nftconf := fmt.Sprintf("delete element inet oc-daemon-filter allowports { %s }", p)
@@ -243,7 +243,7 @@ func removePortalPorts(ctx context.Context, ports []uint16) {
 	}
 }
 
-// cleanupFilterRules cleans up the filter rules after a failed shutdown
+// cleanupFilterRules cleans up the filter rules after a failed shutdown.
 func cleanupFilterRules(ctx context.Context) {
 	if err := execs.RunNft(ctx, "delete table inet oc-daemon-filter"); err == nil {
 		log.Debug("TrafPol cleaned up nft")

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestParseEnvironmentSplit tests parseEnvironmentSplit
+// TestParseEnvironmentSplit tests parseEnvironmentSplit.
 func TestParseEnvironmentSplit(t *testing.T) {
 	// test empty environment
 	os.Clearenv()
@@ -70,7 +70,7 @@ func TestParseEnvironmentSplit(t *testing.T) {
 }
 
 // TestParseDNSSplitExcXML tests parsing the dns-based split exclude list
-// from xml
+// from xml.
 func TestParseDNSSplitExcXML(t *testing.T) {
 	test := func(want, got []string) {
 		if !reflect.DeepEqual(got, want) {
@@ -113,7 +113,7 @@ func TestParseDNSSplitExcXML(t *testing.T) {
 }
 
 // TestParseBypassVSubnetsXML tests parsing the bypass virtual subnets only v4
-// setting from xml
+// setting from xml.
 func TestParseBypassVSubnetsXML(t *testing.T) {
 	test := func(want, got bool) {
 		if got != want {
@@ -166,7 +166,7 @@ func TestParseBypassVSubnetsXML(t *testing.T) {
 	test(true, parseBypassVSubnetsXML(xml4))
 }
 
-// TestGetPostAuthXML tests getPostAuthXML
+// TestGetPostAuthXML tests getPostAuthXML.
 func TestGetPostAuthXML(t *testing.T) {
 	// test invalid/not existing
 	for _, invalid := range [][]string{
@@ -209,7 +209,7 @@ func TestGetPostAuthXML(t *testing.T) {
 }
 
 // TestParseDNSSplitExc tests parsing the dns-based split exclude list
-// from CSTP options
+// from CSTP options.
 func TestParseDNSSplitExc(t *testing.T) {
 	test := func(want, got []string) {
 		if !reflect.DeepEqual(got, want) {
@@ -259,7 +259,7 @@ func TestParseDNSSplitExc(t *testing.T) {
 	test(domains, parseDNSSplitExc(opts5))
 }
 
-// TestParseBypassVSubnets tests parseBypassVSubnets
+// TestParseBypassVSubnets tests parseBypassVSubnets.
 func TestParseBypassVSubnets(t *testing.T) {
 	test := func(want, got bool) {
 		if !reflect.DeepEqual(got, want) {
@@ -307,7 +307,7 @@ func TestParseBypassVSubnets(t *testing.T) {
 	test(true, parseBypassVSubnets(opts5))
 }
 
-// TestParseDisableAlwaysOnVPN tests parseDisableAlwaysOnVPN
+// TestParseDisableAlwaysOnVPN tests parseDisableAlwaysOnVPN.
 func TestParseDisableAlwaysOnVPN(t *testing.T) {
 	test := func(want, got bool) {
 		if !reflect.DeepEqual(got, want) {
@@ -333,7 +333,7 @@ func TestParseDisableAlwaysOnVPN(t *testing.T) {
 	test(true, parseDisableAlwaysOnVPN(opts))
 }
 
-// TestParseEnvironment tests parseEnvironment
+// TestParseEnvironment tests parseEnvironment.
 func TestParseEnvironment(t *testing.T) {
 	// setup test environment
 	os.Clearenv()

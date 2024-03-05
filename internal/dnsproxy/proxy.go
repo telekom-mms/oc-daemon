@@ -11,11 +11,11 @@ import (
 
 const (
 	// tempWatchCleanInterval clean interval for temporary watches
-	// in seconds
+	// in seconds.
 	tempWatchCleanInterval = 10
 )
 
-// Proxy is a DNS proxy
+// Proxy is a DNS proxy.
 type Proxy struct {
 	config  *Config
 	udp     *dns.Server
@@ -31,7 +31,7 @@ type Proxy struct {
 	doneClean chan struct{}
 }
 
-// handleRequest handles a dns client request
+// handleRequest handles a dns client request.
 func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	// make sure the client request is valid
 	if len(r.Question) != 1 {
@@ -113,7 +113,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	}
 }
 
-// cleanTempWatches cleans temporary watches
+// cleanTempWatches cleans temporary watches.
 func (p *Proxy) cleanTempWatches() {
 	defer close(p.doneClean)
 
@@ -137,7 +137,7 @@ func (p *Proxy) cleanTempWatches() {
 	}
 }
 
-// startDNSServer starts the dns server
+// startDNSServer starts the dns server.
 func (p *Proxy) startDNSServer(server *dns.Server) {
 	if server == nil {
 		return
@@ -153,7 +153,7 @@ func (p *Proxy) startDNSServer(server *dns.Server) {
 	}
 }
 
-// stopDNSServer stops the dns server
+// stopDNSServer stops the dns server.
 func (p *Proxy) stopDNSServer(server *dns.Server) {
 	if server == nil {
 		return
@@ -169,7 +169,7 @@ func (p *Proxy) stopDNSServer(server *dns.Server) {
 	}
 }
 
-// start starts running the proxy
+// start starts running the proxy.
 func (p *Proxy) start() {
 	defer close(p.closed)
 	defer close(p.reports)
@@ -197,23 +197,23 @@ func (p *Proxy) start() {
 	}
 }
 
-// Start starts running the proxy
+// Start starts running the proxy.
 func (p *Proxy) Start() {
 	go p.start()
 }
 
-// Stop stops running the proxy
+// Stop stops running the proxy.
 func (p *Proxy) Stop() {
 	close(p.done)
 	<-p.closed
 }
 
-// Reports returns the Report channel for watched domains
+// Reports returns the Report channel for watched domains.
 func (p *Proxy) Reports() chan *Report {
 	return p.reports
 }
 
-// SetRemotes sets the mapping from domain names to remote server addresses
+// SetRemotes sets the mapping from domain names to remote server addresses.
 func (p *Proxy) SetRemotes(remotes map[string][]string) {
 	p.remotes.Flush()
 	for d, s := range remotes {
@@ -221,7 +221,7 @@ func (p *Proxy) SetRemotes(remotes map[string][]string) {
 	}
 }
 
-// SetWatches sets the domains watched for A and AAAA record updates
+// SetWatches sets the domains watched for A and AAAA record updates.
 func (p *Proxy) SetWatches(watches []string) {
 	p.watches.Flush()
 	for _, d := range watches {
@@ -229,7 +229,7 @@ func (p *Proxy) SetWatches(watches []string) {
 	}
 }
 
-// NewProxy returns a new Proxy that listens on address
+// NewProxy returns a new Proxy that listens on address.
 func NewProxy(config *Config) *Proxy {
 	var udp *dns.Server
 	if config.ListenUDP {

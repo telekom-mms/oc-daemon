@@ -10,7 +10,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// createProfileMonTestFile creates a temporary file for ProfileMon testing
+// createProfileMonTestFile creates a temporary file for ProfileMon testing.
 func createProfileMonTestFile(t *testing.T) string {
 	f, err := os.CreateTemp("", "profilemon-test")
 	if err != nil {
@@ -19,7 +19,7 @@ func createProfileMonTestFile(t *testing.T) string {
 	return f.Name()
 }
 
-// TestProfileMonHandleEvent tests handleEvent of ProfileMon
+// TestProfileMonHandleEvent tests handleEvent of ProfileMon.
 func TestProfileMonHandleEvent(t *testing.T) {
 	f := createProfileMonTestFile(t)
 	defer func() { _ = os.Remove(f) }()
@@ -75,7 +75,7 @@ func TestProfileMonStartEvents(t *testing.T) {
 	<-p.closed
 }
 
-// TestProfileMonStartStop tests Start and Stop of ProfileMon
+// TestProfileMonStartStop tests Start and Stop of ProfileMon.
 func TestProfileMonStartStop(t *testing.T) {
 	f := createProfileMonTestFile(t)
 	defer func() { _ = os.Remove(f) }()
@@ -97,7 +97,7 @@ func TestProfileMonUpdates(t *testing.T) {
 	}
 }
 
-// TestNewProfileMon tests NewProfileMon
+// TestNewProfileMon tests NewProfileMon.
 func TestNewProfileMon(t *testing.T) {
 	f := "some file"
 	p := NewProfileMon(f)

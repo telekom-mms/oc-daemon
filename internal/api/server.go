@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Server is a Daemon API server
+// Server is a Daemon API server.
 type Server struct {
 	config   *Config
 	listen   net.Listener
@@ -25,7 +25,7 @@ type Server struct {
 	stop  bool
 }
 
-// setStopping marks the server as stopping
+// setStopping marks the server as stopping.
 func (s *Server) setStopping() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -33,7 +33,7 @@ func (s *Server) setStopping() {
 	s.stop = true
 }
 
-// isStopping returns whether the server is stopping
+// isStopping returns whether the server is stopping.
 func (s *Server) isStopping() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -42,7 +42,7 @@ func (s *Server) isStopping() bool {
 
 }
 
-// handleRequest handles a request from the client
+// handleRequest handles a request from the client.
 func (s *Server) handleRequest(conn net.Conn) {
 	// set timeout for entire request/response exchange
 	deadline := time.Now().Add(s.config.RequestTimeout)
@@ -83,7 +83,7 @@ func (s *Server) handleRequest(conn net.Conn) {
 	}
 }
 
-// handleClients handles client connections
+// handleClients handles client connections.
 func (s *Server) handleClients() {
 	defer func() {
 		_ = s.listen.Close()
@@ -108,7 +108,7 @@ func (s *Server) handleClients() {
 	}
 }
 
-// setSocketOwner sets the owner of the socket file
+// setSocketOwner sets the owner of the socket file.
 func (s *Server) setSocketOwner() {
 	if s.config.SocketOwner == "" {
 		// do not change owner
@@ -132,7 +132,7 @@ func (s *Server) setSocketOwner() {
 	}
 }
 
-// setSocketGroup sets the group of the socket file
+// setSocketGroup sets the group of the socket file.
 func (s *Server) setSocketGroup() {
 	if s.config.SocketGroup == "" {
 		// do not change group
@@ -156,7 +156,7 @@ func (s *Server) setSocketGroup() {
 	}
 }
 
-// setSocketPermissions sets the file permissions of the socket file
+// setSocketPermissions sets the file permissions of the socket file.
 func (s *Server) setSocketPermissions() {
 	if s.config.SocketPermissions == "" {
 		// do not change permissions
@@ -175,7 +175,7 @@ func (s *Server) setSocketPermissions() {
 
 }
 
-// Start starts the API server
+// Start starts the API server.
 func (s *Server) Start() error {
 	// cleanup existing sock file, this should normally fail
 	if err := os.Remove(s.config.SocketFile); err == nil {
@@ -203,7 +203,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
-// Stop stops the API server
+// Stop stops the API server.
 func (s *Server) Stop() {
 	close(s.done)
 
@@ -217,12 +217,12 @@ func (s *Server) Stop() {
 	<-s.closed
 }
 
-// Requests returns the clients channel
+// Requests returns the clients channel.
 func (s *Server) Requests() chan *Request {
 	return s.requests
 }
 
-// NewServer returns a new API server
+// NewServer returns a new API server.
 func NewServer(config *Config) *Server {
 	return &Server{
 		config:   config,

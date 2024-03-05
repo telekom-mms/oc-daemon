@@ -16,6 +16,7 @@ const (
 	socketFile = runDir + "/daemon.sock"
 )
 
+// run is the main function.
 func run(args []string) error {
 	// parse command line
 	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
@@ -69,7 +70,7 @@ func run(args []string) error {
 	}
 }
 
-// Run is the main entry point of vpnc script
+// Run is the main entry point of vpnc script.
 func Run() {
 	if err := run(os.Args); err != nil {
 		if err != flag.ErrHelp {

@@ -7,7 +7,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// TestAddrMonStartStop tests Start and Stop of AddrMon
+// TestAddrMonStartStop tests Start and Stop of AddrMon.
 func TestAddrMonStartStop(t *testing.T) {
 	// clean up after tests
 	oldRegisterAddrUpdates := RegisterAddrUpdates
@@ -93,7 +93,7 @@ func TestAddrMonStartStop(t *testing.T) {
 	addrMon.Stop()
 }
 
-// TestAddrMonUpdates tests Updates of AddrMon
+// TestAddrMonUpdates tests Updates of AddrMon.
 func TestAddrMonUpdates(t *testing.T) {
 	addrMon := NewAddrMon()
 	got := addrMon.Updates()
@@ -103,7 +103,7 @@ func TestAddrMonUpdates(t *testing.T) {
 	}
 }
 
-// TestNewAddrMon tests NewAddrMon
+// TestNewAddrMon tests NewAddrMon.
 func TestNewAddrMon(t *testing.T) {
 	addrMon := NewAddrMon()
 	if addrMon.updates == nil ||

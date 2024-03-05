@@ -10,7 +10,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
-// setRoutingRules sets the basic nftables rules for routing
+// setRoutingRules sets the basic nftables rules for routing.
 func setRoutingRules(ctx context.Context, fwMark string) {
 	const routeRules = `
 table inet oc-daemon-routing {
@@ -108,7 +108,7 @@ table inet oc-daemon-routing {
 	}
 }
 
-// unsetRoutingRules removes the nftables rules for routing
+// unsetRoutingRules removes the nftables rules for routing.
 func unsetRoutingRules(ctx context.Context) {
 	if err := execs.RunNft(ctx, "delete table inet oc-daemon-routing"); err != nil {
 		log.WithError(err).Error("SplitRouting error unsetting routing rules")
@@ -117,7 +117,7 @@ func unsetRoutingRules(ctx context.Context) {
 
 // addLocalAddresses adds rules for device and its family (ip, ip6) addresses,
 // that drop non-local traffic from other devices to device's network
-// addresses; used to filter non-local traffic to vpn addresses
+// addresses; used to filter non-local traffic to vpn addresses.
 func addLocalAddresses(ctx context.Context, device, family string, addresses []*net.IPNet) {
 	nftconf := ""
 	for _, addr := range addresses {
@@ -136,20 +136,20 @@ func addLocalAddresses(ctx context.Context, device, family string, addresses []*
 
 // addLocalAddressesIPv4 adds rules for device and its addresses, that drop
 // non-local traffic from other devices to device's network addresses; used to
-// filter non-local traffic to vpn addresses
+// filter non-local traffic to vpn addresses.
 func addLocalAddressesIPv4(ctx context.Context, device string, addresses []*net.IPNet) {
 	addLocalAddresses(ctx, device, "ip", addresses)
 }
 
 // addLocalAddressesIPv6 adds rules for device and its addresses, that drop
 // non-local traffic from other devices to device's network addresses; used to
-// filter non-local traffic to vpn addresses
+// filter non-local traffic to vpn addresses.
 func addLocalAddressesIPv6(ctx context.Context, device string, addresses []*net.IPNet) {
 	addLocalAddresses(ctx, device, "ip6", addresses)
 }
 
 // rejectIPVersion adds rules for the tunnel device to reject an unsupported ip
-// version ("ipv6" or "ipv4")
+// version ("ipv6" or "ipv4").
 func rejectIPVersion(ctx context.Context, device, version string) {
 	nftconf := ""
 	for _, chain := range []string{"rejectforward", "rejectoutput"} {
@@ -166,18 +166,18 @@ func rejectIPVersion(ctx context.Context, device, version string) {
 }
 
 // rejectIPv6 adds rules for the tunnel device that reject IPv6 traffic on it;
-// used to avoid sending IPv6 packets over a tunnel that only supports IPv4
+// used to avoid sending IPv6 packets over a tunnel that only supports IPv4.
 func rejectIPv6(ctx context.Context, device string) {
 	rejectIPVersion(ctx, device, "ipv6")
 }
 
 // rejectIPv4 adds rules for the tunnel device that reject IPv4 traffic on it;
-// used to avoid sending IPv4 packets over a tunnel that only supports IPv6
+// used to avoid sending IPv4 packets over a tunnel that only supports IPv6.
 func rejectIPv4(ctx context.Context, device string) {
 	rejectIPVersion(ctx, device, "ipv4")
 }
 
-// addExclude adds exclude address to netfilter
+// addExclude adds exclude address to netfilter.
 func addExclude(ctx context.Context, address *net.IPNet) {
 	set := "excludes4"
 	if address.IP.To4() == nil {
@@ -191,7 +191,7 @@ func addExclude(ctx context.Context, address *net.IPNet) {
 	}
 }
 
-// setExcludes resets the excludes to addresses in netfilter
+// setExcludes resets the excludes to addresses in netfilter.
 func setExcludes(ctx context.Context, addresses []*net.IPNet) {
 	// flush existing entries
 	nftconf := ""
@@ -216,7 +216,7 @@ func setExcludes(ctx context.Context, addresses []*net.IPNet) {
 }
 
 // cleanupRoutingRules cleans up the nftables rules for routing after a
-// failed shutdown
+// failed shutdown.
 func cleanupRoutingRules(ctx context.Context) {
 	if err := execs.RunNft(ctx, "delete table inet oc-daemon-routing"); err == nil {
 		log.Debug("SplitRouting cleaned up nft")

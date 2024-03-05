@@ -125,7 +125,7 @@ type env struct {
 }
 
 // parseEnvironmentSplit parses split include/exclude parameters identified by
-// prefix and returns them; note: only uses ADDR and MASKLEN
+// prefix and returns them; note: only uses ADDR and MASKLEN.
 // TODO: this might not work with IPv6, check and fix it
 func parseEnvironmentSplit(prefix string) []string {
 	splits := []string{}
@@ -166,7 +166,7 @@ func parseEnvironmentSplit(prefix string) []string {
 }
 
 // parseDNSSplitExcXML parses the DNS-based Split Exclude List contained in
-// postAuthXML
+// postAuthXML.
 func parseDNSSplitExcXML(postAuthXML string) []string {
 	type DNSSplitExc struct {
 		Domains string `xml:"config>opaque>custom-attr>dynamic-split-exclude-domains"`
@@ -182,7 +182,7 @@ func parseDNSSplitExcXML(postAuthXML string) []string {
 }
 
 // parseBypassVSubnetsXML parses the Bypass Virtual Subnets Only V4 setting
-// contained in postAuthXML
+// contained in postAuthXML.
 func parseBypassVSubnetsXML(postAuthXML string) bool {
 	type BypassVSubnets struct {
 		Bypass bool `xml:"config>opaque>custom-attr>BypassVirtualSubnetsOnlyV4"`
@@ -197,7 +197,7 @@ func parseBypassVSubnetsXML(postAuthXML string) bool {
 	return b.Bypass
 }
 
-// getPostAuthXML gets the post auth xml from ciscoCSTPOptions
+// getPostAuthXML gets the post auth xml from ciscoCSTPOptions.
 func getPostAuthXML(ciscoCSTPOptions []string) string {
 	for _, opt := range ciscoCSTPOptions {
 		pair := strings.SplitN(opt, "=", 2)
@@ -216,7 +216,7 @@ func getPostAuthXML(ciscoCSTPOptions []string) string {
 }
 
 // parseDNSSplitExc parses the DNS-based Split Exclude List contained in
-// ciscoCSTPOptions
+// ciscoCSTPOptions.
 func parseDNSSplitExc(ciscoCSTPOptions []string) []string {
 	xml := getPostAuthXML(ciscoCSTPOptions)
 	if xml != "" {
@@ -227,7 +227,7 @@ func parseDNSSplitExc(ciscoCSTPOptions []string) []string {
 }
 
 // parseBypassVSubnets parses the bypass virtual subnets only v4 setting in
-// ciscoCSTPOptions
+// ciscoCSTPOptions.
 func parseBypassVSubnets(ciscoCSTPOptions []string) bool {
 	xml := getPostAuthXML(ciscoCSTPOptions)
 	if xml != "" {
@@ -238,7 +238,7 @@ func parseBypassVSubnets(ciscoCSTPOptions []string) bool {
 }
 
 // parseDisableAlwaysOnVPN parses the disable always on vpn setting in
-// ciscoCSTPOptions
+// ciscoCSTPOptions.
 func parseDisableAlwaysOnVPN(ciscoCSTPOptions []string) bool {
 	for _, opt := range ciscoCSTPOptions {
 		pair := strings.SplitN(opt, "=", 2)
@@ -256,7 +256,7 @@ func parseDisableAlwaysOnVPN(ciscoCSTPOptions []string) bool {
 }
 
 // parseEnvironment parses environment variables and collects
-// openconnect settings
+// openconnect settings.
 func parseEnvironment() *env {
 	e := &env{}
 
@@ -388,7 +388,7 @@ func parseEnvironment() *env {
 	return e
 }
 
-// printDebugEnvironment prints all environment variables as debug output
+// printDebugEnvironment prints all environment variables as debug output.
 func printDebugEnvironment() {
 	for _, e := range os.Environ() {
 		log.WithField("variable", e).Debug("VPNCScript got environment variable")

@@ -9,13 +9,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Report is a captive portal detection report
+// Report is a captive portal detection report.
 type Report struct {
 	Detected bool
 	Host     string
 }
 
-// CPD is a captive portal detection instance
+// CPD is a captive portal detection instance.
 type CPD struct {
 	config  *Config
 	reports chan *Report
@@ -36,7 +36,7 @@ type CPD struct {
 	runAgain bool
 }
 
-// check probes the http server
+// check probes the http server.
 func (c *CPD) check() *Report {
 	// send http request
 	client := &http.Client{
@@ -83,7 +83,7 @@ func (c *CPD) check() *Report {
 	}
 }
 
-// probe probes the http server
+// probe probes the http server.
 func (c *CPD) probe() {
 	// TODO: improve this?
 	r := &Report{}
@@ -156,7 +156,7 @@ func (c *CPD) handleTimer() {
 	}
 }
 
-// start starts the captive portal detection
+// start starts the captive portal detection.
 func (c *CPD) start() {
 	defer close(c.closed)
 	defer close(c.reports)
@@ -184,33 +184,33 @@ func (c *CPD) start() {
 	}
 }
 
-// Start starts the captive portal detection
+// Start starts the captive portal detection.
 func (c *CPD) Start() {
 	go c.start()
 }
 
-// Stop stops the captive portal detection
+// Stop stops the captive portal detection.
 func (c *CPD) Stop() {
 	close(c.done)
 	<-c.closed
 }
 
-// Hosts returns the host addresses used for captive protal detection
+// Hosts returns the host addresses used for captive protal detection.
 func (c *CPD) Hosts() []string {
 	return []string{c.config.Host}
 }
 
-// Probe triggers the captive portal detection
+// Probe triggers the captive portal detection.
 func (c *CPD) Probe() {
 	c.probes <- struct{}{}
 }
 
-// Results returns the results channel
+// Results returns the results channel.
 func (c *CPD) Results() chan *Report {
 	return c.reports
 }
 
-// NewCPD returns a new CPD
+// NewCPD returns a new CPD.
 func NewCPD(config *Config) *CPD {
 	return &CPD{
 		config:  config,

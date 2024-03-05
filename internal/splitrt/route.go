@@ -7,7 +7,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
-// addDefaultRouteIPv4 adds default routing for IPv4
+// addDefaultRouteIPv4 adds default routing for IPv4.
 func addDefaultRouteIPv4(ctx context.Context, device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
 	// set default route
 	if err := execs.RunIP4Route(ctx, "add", "0.0.0.0/0", "dev", device,
@@ -32,7 +32,7 @@ func addDefaultRouteIPv4(ctx context.Context, device, rtTable, rulePrio1, fwMark
 	}
 }
 
-// addDefaultRouteIPv6 adds default routing for IPv6
+// addDefaultRouteIPv6 adds default routing for IPv6.
 func addDefaultRouteIPv6(ctx context.Context, device, rtTable, rulePrio1, fwMark, rulePrio2 string) {
 	// set default route
 	if err := execs.RunIP6Route(ctx, "add", "::/0", "dev", device, "table",
@@ -51,7 +51,7 @@ func addDefaultRouteIPv6(ctx context.Context, device, rtTable, rulePrio1, fwMark
 	}
 }
 
-// deleteDefaultRouteIPv4 removes default routing for IPv4
+// deleteDefaultRouteIPv4 removes default routing for IPv4.
 func deleteDefaultRouteIPv4(ctx context.Context, device, rtTable string) {
 	// delete routing rules
 	if err := execs.RunIP4Rule(ctx, "delete", "table", rtTable); err != nil {
@@ -63,7 +63,7 @@ func deleteDefaultRouteIPv4(ctx context.Context, device, rtTable string) {
 	}
 }
 
-// deleteDefaultRouteIPv6 removes default routing for IPv6
+// deleteDefaultRouteIPv6 removes default routing for IPv6.
 func deleteDefaultRouteIPv6(ctx context.Context, device, rtTable string) {
 	// delete routing rules
 	if err := execs.RunIP6Rule(ctx, "delete", "table", rtTable); err != nil {
@@ -75,7 +75,7 @@ func deleteDefaultRouteIPv6(ctx context.Context, device, rtTable string) {
 	}
 }
 
-// cleanupRouting cleans up the routing configuration after a failed shutdown
+// cleanupRouting cleans up the routing configuration after a failed shutdown.
 func cleanupRouting(ctx context.Context, rtTable, rulePrio1, rulePrio2 string) {
 	// delete ipv4 routing rules
 	if err := execs.RunIP4Rule(ctx, "delete", "pref", rulePrio1); err == nil {

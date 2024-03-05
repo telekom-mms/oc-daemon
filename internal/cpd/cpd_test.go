@@ -129,7 +129,7 @@ func TestCPDHandleTimer(t *testing.T) {
 	}
 }
 
-// TestCPDStartStop tests Start and Stop of CPD
+// TestCPDStartStop tests Start and Stop of CPD.
 func TestCPDStartStop(t *testing.T) {
 	// start and stop immediately
 	c := NewCPD(NewConfig())
@@ -151,7 +151,7 @@ func TestCPDStartStop(t *testing.T) {
 	}
 }
 
-// TestCPDHosts tests Hosts of CPD
+// TestCPDHosts tests Hosts of CPD.
 func TestCPDHosts(t *testing.T) {
 	config := NewConfig()
 	config.Host = "test"
@@ -163,7 +163,7 @@ func TestCPDHosts(t *testing.T) {
 	}
 }
 
-// TestCPDProbe tests Probe of CPD
+// TestCPDProbe tests Probe of CPD.
 func TestCPDProbe(t *testing.T) {
 	// status code 204, not detected
 	t.Run("not detected", func(t *testing.T) {
@@ -202,7 +202,7 @@ func TestCPDProbe(t *testing.T) {
 	})
 }
 
-// TestCPDResults tests Results of CPD
+// TestCPDResults tests Results of CPD.
 func TestCPDResults(t *testing.T) {
 	c := NewCPD(NewConfig())
 	want := c.reports
@@ -212,7 +212,7 @@ func TestCPDResults(t *testing.T) {
 	}
 }
 
-// TestNewCPD tests NewCPD
+// TestNewCPD tests NewCPD.
 func TestNewCPD(t *testing.T) {
 	config := NewConfig()
 	c := NewCPD(config)

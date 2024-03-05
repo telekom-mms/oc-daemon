@@ -8,7 +8,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 )
 
-// getTestAddrMonUpdate returns an AddrMon update for testing
+// getTestAddrMonUpdate returns an AddrMon update for testing.
 func getTestAddrMonUpdate(t *testing.T, addr string) *addrmon.Update {
 	_, ipnet, err := net.ParseCIDR(addr)
 	if err != nil {
@@ -22,7 +22,7 @@ func getTestAddrMonUpdate(t *testing.T, addr string) *addrmon.Update {
 	}
 }
 
-// TestAddressesAdd tests Add of Addresses
+// TestAddressesAdd tests Add of Addresses.
 func TestAddressesAdd(t *testing.T) {
 	a := NewAddresses()
 	update := getTestAddrMonUpdate(t, "192.168.1.0/24")
@@ -34,7 +34,7 @@ func TestAddressesAdd(t *testing.T) {
 	}
 }
 
-// TestAddressesRemove tests Remove of Addresses
+// TestAddressesRemove tests Remove of Addresses.
 func TestAddressesRemove(t *testing.T) {
 	a := NewAddresses()
 	updates := []*addrmon.Update{
@@ -65,7 +65,7 @@ func TestAddressesRemove(t *testing.T) {
 	}
 }
 
-// TestAddressesGet tests Get of Addresses
+// TestAddressesGet tests Get of Addresses.
 func TestAddressesGet(t *testing.T) {
 	a := NewAddresses()
 	update1 := getTestAddrMonUpdate(t, "192.168.1.0/24")
@@ -107,7 +107,7 @@ func TestAddressesGet(t *testing.T) {
 	}
 }
 
-// TestNewAddresses tests NewAddresses
+// TestNewAddresses tests NewAddresses.
 func TestNewAddresses(t *testing.T) {
 	a := NewAddresses()
 	if a.m == nil {

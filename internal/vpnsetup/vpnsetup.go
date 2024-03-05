@@ -15,31 +15,31 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
-// command types
+// command types.
 const (
 	commandSetup uint8 = iota
 	commandTeardown
 )
 
-// command is a VPNSetup command
+// command is a VPNSetup command.
 type command struct {
 	cmd     uint8
 	vpnconf *vpnconfig.Config
 }
 
-// Event types
+// Event types.
 const (
 	EventSetupOK uint8 = iota
 	EventTeardownOK
 )
 
-// Event is a VPNSetup event
+// Event is a VPNSetup event.
 type Event struct {
 	Type uint8
 }
 
 // VPNSetup sets up the configuration of the vpn tunnel that belongs to the
-// current VPN connection
+// current VPN connection.
 type VPNSetup struct {
 	splitrt     *splitrt.SplitRouting
 	splitrtConf *splitrt.Config
@@ -56,7 +56,7 @@ type VPNSetup struct {
 	closed chan struct{}
 }
 
-// sendEvents sends the event
+// sendEvents sends the event.
 func (v *VPNSetup) sendEvent(event *Event) {
 	select {
 	case v.events <- event:
@@ -64,7 +64,7 @@ func (v *VPNSetup) sendEvent(event *Event) {
 	}
 }
 
-// setupVPNDevice sets up the vpn device with config
+// setupVPNDevice sets up the vpn device with config.
 func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	// set mtu on device
 	mtu := strconv.Itoa(c.Device.MTU)
@@ -108,7 +108,7 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	}
 }
 
-// teardownVPNDevice tears down the configured vpn device
+// teardownVPNDevice tears down the configured vpn device.
 func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	// set device down
 	if err := execs.RunIPLink(ctx, "set", c.Device.Name, "down"); err != nil {
@@ -119,7 +119,7 @@ func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 
 }
 
-// setupRouting sets up routing using config
+// setupRouting sets up routing using config.
 func (v *VPNSetup) setupRouting(vpnconf *vpnconfig.Config) {
 	if v.splitrt != nil {
 		return
@@ -130,7 +130,7 @@ func (v *VPNSetup) setupRouting(vpnconf *vpnconfig.Config) {
 	}
 }
 
-// teardownRouting tears down the routing configuration
+// teardownRouting tears down the routing configuration.
 func (v *VPNSetup) teardownRouting() {
 	if v.splitrt == nil {
 		return
@@ -139,7 +139,7 @@ func (v *VPNSetup) teardownRouting() {
 	v.splitrt = nil
 }
 
-// setupDNSServer sets the DNS server
+// setupDNSServer sets the DNS server.
 func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config) {
 	device := config.Device.Name
 	if err := execs.RunResolvectl(ctx, "dns", device, v.dnsProxyConf.Address); err != nil {
@@ -150,7 +150,7 @@ func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config)
 	}
 }
 
-// setupDNSDomains sets the DNS domains
+// setupDNSDomains sets the DNS domains.
 func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config) {
 	device := config.Device.Name
 	if err := execs.RunResolvectl(ctx, "domain", device, config.DNS.DefaultDomain, "~."); err != nil {
@@ -161,7 +161,7 @@ func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config
 	}
 }
 
-// setupDNSDefaultRoute sets the DNS default route
+// setupDNSDefaultRoute sets the DNS default route.
 func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.Config) {
 	device := config.Device.Name
 	if err := execs.RunResolvectl(ctx, "default-route", device, "yes"); err != nil {
@@ -170,7 +170,7 @@ func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.C
 	}
 }
 
-// setupDNS sets up DNS using config
+// setupDNS sets up DNS using config.
 func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 	// configure dns proxy
 
@@ -206,7 +206,7 @@ func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 	}
 }
 
-// teardownDNS tears down the DNS configuration
+// teardownDNS tears down the DNS configuration.
 func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 	// update dns proxy configuration
 
@@ -236,7 +236,7 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 	}
 }
 
-// checkDNSProtocols checks the configured DNS protocols, only checks default-route
+// checkDNSProtocols checks the configured DNS protocols, only checks default-route.
 func (v *VPNSetup) checkDNSProtocols(protocols []string) bool {
 	// check if default route is set
 	ok := false
@@ -249,7 +249,7 @@ func (v *VPNSetup) checkDNSProtocols(protocols []string) bool {
 	return ok
 }
 
-// checkDNSServers checks the configured DNS servers
+// checkDNSServers checks the configured DNS servers.
 func (v *VPNSetup) checkDNSServers(servers []string) bool {
 	// check dns server ip
 	if len(servers) != 1 || servers[0] != v.dnsProxyConf.Address {
@@ -260,7 +260,7 @@ func (v *VPNSetup) checkDNSServers(servers []string) bool {
 	return true
 }
 
-// checkDNSDomain checks the configured DNS domains
+// checkDNSDomain checks the configured DNS domains.
 func (v *VPNSetup) checkDNSDomain(config *vpnconfig.Config, domains []string) bool {
 	// get domains in config
 	inConfig := strings.Fields(config.DNS.DefaultDomain)
@@ -284,7 +284,7 @@ func (v *VPNSetup) checkDNSDomain(config *vpnconfig.Config, domains []string) bo
 	return true
 }
 
-// ensureDNS ensures the DNS config
+// ensureDNS ensures the DNS config.
 func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool {
 	log.Debug("VPNSetup checking DNS settings")
 
@@ -352,7 +352,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool
 	return protOK && srvOK && domOK
 }
 
-// ensureConfig ensured that the VPN config is and stays active
+// ensureConfig ensured that the VPN config is and stays active.
 func (v *VPNSetup) ensureConfig(ctx context.Context, vpnconf *vpnconfig.Config) {
 	defer close(v.ensureClosed)
 
@@ -379,20 +379,20 @@ func (v *VPNSetup) ensureConfig(ctx context.Context, vpnconf *vpnconfig.Config) 
 	}
 }
 
-// startEnsure starts ensuring the VPN config
+// startEnsure starts ensuring the VPN config.
 func (v *VPNSetup) startEnsure(ctx context.Context, vpnconf *vpnconfig.Config) {
 	v.ensureDone = make(chan struct{})
 	v.ensureClosed = make(chan struct{})
 	go v.ensureConfig(ctx, vpnconf)
 }
 
-// stopEnsure stops ensuring the VPN config
+// stopEnsure stops ensuring the VPN config.
 func (v *VPNSetup) stopEnsure() {
 	close(v.ensureDone)
 	<-v.ensureClosed
 }
 
-// setup sets up the vpn configuration
+// setup sets up the vpn configuration.
 func (v *VPNSetup) setup(ctx context.Context, vpnconf *vpnconfig.Config) {
 	// setup device, routing, dns
 	setupVPNDevice(ctx, vpnconf)
@@ -406,7 +406,7 @@ func (v *VPNSetup) setup(ctx context.Context, vpnconf *vpnconfig.Config) {
 	v.sendEvent(&Event{EventSetupOK})
 }
 
-// teardown tears down the vpn configuration
+// teardown tears down the vpn configuration.
 func (v *VPNSetup) teardown(ctx context.Context, vpnconf *vpnconfig.Config) {
 	// stop ensuring VPN config
 	v.stopEnsure()
@@ -420,7 +420,7 @@ func (v *VPNSetup) teardown(ctx context.Context, vpnconf *vpnconfig.Config) {
 	v.sendEvent(&Event{EventTeardownOK})
 }
 
-// handleCommand handles a command
+// handleCommand handles a command.
 func (v *VPNSetup) handleCommand(ctx context.Context, c *command) {
 	switch c.cmd {
 	case commandSetup:
@@ -430,7 +430,7 @@ func (v *VPNSetup) handleCommand(ctx context.Context, c *command) {
 	}
 }
 
-// handleDNSReport handles a DNS report
+// handleDNSReport handles a DNS report.
 func (v *VPNSetup) handleDNSReport(r *dnsproxy.Report) {
 	log.WithField("report", r).Debug("Daemon handling DNS report")
 
@@ -445,7 +445,7 @@ func (v *VPNSetup) handleDNSReport(r *dnsproxy.Report) {
 	}
 }
 
-// start starts the VPN setup
+// start starts the VPN setup.
 func (v *VPNSetup) start() {
 	defer close(v.closed)
 	defer close(v.events)
@@ -469,18 +469,18 @@ func (v *VPNSetup) start() {
 	}
 }
 
-// Start starts the VPN setup
+// Start starts the VPN setup.
 func (v *VPNSetup) Start() {
 	go v.start()
 }
 
-// Stop stops the VPN setup
+// Stop stops the VPN setup.
 func (v *VPNSetup) Stop() {
 	close(v.done)
 	<-v.closed
 }
 
-// Setup sets the VPN config up
+// Setup sets the VPN config up.
 func (v *VPNSetup) Setup(vpnconfig *vpnconfig.Config) {
 	v.cmds <- &command{
 		cmd:     commandSetup,
@@ -488,7 +488,7 @@ func (v *VPNSetup) Setup(vpnconfig *vpnconfig.Config) {
 	}
 }
 
-// Teardown tears the VPN config down
+// Teardown tears the VPN config down.
 func (v *VPNSetup) Teardown(vpnconfig *vpnconfig.Config) {
 	v.cmds <- &command{
 		cmd:     commandTeardown,
@@ -496,12 +496,12 @@ func (v *VPNSetup) Teardown(vpnconfig *vpnconfig.Config) {
 	}
 }
 
-// Events returns the events channel
+// Events returns the events channel.
 func (v *VPNSetup) Events() chan *Event {
 	return v.events
 }
 
-// NewVPNSetup returns a new VPNSetup
+// NewVPNSetup returns a new VPNSetup.
 func NewVPNSetup(
 	dnsProxyConfig *dnsproxy.Config,
 	splitrtConfig *splitrt.Config,
@@ -518,7 +518,7 @@ func NewVPNSetup(
 	}
 }
 
-// Cleanup cleans up the configuration after a failed shutdown
+// Cleanup cleans up the configuration after a failed shutdown.
 func Cleanup(ctx context.Context, vpnDevice string, splitrtConfig *splitrt.Config) {
 	// dns, device, split routing
 	if err := execs.RunResolvectl(ctx, "revert", vpnDevice); err == nil {

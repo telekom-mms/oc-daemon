@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	// excludesTimer is the timer for periodic exclude cleanup in seconds
+	// excludesTimer is the timer for periodic exclude cleanup in seconds.
 	excludesTimer = 300
 )
 
-// exclude is a split excludes entry
+// exclude is a split excludes entry.
 type exclude struct {
 	net     *net.IPNet
 	static  bool
@@ -22,7 +22,7 @@ type exclude struct {
 	updated bool
 }
 
-// Excludes contains split Excludes
+// Excludes contains split Excludes.
 type Excludes struct {
 	sync.Mutex
 	m      map[string]*exclude
@@ -30,13 +30,13 @@ type Excludes struct {
 	closed chan struct{}
 }
 
-// addFilter adds the exclude to netfilter
+// addFilter adds the exclude to netfilter.
 func (e *Excludes) addFilter(ctx context.Context, exclude *exclude) {
 	log.WithField("address", exclude.net).Debug("SplitRouting adding exclude to netfilter")
 	addExclude(ctx, exclude.net)
 }
 
-// setFilter resets the excludes in netfilter
+// setFilter resets the excludes in netfilter.
 func (e *Excludes) setFilter(ctx context.Context) {
 	log.Debug("SplitRouting resetting excludes in netfilter")
 
@@ -47,7 +47,7 @@ func (e *Excludes) setFilter(ctx context.Context) {
 	setExcludes(ctx, addresses)
 }
 
-// add adds the exclude entry for ip to the split excludes
+// add adds the exclude entry for ip to the split excludes.
 func (e *Excludes) add(ctx context.Context, ip *net.IPNet, exclude *exclude) {
 	e.Lock()
 	defer e.Unlock()
@@ -73,7 +73,7 @@ func (e *Excludes) add(ctx context.Context, ip *net.IPNet, exclude *exclude) {
 	old.updated = true
 }
 
-// AddStatic adds a static entry to the split excludes
+// AddStatic adds a static entry to the split excludes.
 func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 	log.WithField("address", address).Debug("SplitRouting adding static exclude")
 	e.add(ctx, address, &exclude{
@@ -82,7 +82,7 @@ func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 	})
 }
 
-// AddDynamic adds a dynamic entry to the split excludes
+// AddDynamic adds a dynamic entry to the split excludes.
 func (e *Excludes) AddDynamic(ctx context.Context, address *net.IPNet, ttl uint32) {
 	log.WithFields(log.Fields{
 		"address": address,
@@ -95,7 +95,7 @@ func (e *Excludes) AddDynamic(ctx context.Context, address *net.IPNet, ttl uint3
 	})
 }
 
-// Remove removes an entry from the split excludes
+// Remove removes an entry from the split excludes.
 func (e *Excludes) Remove(ctx context.Context, address *net.IPNet) {
 	e.Lock()
 	defer e.Unlock()
@@ -104,7 +104,7 @@ func (e *Excludes) Remove(ctx context.Context, address *net.IPNet) {
 	e.setFilter(ctx)
 }
 
-// cleanup cleans up the split excludes
+// cleanup cleans up the split excludes.
 func (e *Excludes) cleanup(ctx context.Context) {
 	e.Lock()
 	defer e.Unlock()
@@ -139,7 +139,7 @@ func (e *Excludes) cleanup(ctx context.Context) {
 	}
 }
 
-// start starts periodic cleanup of the split excludes
+// start starts periodic cleanup of the split excludes.
 func (e *Excludes) start() {
 	defer close(e.closed)
 
@@ -160,20 +160,20 @@ func (e *Excludes) start() {
 	}
 }
 
-// Start starts periodic cleanup of the split excludes
+// Start starts periodic cleanup of the split excludes.
 func (e *Excludes) Start() {
 	log.Debug("SplitRouting starting periodic cleanup of excludes")
 	go e.start()
 }
 
-// Stop stops periodic cleanup of the split excludes
+// Stop stops periodic cleanup of the split excludes.
 func (e *Excludes) Stop() {
 	close(e.done)
 	<-e.closed
 	log.Debug("SplitRouting stopped periodic cleanup of excludes")
 }
 
-// NewExcludes returns new split excludes
+// NewExcludes returns new split excludes.
 func NewExcludes() *Excludes {
 	return &Excludes{
 		m:      make(map[string]*exclude),

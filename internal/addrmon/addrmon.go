@@ -9,14 +9,14 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// Update is an address update
+// Update is an address update.
 type Update struct {
 	Add     bool
 	Address net.IPNet
 	Index   int
 }
 
-// AddrMon is an address monitor
+// AddrMon is an address monitor.
 type AddrMon struct {
 	events  chan netlink.AddrUpdate
 	updates chan *Update
@@ -25,7 +25,7 @@ type AddrMon struct {
 	closed  chan struct{}
 }
 
-// sendUpdate sends an address update
+// sendUpdate sends an address update.
 func (a *AddrMon) sendUpdate(update *Update) {
 	select {
 	case a.updates <- update:
@@ -36,7 +36,7 @@ func (a *AddrMon) sendUpdate(update *Update) {
 // netlinkAddrSubscribeWithOptions is netlink.AddrSubscribeWithOptions for testing.
 var netlinkAddrSubscribeWithOptions = netlink.AddrSubscribeWithOptions
 
-// RegisterAddrUpdates registers for addr update events
+// RegisterAddrUpdates registers for addr update events.
 var RegisterAddrUpdates = func(a *AddrMon) (chan netlink.AddrUpdate, error) {
 	// register for addr update events
 	events := make(chan netlink.AddrUpdate)
@@ -50,7 +50,7 @@ var RegisterAddrUpdates = func(a *AddrMon) (chan netlink.AddrUpdate, error) {
 	return events, nil
 }
 
-// start starts the address monitor
+// start starts the address monitor.
 func (a *AddrMon) start() {
 	defer close(a.closed)
 	defer close(a.updates)
@@ -95,7 +95,7 @@ func (a *AddrMon) start() {
 	}
 }
 
-// Start starts the address monitor
+// Start starts the address monitor.
 func (a *AddrMon) Start() error {
 	// register for addr update events
 	events, err := RegisterAddrUpdates(a)
@@ -108,18 +108,18 @@ func (a *AddrMon) Start() error {
 	return nil
 }
 
-// Stop stops the address monitor
+// Stop stops the address monitor.
 func (a *AddrMon) Stop() {
 	close(a.done)
 	<-a.closed
 }
 
-// Updates returns the address updates channel
+// Updates returns the address updates channel.
 func (a *AddrMon) Updates() chan *Update {
 	return a.updates
 }
 
-// NewAddrMon returns a new address monitor
+// NewAddrMon returns a new address monitor.
 func NewAddrMon() *AddrMon {
 	return &AddrMon{
 		updates: make(chan *Update),

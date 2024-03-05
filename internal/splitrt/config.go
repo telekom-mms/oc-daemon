@@ -3,24 +3,24 @@ package splitrt
 import "strconv"
 
 var (
-	// RoutingTable is the routing table
+	// RoutingTable is the routing table.
 	RoutingTable = "42111"
 
 	// RulePriority1 is the first routing rule priority. It must be unique,
 	// higher than the local rule, lower than the main and default rules,
-	// lower than the second routing rule priority
+	// lower than the second routing rule priority.
 	RulePriority1 = "2111"
 
 	// RulePriority2 is the second routing rule priority. It must be unique,
 	// higher than the local rule, lower than the main and default rules,
-	// higher than the first routing rule priority
+	// higher than the first routing rule priority.
 	RulePriority2 = "2112"
 
-	// FirewallMark is the firewall mark used for split routing
+	// FirewallMark is the firewall mark used for split routing.
 	FirewallMark = RoutingTable
 )
 
-// Config is a split routing configuration
+// Config is a split routing configuration.
 type Config struct {
 	RoutingTable  string
 	RulePriority1 string
@@ -28,7 +28,7 @@ type Config struct {
 	FirewallMark  string
 }
 
-// Valid returns whether the split routing configuration is valid
+// Valid returns whether the split routing configuration is valid.
 func (c *Config) Valid() bool {
 	if c == nil ||
 		c.RoutingTable == "" ||
@@ -58,7 +58,7 @@ func (c *Config) Valid() bool {
 	return true
 }
 
-// NewConfig returns a new split routing configuration
+// NewConfig returns a new split routing configuration.
 func NewConfig() *Config {
 	return &Config{
 		RoutingTable:  RoutingTable,

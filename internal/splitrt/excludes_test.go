@@ -10,7 +10,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
-// getTestExcludes returns excludes for testing
+// getTestExcludes returns excludes for testing.
 func getTestExcludes(t *testing.T) []*net.IPNet {
 	excludes := []*net.IPNet{}
 	for _, s := range []string{
@@ -26,7 +26,7 @@ func getTestExcludes(t *testing.T) []*net.IPNet {
 	return excludes
 }
 
-// TestExcludesAddStatic tests AddStatic of Excludes
+// TestExcludesAddStatic tests AddStatic of Excludes.
 func TestExcludesAddStatic(t *testing.T) {
 	ctx := context.Background()
 	e := NewExcludes()
@@ -60,7 +60,7 @@ func TestExcludesAddStatic(t *testing.T) {
 	}
 }
 
-// TestExcludesAddDynamic tests AddDynamic of Excludes
+// TestExcludesAddDynamic tests AddDynamic of Excludes.
 func TestExcludesAddDynamic(t *testing.T) {
 	ctx := context.Background()
 	e := NewExcludes()
@@ -94,7 +94,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 	}
 }
 
-// TestExcludesRemove tests Remove of Excludes
+// TestExcludesRemove tests Remove of Excludes.
 func TestExcludesRemove(t *testing.T) {
 	ctx := context.Background()
 	e := NewExcludes()
@@ -174,7 +174,7 @@ func TestExcludesRemove(t *testing.T) {
 	}
 }
 
-// TestExcludesCleanup tests cleanup of Excludes
+// TestExcludesCleanup tests cleanup of Excludes.
 func TestExcludesCleanup(t *testing.T) {
 	ctx := context.Background()
 	e := NewExcludes()
@@ -228,14 +228,14 @@ func TestExcludesCleanup(t *testing.T) {
 	}
 }
 
-// TestExcludesStartStop tests Start and Stop of Excludes
+// TestExcludesStartStop tests Start and Stop of Excludes.
 func TestExcludesStartStop(_ *testing.T) {
 	e := NewExcludes()
 	e.Start()
 	e.Stop()
 }
 
-// TestNewExcludes tests NewExcludes
+// TestNewExcludes tests NewExcludes.
 func TestNewExcludes(t *testing.T) {
 	e := NewExcludes()
 	if e.m == nil ||

@@ -15,18 +15,18 @@ import (
 )
 
 var (
-	// configDir is the directory for the configuration
+	// configDir is the directory for the configuration.
 	configDir = "/var/lib/oc-daemon"
 
-	// ConfigFile is the default config file
+	// ConfigFile is the default config file.
 	ConfigFile = configDir + "/oc-daemon.json"
 
 	// DefaultDNSServer is the default DNS server address, i.e., listen
-	// address of systemd-resolved
+	// address of systemd-resolved.
 	DefaultDNSServer = "127.0.0.53:53"
 )
 
-// Config is an OC-Daemon configuration
+// Config is an OC-Daemon configuration.
 type Config struct {
 	Config  string `json:"-"`
 	Verbose bool
@@ -41,7 +41,7 @@ type Config struct {
 	TND             *tnd.Config
 }
 
-// Valid returns whether config is valid
+// Valid returns whether config is valid.
 func (c *Config) Valid() bool {
 	if c == nil ||
 		!c.SocketServer.Valid() ||
@@ -58,7 +58,7 @@ func (c *Config) Valid() bool {
 	return true
 }
 
-// Load loads the configuration from the config file
+// Load loads the configuration from the config file.
 func (c *Config) Load() error {
 	// read file contents
 	file, err := os.ReadFile(c.Config)
@@ -74,7 +74,7 @@ func (c *Config) Load() error {
 	return nil
 }
 
-// NewConfig returns a new Config
+// NewConfig returns a new Config.
 func NewConfig() *Config {
 	return &Config{
 		Config:  ConfigFile,

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TestRunCmd tests RunCmd
+// TestRunCmd tests RunCmd.
 func TestRunCmd(t *testing.T) {
 	ctx := context.Background()
 
@@ -29,7 +29,7 @@ func TestRunCmd(t *testing.T) {
 	}
 }
 
-// TestRunCmdOutput tests RunCmdOutput
+// TestRunCmdOutput tests RunCmdOutput.
 func TestRunCmdOutput(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -50,7 +50,7 @@ func TestRunCmdOutput(t *testing.T) {
 	}
 }
 
-// TestRunIP tests RunIP
+// TestRunIP tests RunIP.
 func TestRunIP(t *testing.T) {
 	want := []string{"ip address show"}
 	got := []string{}
@@ -68,7 +68,7 @@ func TestRunIP(t *testing.T) {
 	}
 }
 
-// TestRunIPLink tests RunIPLink
+// TestRunIPLink tests RunIPLink.
 func TestRunIPLink(t *testing.T) {
 	want := []string{"ip link show"}
 	got := []string{}
@@ -86,7 +86,7 @@ func TestRunIPLink(t *testing.T) {
 	}
 }
 
-// TestRunIPAddress tests RunIPAddress
+// TestRunIPAddress tests RunIPAddress.
 func TestRunIPAddress(t *testing.T) {
 	want := []string{"ip address show"}
 	got := []string{}
@@ -104,7 +104,7 @@ func TestRunIPAddress(t *testing.T) {
 	}
 }
 
-// TestRunIP4Route tests RunIP4Route
+// TestRunIP4Route tests RunIP4Route.
 func TestRunIP4Route(t *testing.T) {
 	want := []string{"ip -4 route show"}
 	got := []string{}
@@ -122,7 +122,7 @@ func TestRunIP4Route(t *testing.T) {
 	}
 }
 
-// TestRunIP6Route tests RunIP6Route
+// TestRunIP6Route tests RunIP6Route.
 func TestRunIP6Route(t *testing.T) {
 	want := []string{"ip -6 route show"}
 	got := []string{}
@@ -140,7 +140,7 @@ func TestRunIP6Route(t *testing.T) {
 	}
 }
 
-// TestRunIP4Rule tests RunIP4Rule
+// TestRunIP4Rule tests RunIP4Rule.
 func TestRunIP4Rule(t *testing.T) {
 	want := []string{"ip -4 rule show"}
 	got := []string{}
@@ -158,7 +158,7 @@ func TestRunIP4Rule(t *testing.T) {
 	}
 }
 
-// TestRunIP6Rule tests RunIP6Rule
+// TestRunIP6Rule tests RunIP6Rule.
 func TestRunIP6Rule(t *testing.T) {
 	want := []string{"ip -6 rule show"}
 	got := []string{}
@@ -176,7 +176,7 @@ func TestRunIP6Rule(t *testing.T) {
 	}
 }
 
-// TestRunSysctl tests RunSysctl
+// TestRunSysctl tests RunSysctl.
 func TestRunSysctl(t *testing.T) {
 	want := []string{"sysctl -q net.ipv4.conf.all.src_valid_mark=1"}
 	got := []string{}
@@ -194,7 +194,7 @@ func TestRunSysctl(t *testing.T) {
 	}
 }
 
-// TestRunNft tests RunNft
+// TestRunNft tests RunNft.
 func TestRunNft(t *testing.T) {
 	want := []string{"nft -f - list tables"}
 	got := []string{}
@@ -212,7 +212,7 @@ func TestRunNft(t *testing.T) {
 	}
 }
 
-// TestRunResolvectl tests RunResolvectl
+// TestRunResolvectl tests RunResolvectl.
 func TestRunResolvectl(t *testing.T) {
 	want := []string{"resolvectl dns"}
 	got := []string{}
@@ -230,7 +230,7 @@ func TestRunResolvectl(t *testing.T) {
 	}
 }
 
-// TestRunResolvectlOutput tests RunResolvectlOutput
+// TestRunResolvectlOutput tests RunResolvectlOutput.
 func TestRunResolvectlOutput(t *testing.T) {
 	want := []string{"resolvectl dns"}
 	got := []string{}
@@ -250,7 +250,7 @@ func TestRunResolvectlOutput(t *testing.T) {
 	}
 }
 
-// TestSetExecutables tests SetExecutables
+// TestSetExecutables tests SetExecutables.
 func TestSetExecutables(t *testing.T) {
 	old := NewConfig()
 	defer SetExecutables(old)
