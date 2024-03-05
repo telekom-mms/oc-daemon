@@ -127,6 +127,7 @@ func (d *DevMon) start() {
 			go func() {
 				for range d.events {
 					// wait for channel shutdown
+					log.Debug("DevMon dropping event after stop")
 				}
 			}()
 			return
