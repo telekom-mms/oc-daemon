@@ -7,7 +7,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
-// TrustedNetwork is the current trusted network state
+// TrustedNetwork is the current trusted network state.
 type TrustedNetwork uint32
 
 // TrustedNetwork states
@@ -17,12 +17,12 @@ const (
 	TrustedNetworkTrusted
 )
 
-// Trusted returns whether TrustedNetwork is state "trusted"
+// Trusted returns whether TrustedNetwork is state "trusted".
 func (t TrustedNetwork) Trusted() bool {
 	return t == TrustedNetworkTrusted
 }
 
-// String returns t as string
+// String returns t as string.
 func (t TrustedNetwork) String() string {
 	switch t {
 	case TrustedNetworkUnknown:
@@ -35,10 +35,10 @@ func (t TrustedNetwork) String() string {
 	return ""
 }
 
-// ConnectionState is the current connection state
+// ConnectionState is the current connection state.
 type ConnectionState uint32
 
-// ConnectionState states
+// ConnectionState states.
 const (
 	ConnectionStateUnknown ConnectionState = iota
 	ConnectionStateDisconnected
@@ -47,12 +47,12 @@ const (
 	ConnectionStateDisconnecting
 )
 
-// Connected returns whether ConnectionState is state "connected"
+// Connected returns whether ConnectionState is state "connected".
 func (c ConnectionState) Connected() bool {
 	return c == ConnectionStateConnected
 }
 
-// String returns ConnectionState as string
+// String returns ConnectionState as string.
 func (c ConnectionState) String() string {
 	switch c {
 	case ConnectionStateUnknown:
@@ -69,22 +69,22 @@ func (c ConnectionState) String() string {
 	return ""
 }
 
-// OCRunning is the current state of the openconnect client
+// OCRunning is the current state of the openconnect client.
 type OCRunning uint32
 
-// OCRunning states
+// OCRunning states.
 const (
 	OCRunningUnknown OCRunning = iota
 	OCRunningNotRunning
 	OCRunningRunning
 )
 
-// Running returns whether OCRunning is in state "running"
+// Running returns whether OCRunning is in state "running".
 func (o OCRunning) Running() bool {
 	return o == OCRunningRunning
 }
 
-// String returns OCRunning as string
+// String returns OCRunning as string.
 func (o OCRunning) String() string {
 	switch o {
 	case OCRunningUnknown:
@@ -97,7 +97,7 @@ func (o OCRunning) String() string {
 	return ""
 }
 
-// Status is a VPN status
+// Status is a VPN status.
 type Status struct {
 	TrustedNetwork  TrustedNetwork
 	ConnectionState ConnectionState
@@ -110,7 +110,7 @@ type Status struct {
 	VPNConfig       *vpnconfig.Config
 }
 
-// Copy returns a copy of Status
+// Copy returns a copy of Status.
 func (s *Status) Copy() *Status {
 	if s == nil {
 		return nil
@@ -130,7 +130,7 @@ func (s *Status) Copy() *Status {
 // jsonMarshal is json.Marshal for testing.
 var jsonMarshal = json.Marshal
 
-// JSON returns the Status as JSON
+// JSON returns the Status as JSON.
 func (s *Status) JSON() ([]byte, error) {
 	b, err := jsonMarshal(s)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *Status) JSON() ([]byte, error) {
 	return b, nil
 }
 
-// NewFromJSON parses and returns the Status in b
+// NewFromJSON parses and returns the Status in b.
 func NewFromJSON(b []byte) (*Status, error) {
 	s := New()
 	err := json.Unmarshal(b, s)
@@ -151,7 +151,7 @@ func NewFromJSON(b []byte) (*Status, error) {
 	return s, nil
 }
 
-// New returns a new Status
+// New returns a new Status.
 func New() *Status {
 	return &Status{}
 }

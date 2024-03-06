@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// LoginInfo is login information for OpenConnect
+// LoginInfo is login information for OpenConnect.
 type LoginInfo struct {
 	Server      string
 	Cookie      string
@@ -16,7 +16,7 @@ type LoginInfo struct {
 	Resolve     string
 }
 
-// Copy returns a copy of LoginInfo
+// Copy returns a copy of LoginInfo.
 func (l *LoginInfo) Copy() *LoginInfo {
 	if l == nil {
 		return nil
@@ -25,7 +25,7 @@ func (l *LoginInfo) Copy() *LoginInfo {
 	return &cp
 }
 
-// Valid returns if the login information is valid
+// Valid returns whether the login information is valid.
 func (l *LoginInfo) Valid() bool {
 	if l == nil ||
 		l.Server == "" ||
@@ -39,7 +39,7 @@ func (l *LoginInfo) Valid() bool {
 	return true
 }
 
-// ParseLine extracts login information from line
+// ParseLine extracts login information from line.
 func (l *LoginInfo) ParseLine(line string) {
 	// get key, value pair from line
 	s := strings.SplitN(line, "=", 2)
@@ -70,7 +70,7 @@ func (l *LoginInfo) ParseLine(line string) {
 // jsonMarshal is json.Marshal for testing.
 var jsonMarshal = json.Marshal
 
-// JSON returns the login info as JSON
+// JSON returns the login info as JSON.
 func (l *LoginInfo) JSON() ([]byte, error) {
 	b, err := jsonMarshal(l)
 	if err != nil {
@@ -80,7 +80,7 @@ func (l *LoginInfo) JSON() ([]byte, error) {
 	return b, nil
 }
 
-// FromJSON parses and returns the login info in b
+// FromJSON parses and returns the login info in b.
 func FromJSON(b []byte) (*LoginInfo, error) {
 	l := &LoginInfo{}
 	err := json.Unmarshal(b, l)

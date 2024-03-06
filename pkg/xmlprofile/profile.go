@@ -12,14 +12,14 @@ import (
 )
 
 var (
-	// SystemProfile is the file path of the system XML profile
+	// SystemProfile is the file path of the system XML profile.
 	SystemProfile = "/var/lib/oc-daemon/profile.xml"
 )
 
-// Profile is an XML Profile
+// Profile is an XML Profile.
 type Profile AnyConnectProfile
 
-// GetAllowedHosts returns the allowed hosts in the XML profile
+// GetAllowedHosts returns the allowed hosts in the XML profile.
 func (p *Profile) GetAllowedHosts() (hosts []string) {
 	hs := p.AutomaticVPNPolicy.AlwaysOn.AllowedHosts
 	for _, h := range strings.Split(hs, ",") {
@@ -32,7 +32,7 @@ func (p *Profile) GetAllowedHosts() (hosts []string) {
 	return
 }
 
-// GetVPNServers returns the VPN servers in the XML profile
+// GetVPNServers returns the VPN servers in the XML profile.
 func (p *Profile) GetVPNServers() (servers []string) {
 	for _, h := range p.ServerList.HostEntry {
 		// skip ipsec servers
@@ -52,7 +52,7 @@ func (p *Profile) GetVPNServers() (servers []string) {
 	return
 }
 
-// GetVPNServerHostNames returns the VPN server hostnames in the xml profile
+// GetVPNServerHostNames returns the VPN server hostnames in the xml profile.
 func (p *Profile) GetVPNServerHostNames() (servers []string) {
 	for _, s := range p.ServerList.HostEntry {
 		if strings.HasPrefix(s.PrimaryProtocol.Flag, "IPsec") {
@@ -63,7 +63,7 @@ func (p *Profile) GetVPNServerHostNames() (servers []string) {
 	return
 }
 
-// GetTNDServers returns the TND servers in the XML profile
+// GetTNDServers returns the TND servers in the XML profile.
 func (p *Profile) GetTNDServers() (servers []string) {
 	for _, s := range p.AutomaticVPNPolicy.TrustedHTTPSServerList {
 		log.WithField("server", s).Debug("Getting TND server from Profile")
@@ -72,7 +72,7 @@ func (p *Profile) GetTNDServers() (servers []string) {
 	return
 }
 
-// GetTNDHTTPSServers gets the TND HTTPS server URLs and their hashes in the XML profile
+// GetTNDHTTPSServers gets the TND HTTPS server URLs and their hashes in the XML profile.
 func (p *Profile) GetTNDHTTPSServers() (servers map[string]string) {
 	servers = make(map[string]string)
 	for _, s := range p.AutomaticVPNPolicy.TrustedHTTPSServerList {
@@ -82,22 +82,22 @@ func (p *Profile) GetTNDHTTPSServers() (servers map[string]string) {
 	return
 }
 
-// GetAlwaysOn returns the always on flag in the XML profile
+// GetAlwaysOn returns the always on flag in the XML profile.
 func (p *Profile) GetAlwaysOn() bool {
 	return p.AutomaticVPNPolicy.AlwaysOn.Flag
 }
 
-// Equal returns whether the profile and other are equal
+// Equal returns whether the profile and other are equal.
 func (p *Profile) Equal(other *Profile) bool {
 	return reflect.DeepEqual(p, other)
 }
 
-// NewProfile returns a new Profile
+// NewProfile returns a new Profile.
 func NewProfile() *Profile {
 	return &Profile{}
 }
 
-// LoadProfile loads the XML profile from file
+// LoadProfile loads the XML profile from file.
 func LoadProfile(file string) (*Profile, error) {
 	// try to read file
 	b, err := os.ReadFile(file)
@@ -114,7 +114,7 @@ func LoadProfile(file string) (*Profile, error) {
 	return p, nil
 }
 
-// LoadSystemProfile loads the XML profile from the default system location
+// LoadSystemProfile loads the XML profile from the default system location.
 func LoadSystemProfile() *Profile {
 	profile, err := LoadProfile(SystemProfile)
 	if err != nil {

@@ -1,4 +1,4 @@
-// Package client contains code for OC-Daemon clients
+// Package client contains code for OC-Daemon clients.
 package client
 
 import (
@@ -16,7 +16,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 )
 
-// Client is an OC-Daemon client
+// Client is an OC-Daemon client.
 type Client interface {
 	SetConfig(config *Config)
 	GetConfig() *Config
@@ -38,7 +38,7 @@ type Client interface {
 	Close() error
 }
 
-// DBusClient is an OC-Daemon client that uses the D-Bus API of OC-Daemon
+// DBusClient is an OC-Daemon client that uses the D-Bus API of OC-Daemon.
 type DBusClient struct {
 	mutex sync.Mutex
 
@@ -73,7 +73,7 @@ type DBusClient struct {
 	closed chan struct{}
 }
 
-// SetConfig sets the client config
+// SetConfig sets the client config.
 func (d *DBusClient) SetConfig(config *Config) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -81,7 +81,7 @@ func (d *DBusClient) SetConfig(config *Config) {
 	d.config = config.Copy()
 }
 
-// GetConfig returns the client config
+// GetConfig returns the client config.
 func (d *DBusClient) GetConfig() *Config {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -89,7 +89,7 @@ func (d *DBusClient) GetConfig() *Config {
 	return d.config.Copy()
 }
 
-// SetEnv sets additional environment variables
+// SetEnv sets additional environment variables.
 func (d *DBusClient) SetEnv(env []string) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -97,7 +97,7 @@ func (d *DBusClient) SetEnv(env []string) {
 	d.env = append(env[:0:0], env...)
 }
 
-// GetEnv returns the additional environment varibales
+// GetEnv returns the additional environment variables.
 func (d *DBusClient) GetEnv() []string {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -105,7 +105,7 @@ func (d *DBusClient) GetEnv() []string {
 	return append(d.env[:0:0], d.env...)
 }
 
-// SetLogin sets the login information
+// SetLogin sets the login information.
 func (d *DBusClient) SetLogin(login *logininfo.LoginInfo) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -113,7 +113,7 @@ func (d *DBusClient) SetLogin(login *logininfo.LoginInfo) {
 	d.login = login.Copy()
 }
 
-// GetLogin returns the login information
+// GetLogin returns the login information.
 func (d *DBusClient) GetLogin() *logininfo.LoginInfo {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -121,12 +121,12 @@ func (d *DBusClient) GetLogin() *logininfo.LoginInfo {
 	return d.login.Copy()
 }
 
-// dbusConnectSystemBus calls dbus.ConnectSystemBus
+// dbusConnectSystemBus calls dbus.ConnectSystemBus.
 var dbusConnectSystemBus = func() (*dbus.Conn, error) {
 	return dbus.ConnectSystemBus()
 }
 
-// updateStatusFromProperties updates status from D-Bus properties in props
+// updateStatusFromProperties updates status from D-Bus properties in props.
 func updateStatusFromProperties(status *vpnstatus.Status, props map[string]dbus.Variant) error {
 	// create a temporary status, try to set all values in temporary
 	// status, if we received valid properties (no type conversion or JSON
@@ -176,18 +176,18 @@ func updateStatusFromProperties(status *vpnstatus.Status, props map[string]dbus.
 	return nil
 }
 
-// ping calls the ping method to check if OC-Daemon is running
+// ping calls the ping method to check if OC-Daemon is running.
 var ping = func(d *DBusClient) error {
 	return d.conn.Object(dbusapi.Interface, dbusapi.Path).
 		Call("org.freedesktop.DBus.Peer.Ping", 0).Err
 }
 
-// Ping pings the OC-Daemon to check if it is running
+// Ping pings the OC-Daemon to check if it is running.
 func (d *DBusClient) Ping() error {
 	return ping(d)
 }
 
-// query retrieves the D-Bus properties from the daemon
+// query retrieves the D-Bus properties from the daemon.
 var query = func(d *DBusClient) (map[string]dbus.Variant, error) {
 	// get all properties
 	props := make(map[string]dbus.Variant)
@@ -201,7 +201,7 @@ var query = func(d *DBusClient) (map[string]dbus.Variant, error) {
 	return props, nil
 }
 
-// Query retrieves the VPN status
+// Query retrieves the VPN status.
 func (d *DBusClient) Query() (*vpnstatus.Status, error) {
 	// get properties
 	props, err := query(d)
@@ -219,7 +219,7 @@ func (d *DBusClient) Query() (*vpnstatus.Status, error) {
 	return status, nil
 }
 
-// handlePropertiesChanged handles a PropertiesChanged D-Bus signal
+// handlePropertiesChanged handles a PropertiesChanged D-Bus signal.
 func handlePropertiesChanged(s *dbus.Signal, status *vpnstatus.Status) *vpnstatus.Status {
 	// make sure it's a properties changed signal
 	if s.Path != dbusapi.Path || s.Name != dbusapi.PropertiesChanged {
@@ -272,7 +272,7 @@ func handlePropertiesChanged(s *dbus.Signal, status *vpnstatus.Status) *vpnstatu
 	return status
 }
 
-// setSubscribed tries to set subscribed to true and returns true if successful
+// setSubscribed tries to set subscribed to true and returns true if successful.
 func (d *DBusClient) setSubscribed() bool {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -285,7 +285,7 @@ func (d *DBusClient) setSubscribed() bool {
 	return true
 }
 
-// isSubscribed returns whether subscribed is set
+// isSubscribed returns whether subscribed is set.
 func (d *DBusClient) isSubscribed() bool {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -305,7 +305,7 @@ var connSignal = func(conn *dbus.Conn, ch chan<- *dbus.Signal) {
 
 // Subscribe subscribes to PropertiesChanged D-Bus signals, converts incoming
 // PropertiesChanged signals to VPN status updates and sends those updates
-// over the returned channel
+// over the returned channel.
 func (d *DBusClient) Subscribe() (chan *vpnstatus.Status, error) {
 	// make sure this only runs once
 	if ok := d.setSubscribed(); !ok {
@@ -368,7 +368,7 @@ func (d *DBusClient) Subscribe() (chan *vpnstatus.Status, error) {
 }
 
 // checkStatus checks if client is not connected to a trusted network and the
-// VPN is not already running
+// VPN is not already running.
 func (d *DBusClient) checkStatus() error {
 	status, err := d.Query()
 	if err != nil {
@@ -391,7 +391,7 @@ func (d *DBusClient) checkStatus() error {
 // execCommand is exec.Command for testing.
 var execCommand = exec.Command
 
-// authenticate runs OpenConnect in authentication mode
+// authenticate runs OpenConnect in authentication mode.
 var authenticate = func(d *DBusClient) error {
 	// create openconnect command:
 	//
@@ -481,7 +481,7 @@ var authenticate = func(d *DBusClient) error {
 	return nil
 }
 
-// Authenticate authenticates the client on the VPN server
+// Authenticate authenticates the client on the VPN server.
 func (d *DBusClient) Authenticate() error {
 	// check status
 	if err := d.checkStatus(); err != nil {
@@ -492,7 +492,7 @@ func (d *DBusClient) Authenticate() error {
 	return authenticate(d)
 }
 
-// connect sends a connect request with login info to the daemon
+// connect sends a connect request with login info to the daemon.
 var connect = func(d *DBusClient) error {
 	// call connect
 	login := d.GetLogin()
@@ -508,7 +508,7 @@ var connect = func(d *DBusClient) error {
 }
 
 // Connect connects the client with the VPN server, requires successful
-// authentication with Authenticate
+// authentication with Authenticate.
 func (d *DBusClient) Connect() error {
 	// check status
 	if err := d.checkStatus(); err != nil {
@@ -519,14 +519,14 @@ func (d *DBusClient) Connect() error {
 	return connect(d)
 }
 
-// disconnect sends a disconnect request to the daemon
+// disconnect sends a disconnect request to the daemon.
 var disconnect = func(d *DBusClient) error {
 	// call connect
 	return d.conn.Object(dbusapi.Interface, dbusapi.Path).
 		Call(dbusapi.MethodDisconnect, 0).Store()
 }
 
-// Disconnect disconnects the client from the VPN server
+// Disconnect disconnects the client from the VPN server.
 func (d *DBusClient) Disconnect() error {
 	// check status
 	status, err := d.Query()
@@ -541,7 +541,7 @@ func (d *DBusClient) Disconnect() error {
 	return disconnect(d)
 }
 
-// Close closes the DBusClient
+// Close closes the DBusClient.
 func (d *DBusClient) Close() error {
 	var err error
 
@@ -557,7 +557,7 @@ func (d *DBusClient) Close() error {
 	return err
 }
 
-// NewDBusClient returns a new DBusClient
+// NewDBusClient returns a new DBusClient.
 func NewDBusClient(config *Config) (*DBusClient, error) {
 	// connect to system bus
 	conn, err := dbusConnectSystemBus()
@@ -578,7 +578,7 @@ func NewDBusClient(config *Config) (*DBusClient, error) {
 	return client, nil
 }
 
-// NewClient returns a new Client
+// NewClient returns a new Client.
 func NewClient(config *Config) (Client, error) {
 	return NewDBusClient(config)
 }

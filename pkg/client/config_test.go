@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// TestConfigCopy tests Copy of Config
+// TestConfigCopy tests Copy of Config.
 func TestConfigCopy(t *testing.T) {
 	// test nil
 	if (*Config)(nil).Copy() != nil {
@@ -40,7 +40,7 @@ func TestConfigCopy(t *testing.T) {
 	}
 }
 
-// TestConfigEmpty tests Empty of Config
+// TestConfigEmpty tests Empty of Config.
 func TestConfigEmpty(t *testing.T) {
 	// test empty
 	c := &Config{}
@@ -67,7 +67,7 @@ func TestConfigEmpty(t *testing.T) {
 	}
 }
 
-// TestConfigValid tests Valid of Config
+// TestConfigValid tests Valid of Config.
 func TestConfigValid(t *testing.T) {
 	// test invalid
 	for _, invalid := range []*Config{
@@ -120,7 +120,7 @@ func TestConfigExpand(t *testing.T) {
 	}
 }
 
-// TestNewConfig tests NewConfig
+// TestNewConfig tests NewConfig.
 func TestNewConfig(t *testing.T) {
 	c := NewConfig()
 	if c.Empty() {
@@ -128,7 +128,7 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
-// TestLoadConfig tests Save of Config and LoadConfig
+// TestLoadConfig tests Save of Config and LoadConfig.
 func TestLoadConfig(t *testing.T) {
 	// create test config
 	want := &Config{

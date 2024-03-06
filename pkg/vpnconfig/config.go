@@ -9,13 +9,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Device is a VPN device configuration in Config
+// Device is a VPN device configuration in Config.
 type Device struct {
 	Name string
 	MTU  int
 }
 
-// Copy returns a copy of device
+// Copy returns a copy of device.
 func (d *Device) Copy() Device {
 	return Device{
 		Name: d.Name,
@@ -23,13 +23,13 @@ func (d *Device) Copy() Device {
 	}
 }
 
-// Address is a IPv4/IPv6 address configuration in Config
+// Address is a IPv4/IPv6 address configuration in Config.
 type Address struct {
 	Address net.IP
 	Netmask net.IPMask
 }
 
-// Copy returns a copy of address
+// Copy returns a copy of address.
 func (a *Address) Copy() Address {
 	return Address{
 		Address: append(a.Address[:0:0], a.Address...),
@@ -37,14 +37,14 @@ func (a *Address) Copy() Address {
 	}
 }
 
-// DNS is a DNS configuration in Config
+// DNS is a DNS configuration in Config.
 type DNS struct {
 	DefaultDomain string
 	ServersIPv4   []net.IP
 	ServersIPv6   []net.IP
 }
 
-// Copy returns a copy of DNS
+// Copy returns a copy of DNS.
 func (d *DNS) Copy() DNS {
 	serversIPv4 := []net.IP{}
 	if d.ServersIPv4 == nil {
@@ -73,7 +73,7 @@ func (d *DNS) Copy() DNS {
 
 // Remotes returns a map of DNS remotes from the DNS configuration that maps
 // domain "." to the IPv4 and IPv6 DNS servers in the configuration including
-// port number 53
+// port number 53.
 func (d *DNS) Remotes() map[string][]string {
 	remotes := map[string][]string{}
 	for _, s := range d.ServersIPv4 {
@@ -88,7 +88,7 @@ func (d *DNS) Remotes() map[string][]string {
 	return remotes
 }
 
-// Split is a split routing configuration in Config
+// Split is a split routing configuration in Config.
 type Split struct {
 	ExcludeIPv4 []*net.IPNet
 	ExcludeIPv6 []*net.IPNet
@@ -97,7 +97,7 @@ type Split struct {
 	ExcludeVirtualSubnetsOnlyIPv4 bool
 }
 
-// Copy returns a copy of split
+// Copy returns a copy of split.
 func (s *Split) Copy() Split {
 	excludeIPv4 := []*net.IPNet{}
 	if s.ExcludeIPv4 == nil {
@@ -134,7 +134,7 @@ func (s *Split) Copy() Split {
 
 // DNSExcludes returns a list of DNS-based split excludes from the
 // split routing configuration. The list contains domain names including the
-// trailing "."
+// trailing ".".
 func (s *Split) DNSExcludes() []string {
 	excludes := make([]string, len(s.ExcludeDNS))
 	for i, e := range s.ExcludeDNS {
@@ -144,19 +144,19 @@ func (s *Split) DNSExcludes() []string {
 	return excludes
 }
 
-// Flags are other configuration settings in Config
+// Flags are other configuration settings in Config.
 type Flags struct {
 	DisableAlwaysOnVPN bool
 }
 
-// Copy returns a copy of flags
+// Copy returns a copy of flags.
 func (f *Flags) Copy() Flags {
 	return Flags{
 		DisableAlwaysOnVPN: f.DisableAlwaysOnVPN,
 	}
 }
 
-// Config is a VPN configuration
+// Config is a VPN configuration.
 type Config struct {
 	Gateway net.IP
 	PID     int
@@ -169,7 +169,7 @@ type Config struct {
 	Flags   Flags
 }
 
-// Copy returns a new copy of config
+// Copy returns a new copy of config.
 func (c *Config) Copy() *Config {
 	if c == nil {
 		return nil
@@ -187,18 +187,18 @@ func (c *Config) Copy() *Config {
 	}
 }
 
-// Empty returns if the config is empty
+// Empty returns whether the config is empty.
 func (c *Config) Empty() bool {
 	empty := New()
 	return c.Equal(empty)
 }
 
-// Equal returns if the config and other are equal
+// Equal returns whether the config and other are equal.
 func (c *Config) Equal(other *Config) bool {
 	return reflect.DeepEqual(c, other)
 }
 
-// Valid returns if the config is valid
+// Valid returns whether the config is valid.
 func (c *Config) Valid() bool {
 	// an empty config is valid
 	if c.Empty() {
@@ -229,7 +229,7 @@ func (c *Config) Valid() bool {
 // jsonMarshal is json.Marshal for testing.
 var jsonMarshal = json.Marshal
 
-// JSON returns the configuration as JSON
+// JSON returns the configuration as JSON.
 func (c *Config) JSON() ([]byte, error) {
 	b, err := jsonMarshal(c)
 	if err != nil {
@@ -239,12 +239,12 @@ func (c *Config) JSON() ([]byte, error) {
 	return b, nil
 }
 
-// New returns a new Config
+// New returns a new Config.
 func New() *Config {
 	return &Config{}
 }
 
-// NewFromJSON returns a new config parsed from the json in b
+// NewFromJSON returns a new config parsed from the json in b.
 func NewFromJSON(b []byte) (*Config, error) {
 	c := New()
 	if err := json.Unmarshal(b, c); err != nil {

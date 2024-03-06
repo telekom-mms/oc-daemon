@@ -11,40 +11,40 @@ import (
 )
 
 var (
-	// ConfigName is the name of the configuration file
+	// ConfigName is the name of the configuration file.
 	ConfigName = "oc-client.json"
 
 	// ConfigDirName is the name of the directory where the configuration
-	// file is stored
+	// file is stored.
 	ConfigDirName = "oc-daemon"
 
 	// SystemConfigDirPath is the path of the directory where the directory
-	// of the system configuration is stored
+	// of the system configuration is stored.
 	SystemConfigDirPath = "/var/lib"
 
-	// OpenConnect is the openconnect executable
+	// OpenConnect is the openconnect executable.
 	OpenConnect = "openconnect"
 
-	// Protocol is the protocol used by openconnect
+	// Protocol is the protocol used by openconnect.
 	Protocol = "anyconnect"
 
-	// UserAgent is the user agent used by openconnect
+	// UserAgent is the user agent used by openconnect.
 	UserAgent = "AnyConnect"
 
-	// Quiet specifies whether the quiet flag is set in openconnect
+	// Quiet specifies whether the quiet flag is set in openconnect.
 	Quiet = true
 
-	// NoProxy specifies whether the no proxy flag is set in openconnect
+	// NoProxy specifies whether the no proxy flag is set in openconnect.
 	NoProxy = true
 
-	// ExtraEnv are extra environment variables used by openconnect
+	// ExtraEnv are extra environment variables used by openconnect.
 	ExtraEnv = []string{}
 
-	// ExtraArgs are extra command line arguments used by openconnect
+	// ExtraArgs are extra command line arguments used by openconnect.
 	ExtraArgs = []string{}
 )
 
-// Config is a configuration for the OC client
+// Config is a configuration for the OC client.
 type Config struct {
 	ClientCertificate string
 	ClientKey         string
@@ -63,7 +63,7 @@ type Config struct {
 	ExtraArgs   []string
 }
 
-// Copy returns a copy of Config
+// Copy returns a copy of Config.
 func (c *Config) Copy() *Config {
 	if c == nil {
 		return nil
@@ -74,7 +74,7 @@ func (c *Config) Copy() *Config {
 	return &cp
 }
 
-// Empty returns if the config is empty
+// Empty returns whether the config is empty.
 func (c *Config) Empty() bool {
 	if c == nil {
 		return true
@@ -84,7 +84,7 @@ func (c *Config) Empty() bool {
 	return reflect.DeepEqual(c, empty)
 }
 
-// Valid returns whether the config is valid
+// Valid returns whether the config is valid.
 func (c *Config) Valid() bool {
 	if c.Empty() ||
 		c.ClientCertificate == "" ||
@@ -101,7 +101,7 @@ func (c *Config) Valid() bool {
 	return true
 }
 
-// expandPath expands tilde and environment variables in path
+// expandPath expands tilde and environment variables in path.
 func expandPath(path string) string {
 	// note: handling of tilde is limited:
 	// it only works with file paths beginning with ~/
@@ -111,19 +111,19 @@ func expandPath(path string) string {
 	return os.ExpandEnv(path)
 }
 
-// expandPaths expands the paths in config
+// expandPaths expands the paths in config.
 func (c *Config) expandPaths() {
 	c.ClientCertificate = expandPath(c.ClientCertificate)
 	c.ClientKey = expandPath(c.ClientKey)
 	c.CACertificate = expandPath(c.CACertificate)
 }
 
-// expandUser expands the username in config
+// expandUser expands the username in config.
 func (c *Config) expandUser() {
 	c.User = os.ExpandEnv(c.User)
 }
 
-// Expand expands variables in config
+// Expand expands variables in config.
 func (c *Config) Expand() {
 	c.expandPaths()
 	c.expandUser()
@@ -132,7 +132,7 @@ func (c *Config) Expand() {
 // jsonMarshalIndent is json.MarshalIndent for testing.
 var jsonMarshalIndent = json.MarshalIndent
 
-// Save saves the config to file
+// Save saves the config to file.
 func (c *Config) Save(file string) error {
 	b, err := jsonMarshalIndent(c, "", "    ")
 	if err != nil {
@@ -141,7 +141,7 @@ func (c *Config) Save(file string) error {
 	return os.WriteFile(file, b, 0600)
 }
 
-// NewConfig returns a new Config
+// NewConfig returns a new Config.
 func NewConfig() *Config {
 	return &Config{
 		XMLProfile:  xmlprofile.SystemProfile,
@@ -155,7 +155,7 @@ func NewConfig() *Config {
 	}
 }
 
-// LoadConfig loads a Config from file
+// LoadConfig loads a Config from file.
 func LoadConfig(file string) (*Config, error) {
 	b, err := os.ReadFile(file)
 	if err != nil {
@@ -169,7 +169,7 @@ func LoadConfig(file string) (*Config, error) {
 	return conf, nil
 }
 
-// SystemConfig returns the default file path of the system configuration
+// SystemConfig returns the default file path of the system configuration.
 func SystemConfig() string {
 	return filepath.Join(SystemConfigDirPath, ConfigDirName, ConfigName)
 }
@@ -177,7 +177,7 @@ func SystemConfig() string {
 // osUserConfigDir is os.UserConfigDir for testing.
 var osUserConfigDir = os.UserConfigDir
 
-// UserConfig returns the default file path of the current user's configuration
+// UserConfig returns the default file path of the current user's configuration.
 func UserConfig() string {
 	dir, err := osUserConfigDir()
 	if err != nil {
@@ -187,7 +187,7 @@ func UserConfig() string {
 }
 
 // LoadUserSystemConfig loads the user or system configuration from its
-// default location, expands variables in config
+// default location, expands variables in config.
 func LoadUserSystemConfig() *Config {
 	// try user config
 	if config, err := LoadConfig(UserConfig()); err == nil && config != nil {

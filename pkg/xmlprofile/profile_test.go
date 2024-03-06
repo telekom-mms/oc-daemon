@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TestProfileGetAllowedHosts tests GetAllowedHosts of Profile
+// TestProfileGetAllowedHosts tests GetAllowedHosts of Profile.
 func TestProfileGetAllowedHosts(t *testing.T) {
 	p := NewProfile()
 
@@ -32,7 +32,7 @@ func TestProfileGetAllowedHosts(t *testing.T) {
 	}
 }
 
-// TestProfileGetVPNServers tests GetVPNServers of Profile
+// TestProfileGetVPNServers tests GetVPNServers of Profile.
 func TestProfileGetVPNServers(t *testing.T) {
 	p := NewProfile()
 
@@ -72,7 +72,7 @@ func TestProfileGetVPNServers(t *testing.T) {
 	}
 }
 
-// TestProfileGetVPNServerHostNames tests GetVPNServerHostNames of Profile
+// TestProfileGetVPNServerHostNames tests GetVPNServerHostNames of Profile.
 func TestProfileGetVPNServerHostNames(t *testing.T) {
 	p := NewProfile()
 
@@ -109,7 +109,7 @@ func TestProfileGetVPNServerHostNames(t *testing.T) {
 	}
 }
 
-// TestProfileGetTNDServers tests GetTNDServers of Profile
+// TestProfileGetTNDServers tests GetTNDServers of Profile.
 func TestProfileGetTNDServers(t *testing.T) {
 	p := NewProfile()
 
@@ -143,7 +143,7 @@ func TestProfileGetTNDServers(t *testing.T) {
 	}
 }
 
-// TestProfileGetTNDHTTPSServers tests GetTNDHTTPSServers of Profile
+// TestProfileGetTNDHTTPSServers tests GetTNDHTTPSServers of Profile.
 func TestProfileGetTNDHTTPSServers(t *testing.T) {
 	p := NewProfile()
 
@@ -177,7 +177,7 @@ func TestProfileGetTNDHTTPSServers(t *testing.T) {
 	}
 }
 
-// TestProfileGetAlwaysOn tests GetAlwaysOn of Profile
+// TestProfileGetAlwaysOn tests GetAlwaysOn of Profile.
 func TestProfileGetAlwaysOn(t *testing.T) {
 	p := NewProfile()
 
@@ -210,7 +210,7 @@ func TestProfileEqual(t *testing.T) {
 	}
 }
 
-// TestNewProfile tests NewProfile
+// TestNewProfile tests NewProfile.
 func TestNewProfile(t *testing.T) {
 	p := NewProfile()
 	if p == nil {
@@ -218,7 +218,7 @@ func TestNewProfile(t *testing.T) {
 	}
 }
 
-// TestLoadProfile tests LoadProfile
+// TestLoadProfile tests LoadProfile.
 func TestLoadProfile(t *testing.T) {
 	empty := NewProfile()
 

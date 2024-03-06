@@ -12,13 +12,13 @@ import (
 )
 
 var (
-	// parsed server address and remotes
+	// parsed server address and remotes.
 	address = "127.0.0.1:5301"
 	remotes = make(map[string][]string)
 	watches = []string{}
 )
 
-// parseCommandLine parses command line arguments
+// parseCommandLine parses command line arguments.
 func parseCommandLine() {
 	addr := flag.String("address", address, "set local listen `address`")
 	rems := flag.String("remotes", "", "set `remotes` as comma-separated "+
