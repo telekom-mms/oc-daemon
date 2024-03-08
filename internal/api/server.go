@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/user"
 	"strconv"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -20,26 +19,16 @@ type Server struct {
 	requests chan *Request
 	done     chan struct{}
 	closed   chan struct{}
-
-	mutex sync.Mutex
-	stop  bool
-}
-
-// setStopping marks the server as stopping.
-func (s *Server) setStopping() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	s.stop = true
 }
 
 // isStopping returns whether the server is stopping.
 func (s *Server) isStopping() bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	return s.stop
-
+	select {
+	case <-s.done:
+		return true
+	default:
+		return false
+	}
 }
 
 // handleRequest handles a request from the client.
@@ -208,7 +197,6 @@ func (s *Server) Stop() {
 	close(s.done)
 
 	// stop listener
-	s.setStopping()
 	err := s.listen.Close()
 	if err != nil {
 		log.WithError(err).Error("Daemon could not close unix listener")
