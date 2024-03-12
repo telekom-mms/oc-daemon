@@ -26,6 +26,9 @@ func runClient(socketFile string, configUpdate *daemon.VPNConfigUpdate) error {
 		return fmt.Errorf("VPNCScript could not convert config update to JSON: %w", err)
 	}
 	msg := api.NewMessage(api.TypeVPNConfigUpdate, b)
+	if msg == nil {
+		return fmt.Errorf("VPNCScript could not create message: invalid message")
+	}
 	err = api.WriteMessage(conn, msg)
 	if err != nil {
 		return fmt.Errorf("VPNCScript could not send message to Daemon: %w", err)
