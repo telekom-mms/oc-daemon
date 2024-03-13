@@ -412,6 +412,8 @@ var authenticate = func(d *DBusClient) error {
 	userAgent := fmt.Sprintf("--useragent=%s", config.UserAgent)
 	certificate := fmt.Sprintf("--certificate=%s", config.ClientCertificate)
 	sslKey := fmt.Sprintf("--sslkey=%s", config.ClientKey)
+	mcaCertificate := fmt.Sprintf("--mca-certificate=%s", config.UserCertificate)
+	mcaKey := fmt.Sprintf("--mca-key=%s", config.UserKey)
 	caFile := fmt.Sprintf("--cafile=%s", config.CACertificate)
 	xmlConfig := fmt.Sprintf("--xmlconfig=%s", config.XMLProfile)
 	user := fmt.Sprintf("--user=%s", config.User)
@@ -423,6 +425,12 @@ var authenticate = func(d *DBusClient) error {
 		sslKey,
 		xmlConfig,
 		"--authenticate",
+	}
+	if config.UserCertificate != "" {
+		parameters = append(parameters, mcaCertificate)
+	}
+	if config.UserKey != "" {
+		parameters = append(parameters, mcaKey)
 	}
 	if config.Quiet {
 		parameters = append(parameters, "--quiet")
