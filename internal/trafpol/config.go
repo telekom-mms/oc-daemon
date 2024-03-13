@@ -7,7 +7,7 @@ import (
 var (
 	// AllowedHosts is the default list of allowed hosts, this is
 	// initialized with hosts for captive portal detection, e.g.,
-	// used by browsers
+	// used by browsers.
 	AllowedHosts = []string{
 		"connectivity-check.ubuntu.com", // ubuntu
 		"detectportal.firefox.com",      // firefox
@@ -17,30 +17,30 @@ var (
 	}
 
 	// PortalPorts are the default ports that are allowed to register on a
-	// captive portal
+	// captive portal.
 	PortalPorts = []uint16{
 		80,
 		443,
 	}
 
-	// ResolveTimeout is the timeout for dns lookups
+	// ResolveTimeout is the timeout for dns lookups.
 	ResolveTimeout = 2 * time.Second
 
-	// ResolveTries is the number of tries for dns lookups
+	// ResolveTries is the number of tries for dns lookups.
 	ResolveTries = 3
 
-	// ResolveTriesSleep is the sleep time between retries
+	// ResolveTriesSleep is the sleep time between retries.
 	ResolveTriesSleep = time.Second
 
 	// ResolveTimer is the time for periodic resolve update checks,
-	// should be higher than tries * (timeout + sleep)
+	// should be higher than tries * (timeout + sleep).
 	ResolveTimer = 30 * time.Second
 
-	// ResolveTTL is the lifetime of resolved entries
+	// ResolveTTL is the lifetime of resolved entries.
 	ResolveTTL = 300 * time.Second
 )
 
-// Config is a TrafPol configuration
+// Config is a TrafPol configuration.
 type Config struct {
 	AllowedHosts []string
 	PortalPorts  []uint16
@@ -53,7 +53,7 @@ type Config struct {
 	ResolveTTL        time.Duration
 }
 
-// Valid returns whether the TrafPol configuration is valid
+// Valid returns whether the TrafPol configuration is valid.
 func (c *Config) Valid() bool {
 	if c == nil ||
 		len(c.PortalPorts) == 0 ||
@@ -68,7 +68,7 @@ func (c *Config) Valid() bool {
 	return true
 }
 
-// NewConfig returns a new TrafPol configuration
+// NewConfig returns a new TrafPol configuration.
 func NewConfig() *Config {
 	return &Config{
 		AllowedHosts: append(AllowedHosts[:0:0], AllowedHosts...),

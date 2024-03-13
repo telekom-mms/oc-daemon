@@ -12,7 +12,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 )
 
-// TestDBusClientSetGetConfig tests SetConfig and GetConfig of DBusClient
+// TestDBusClientSetGetConfig tests SetConfig and GetConfig of DBusClient.
 func TestDBusClientSetGetConfig(t *testing.T) {
 	client := &DBusClient{}
 	want := NewConfig()
@@ -23,7 +23,7 @@ func TestDBusClientSetGetConfig(t *testing.T) {
 	}
 }
 
-// TestDBusClientSetGetEnv tests SetEnv and GetEnv of DBusClient
+// TestDBusClientSetGetEnv tests SetEnv and GetEnv of DBusClient.
 func TestDBusClientSetGetEnv(t *testing.T) {
 	client := &DBusClient{}
 	want := []string{"test=test"}
@@ -34,7 +34,7 @@ func TestDBusClientSetGetEnv(t *testing.T) {
 	}
 }
 
-// TestDBusClientSetGetLogin tests SetLogin and GetLogin of DBusClient
+// TestDBusClientSetGetLogin tests SetLogin and GetLogin of DBusClient.
 func TestDBusClientSetGetLogin(t *testing.T) {
 	client := &DBusClient{}
 	want := &logininfo.LoginInfo{}
@@ -45,7 +45,7 @@ func TestDBusClientSetGetLogin(t *testing.T) {
 	}
 }
 
-// TestDBusClientPing tests Ping of DBusClient
+// TestDBusClientPing tests Ping of DBusClient.
 func TestDBusClientPing(t *testing.T) {
 	client := &DBusClient{}
 	ping = func(*DBusClient) error {
@@ -57,7 +57,7 @@ func TestDBusClientPing(t *testing.T) {
 	}
 }
 
-// TestDBusClientQuery tests Query of DBusClient
+// TestDBusClientQuery tests Query of DBusClient.
 func TestDBusClientQuery(t *testing.T) {
 	// clean up after tests
 	oldQuery := query
@@ -246,7 +246,7 @@ func TestDBusClientSubscribe(t *testing.T) {
 	}
 }
 
-// TestDBusClientAuthenticate tests Authenticate of DBusClient
+// TestDBusClientAuthenticate tests Authenticate of DBusClient.
 func TestDBusClientAuthenticate(t *testing.T) {
 	// clean up after tests
 	oldQuery := query
@@ -307,7 +307,7 @@ func TestDBusClientAuthenticate(t *testing.T) {
 	}
 }
 
-// TestDBusClientConnect tests Connect of DBusClient
+// TestDBusClientConnect tests Connect of DBusClient.
 func TestDBusClientConnect(t *testing.T) {
 	// clean up after tests
 	oldQuery := query
@@ -348,7 +348,7 @@ func TestDBusClientConnect(t *testing.T) {
 	}
 }
 
-// TestDBusClientDisconnect tests Disconnect of DBusClient
+// TestDBusClientDisconnect tests Disconnect of DBusClient.
 func TestDBusClientDisconnect(t *testing.T) {
 	// clean up after tests
 	oldQuery := query
@@ -400,7 +400,7 @@ func (t *testRWC) Read([]byte) (int, error)  { return 0, nil }
 func (t *testRWC) Write([]byte) (int, error) { return 0, nil }
 func (t *testRWC) Close() error              { return nil }
 
-// TestNewDBusClient tests NewDBusClient
+// TestNewDBusClient tests NewDBusClient.
 func TestNewDBusClient(t *testing.T) {
 	// clean up after tests
 	oldSystemBus := dbusConnectSystemBus
@@ -440,7 +440,7 @@ func TestNewDBusClient(t *testing.T) {
 	}
 }
 
-// TestNewClient tests NewClient
+// TestNewClient tests NewClient.
 func TestNewClient(t *testing.T) {
 	// clean up after tests
 	oldSystemBus := dbusConnectSystemBus

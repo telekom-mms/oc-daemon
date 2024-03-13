@@ -1,3 +1,4 @@
+// Package dnsmon contains the DNS monitor.
 package dnsmon
 
 import (
@@ -7,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DNSMon is a DNS monitor
+// DNSMon is a DNS monitor.
 type DNSMon struct {
 	config  *Config
 	watcher *fsnotify.Watcher
@@ -16,7 +17,7 @@ type DNSMon struct {
 	closed  chan struct{}
 }
 
-// isResolvConfEvent checks if event is a resolv.conf file event
+// isResolvConfEvent checks if event is a resolv.conf file event.
 func (d *DNSMon) isResolvConfEvent(event fsnotify.Event) bool {
 	switch event.Name {
 	case d.config.ETCResolvConf:
@@ -29,7 +30,7 @@ func (d *DNSMon) isResolvConfEvent(event fsnotify.Event) bool {
 	return false
 }
 
-// sendUpdate sends an update over the updates channel
+// sendUpdate sends an update over the updates channel.
 func (d *DNSMon) sendUpdate() {
 	// send an update or abort if we are shutting down
 	select {
@@ -38,7 +39,7 @@ func (d *DNSMon) sendUpdate() {
 	}
 }
 
-// start starts the DNSMon
+// start starts the DNSMon.
 func (d *DNSMon) start() {
 	defer close(d.closed)
 	defer close(d.updates)
@@ -80,7 +81,7 @@ func (d *DNSMon) start() {
 	}
 }
 
-// Start starts the DNSMon
+// Start starts the DNSMon.
 func (d *DNSMon) Start() error {
 	// create watcher
 	watcher, err := fsnotify.NewWatcher()
@@ -100,18 +101,18 @@ func (d *DNSMon) Start() error {
 	return nil
 }
 
-// Stop stops the DNSMon
+// Stop stops the DNSMon.
 func (d *DNSMon) Stop() {
 	close(d.done)
 	<-d.closed
 }
 
-// Updates returns the channel for dns config updates
+// Updates returns the channel for dns config updates.
 func (d *DNSMon) Updates() chan struct{} {
 	return d.updates
 }
 
-// NewDNSMon returns a new DNSMon
+// NewDNSMon returns a new DNSMon.
 func NewDNSMon(config *Config) *DNSMon {
 	return &DNSMon{
 		config:  config,

@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	// MaxPayloadLength is the maximum allowed length of a message payload
+	// MaxPayloadLength is the maximum allowed length of a message payload.
 	MaxPayloadLength = 32768
 )
 
-// Message types
+// Message types.
 const (
 	TypeNone = iota
 	TypeOK
@@ -20,19 +20,19 @@ const (
 	TypeUndefined
 )
 
-// Header is a message header
+// Header is a message header.
 type Header struct {
 	Type   uint16
 	Length uint16
 }
 
-// Message is an API message
+// Message is an API message.
 type Message struct {
 	Header
 	Value []byte
 }
 
-// NewMessage returns a new message with type t and payload p
+// NewMessage returns a new message with type t and payload p.
 func NewMessage(t uint16, p []byte) *Message {
 	if len(p) > MaxPayloadLength {
 		return nil
@@ -46,17 +46,17 @@ func NewMessage(t uint16, p []byte) *Message {
 	}
 }
 
-// NewOK returns a new OK message with payload p
+// NewOK returns a new OK message with payload p.
 func NewOK(p []byte) *Message {
 	return NewMessage(TypeOK, p)
 }
 
-// NewError returns a new error message with payload p
+// NewError returns a new error message with payload p.
 func NewError(p []byte) *Message {
 	return NewMessage(TypeError, p)
 }
 
-// ReadMessage returns the next message from r
+// ReadMessage returns the next message from r.
 func ReadMessage(r io.Reader) (*Message, error) {
 	// read header
 	h := &Header{}
@@ -88,7 +88,7 @@ func ReadMessage(r io.Reader) (*Message, error) {
 	return m, nil
 }
 
-// WriteMessage writes message m to r
+// WriteMessage writes message m to r.
 func WriteMessage(w io.Writer, m *Message) error {
 	// write header
 	err := binary.Write(w, binary.LittleEndian, m.Header)

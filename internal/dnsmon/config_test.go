@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestConfigResolvConfDirs tests resolvConfDirs of Config
+// TestConfigResolvConfDirs tests resolvConfDirs of Config.
 func TestConfigResolvConfDirs(t *testing.T) {
 	config := &Config{
 		ETCResolvConf:     "/test/etc/resolv.conf",
@@ -19,7 +19,7 @@ func TestConfigResolvConfDirs(t *testing.T) {
 	}
 }
 
-// TestNewConfig tests NewConfig
+// TestNewConfig tests NewConfig.
 func TestNewConfig(t *testing.T) {
 	want := &Config{
 		ETCResolvConf:     ETCResolvConf,

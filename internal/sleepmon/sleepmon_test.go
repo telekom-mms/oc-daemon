@@ -7,7 +7,7 @@ import (
 	"github.com/godbus/dbus/v5"
 )
 
-// TestSleepMonHandleSignal tests handleSignal of SleepMon
+// TestSleepMonHandleSignal tests handleSignal of SleepMon.
 func TestSleepMonHandleSignal(t *testing.T) {
 	s := NewSleepMon()
 
@@ -85,7 +85,7 @@ func TestSleepMonStartErrors(t *testing.T) {
 	}
 }
 
-// TestSleepMonStartStop tests Start and Stop of SleepMon
+// TestSleepMonStartStop tests Start and Stop of SleepMon.
 func TestSleepMonStartStop(t *testing.T) {
 	s := NewSleepMon()
 	if err := s.Start(); err != nil {
@@ -94,7 +94,7 @@ func TestSleepMonStartStop(t *testing.T) {
 	s.Stop()
 }
 
-// TestSleepMonEvents tests Events of SleepMon
+// TestSleepMonEvents tests Events of SleepMon.
 func TestSleepMonEvents(t *testing.T) {
 	s := NewSleepMon()
 	got := s.Events()
@@ -104,7 +104,7 @@ func TestSleepMonEvents(t *testing.T) {
 	}
 }
 
-// TestNewSleepMon tests NewSleepMon
+// TestNewSleepMon tests NewSleepMon.
 func TestNewSleepMon(t *testing.T) {
 	s := NewSleepMon()
 	if s.sigs == nil ||

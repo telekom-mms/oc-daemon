@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// getTestLoginInfo returns login info for testing
+// getTestLoginInfo returns login info for testing.
 func getTestLoginInfo() *LoginInfo {
 	// COOKIE='3311180634@13561856@1339425499@B315A0E29D16C6FD92EE...'
 	// HOST='10.0.0.1'
@@ -24,7 +24,7 @@ func getTestLoginInfo() *LoginInfo {
 	}
 }
 
-// TestLoginInfoCopy tests Copy of LoginInfo
+// TestLoginInfoCopy tests Copy of LoginInfo.
 func TestLoginInfoCopy(t *testing.T) {
 	// test nil
 	if (*LoginInfo)(nil).Copy() != nil {
@@ -39,7 +39,7 @@ func TestLoginInfoCopy(t *testing.T) {
 	}
 }
 
-// TestLoginInfoValid tests Valid of LoginInfo
+// TestLoginInfoValid tests Valid of LoginInfo.
 func TestLoginInfoValid(t *testing.T) {
 	// test invalid
 	li := &LoginInfo{}
@@ -58,7 +58,7 @@ func TestLoginInfoValid(t *testing.T) {
 	}
 }
 
-// TestLoginInfoParseLine tests ParseLine of LoginInfo
+// TestLoginInfoParseLine tests ParseLine of LoginInfo.
 func TestLoginInfoParseLine(t *testing.T) {
 	want := getTestLoginInfo()
 	got := &LoginInfo{}
@@ -82,8 +82,8 @@ func TestLoginInfoParseLine(t *testing.T) {
 	}
 }
 
-// TestLoginInfoFromJSON tests JSON of LoginInfo and LoginInfoFromJSON
-func TestLoginInfoFromJSON(t *testing.T) {
+// TestFromJSON tests JSON of LoginInfo and FromJSON.
+func TestFromJSON(t *testing.T) {
 	// create login info
 	want := getTestLoginInfo()
 
@@ -94,7 +94,7 @@ func TestLoginInfoFromJSON(t *testing.T) {
 	}
 
 	// parse json
-	got, err := LoginInfoFromJSON(b)
+	got, err := FromJSON(b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestLoginInfoFromJSON(t *testing.T) {
 	if err == nil {
 		t.Error("Marshal error should return error")
 	}
-	if _, err = LoginInfoFromJSON(b); err == nil {
+	if _, err = FromJSON(b); err == nil {
 		t.Error("parsing nil should return error")
 	}
 }

@@ -6,20 +6,20 @@ import (
 	"github.com/miekg/dns"
 )
 
-// tempWatch is information about a temporary watch domain
+// tempWatch is information about a temporary watch domain.
 type tempWatch struct {
 	ttl     uint32
 	updated bool
 }
 
-// Watches contains a list of domains to watch for A and AAAA updates
+// Watches contains a list of domains to watch for A and AAAA updates.
 type Watches struct {
 	sync.RWMutex
 	m map[string]bool
 	t map[string]*tempWatch
 }
 
-// Add adds domain to the watch list
+// Add adds domain to the watch list.
 func (w *Watches) Add(domain string) {
 	w.Lock()
 	defer w.Unlock()
@@ -27,7 +27,7 @@ func (w *Watches) Add(domain string) {
 	w.m[domain] = true
 }
 
-// AddTemp adds a temporary domain to the watch list with a ttl
+// AddTemp adds a temporary domain to the watch list with a ttl.
 func (w *Watches) AddTemp(domain string, ttl uint32) {
 	w.Lock()
 	defer w.Unlock()
@@ -38,7 +38,7 @@ func (w *Watches) AddTemp(domain string, ttl uint32) {
 	}
 }
 
-// Remove removes domain from the watch list
+// Remove removes domain from the watch list.
 func (w *Watches) Remove(domain string) {
 	w.Lock()
 	defer w.Unlock()
@@ -49,7 +49,7 @@ func (w *Watches) Remove(domain string) {
 
 // CleanTemp removes expired temporary entries from the watch list and reduces
 // the ttl of all other entries by interval seconds; this is meant to be called
-// once every interval seconds to actually implement cleaning of the cache
+// once every interval seconds to actually implement cleaning of the cache.
 func (w *Watches) CleanTemp(interval uint32) {
 	w.Lock()
 	defer w.Unlock()
@@ -72,7 +72,7 @@ func (w *Watches) CleanTemp(interval uint32) {
 	}
 }
 
-// Flush removes all entries from the watch list
+// Flush removes all entries from the watch list.
 func (w *Watches) Flush() {
 	w.Lock()
 	defer w.Unlock()
@@ -81,7 +81,7 @@ func (w *Watches) Flush() {
 	w.t = make(map[string]*tempWatch)
 }
 
-// Contains returns if the domain is in the watch list
+// Contains returns whether the domain is in the watch list.
 func (w *Watches) Contains(domain string) bool {
 	w.RLock()
 	defer w.RUnlock()
@@ -111,7 +111,7 @@ func (w *Watches) Contains(domain string) bool {
 	return false
 }
 
-// NewWatches returns a new Watches
+// NewWatches returns a new Watches.
 func NewWatches() *Watches {
 	return &Watches{
 		m: make(map[string]bool),

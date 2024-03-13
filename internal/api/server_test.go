@@ -110,7 +110,7 @@ func TestServerSetSocketPermissions(_ *testing.T) {
 	server.setSocketPermissions()
 }
 
-// TestServerStartStop tests Start and Stop of Server
+// TestServerStartStop tests Start and Stop of Server.
 func TestServerStartStop(t *testing.T) {
 	config := NewConfig()
 	config.SocketFile = "test.sock"
@@ -121,7 +121,7 @@ func TestServerStartStop(t *testing.T) {
 	server.Stop()
 }
 
-// TestServerRequests tests Requests of Server
+// TestServerRequests tests Requests of Server.
 func TestServerRequests(t *testing.T) {
 	config := NewConfig()
 	config.SocketFile = "test.sock"
@@ -131,14 +131,18 @@ func TestServerRequests(t *testing.T) {
 	}
 }
 
-// TestNewServer tests NewServer
+// TestNewServer tests NewServer.
 func TestNewServer(t *testing.T) {
 	config := NewConfig()
 	server := NewServer(config)
+
+	if server == nil ||
+		server.requests == nil ||
+		server.done == nil ||
+		server.closed == nil {
+		t.Errorf("got nil, want != nil")
+	}
 	if server.config != config {
 		t.Errorf("got %p, want %p", server.config, config)
-	}
-	if server.requests == nil {
-		t.Errorf("got nil, want != nil")
 	}
 }

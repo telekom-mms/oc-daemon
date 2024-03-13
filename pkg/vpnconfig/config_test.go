@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// TestDNSRemotes tests Remotes of DNS
+// TestDNSRemotes tests Remotes of DNS.
 func TestDNSRemotes(t *testing.T) {
 	// test empty
 	c := New()
@@ -68,7 +68,7 @@ func TestDNSRemotes(t *testing.T) {
 	}
 }
 
-// TestSplitDNSExcludes tests DNSExcludes of Split
+// TestSplitDNSExcludes tests DNSExcludes of Split.
 func TestSplitDNSExcludes(t *testing.T) {
 	// test empty
 	c := New()
@@ -88,7 +88,7 @@ func TestSplitDNSExcludes(t *testing.T) {
 	}
 }
 
-// getValidTestConfig returns a valid Config for testing
+// getValidTestConfig returns a valid Config for testing.
 func getValidTestConfig() *Config {
 	c := New()
 
@@ -131,7 +131,7 @@ func getValidTestConfig() *Config {
 	return c
 }
 
-// TestConfigCopy tests Copy of Config
+// TestConfigCopy tests Copy of Config.
 func TestConfigCopy(t *testing.T) {
 	// test nil
 	if (*Config)(nil).Copy() != nil {
@@ -159,7 +159,7 @@ func TestConfigCopy(t *testing.T) {
 	}
 }
 
-// TestConfigEmpty tests Empty of Config
+// TestConfigEmpty tests Empty of Config.
 func TestConfigEmpty(t *testing.T) {
 	// test empty
 	c := New()
@@ -179,7 +179,7 @@ func TestConfigEmpty(t *testing.T) {
 	}
 }
 
-// TestConfigEqual tests Equal of Config
+// TestConfigEqual tests Equal of Config.
 func TestConfigEqual(t *testing.T) {
 	// test empty
 	c1 := New()
@@ -202,7 +202,7 @@ func TestConfigEqual(t *testing.T) {
 	}
 }
 
-// TestConfigValid tests Valid of Config
+// TestConfigValid tests Valid of Config.
 func TestConfigValid(t *testing.T) {
 	// test empty, valid
 	c := New()
@@ -230,7 +230,7 @@ func TestConfigValid(t *testing.T) {
 	}
 }
 
-// TestConfigJSON tests JSON of Config
+// TestConfigJSON tests JSON of Config.
 func TestConfigJSON(t *testing.T) {
 	c := getValidTestConfig()
 
@@ -262,7 +262,7 @@ func TestConfigJSON(t *testing.T) {
 	}
 }
 
-// TestNew tests New
+// TestNew tests New.
 func TestNew(t *testing.T) {
 	c := New()
 	if c == nil {
@@ -270,7 +270,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-// TestNewFromJSON tests NewFromJSON
+// TestNewFromJSON tests NewFromJSON.
 func TestNewFromJSON(t *testing.T) {
 	// test with valid config
 	want := getValidTestConfig()

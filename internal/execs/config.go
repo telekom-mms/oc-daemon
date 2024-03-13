@@ -2,7 +2,7 @@ package execs
 
 import "os/exec"
 
-// default values
+// default values.
 var (
 	IP         = "ip"
 	Nft        = "nft"
@@ -10,7 +10,7 @@ var (
 	Sysctl     = "sysctl"
 )
 
-// Config is executables configuration
+// Config is executables configuration.
 type Config struct {
 	IP         string
 	Nft        string
@@ -18,7 +18,7 @@ type Config struct {
 	Sysctl     string
 }
 
-// Valid returns whether config is valid
+// Valid returns whether config is valid.
 func (c *Config) Valid() bool {
 	if c == nil ||
 		c.IP == "" ||
@@ -32,7 +32,7 @@ func (c *Config) Valid() bool {
 }
 
 // CheckExecutables checks whether executables in config exist in the
-// file system and are executable
+// file system and are executable.
 func (c *Config) CheckExecutables() error {
 	for _, f := range []string{
 		c.IP, c.Nft, c.Resolvectl, c.Sysctl,
@@ -44,7 +44,7 @@ func (c *Config) CheckExecutables() error {
 	return nil
 }
 
-// NewConfig returns a new Config
+// NewConfig returns a new Config.
 func NewConfig() *Config {
 	return &Config{
 		IP:         IP,

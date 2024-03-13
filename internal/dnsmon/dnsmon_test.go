@@ -40,7 +40,7 @@ func TestDNSMonStartEvents(t *testing.T) {
 	<-dnsMon.closed
 }
 
-// TestDNSMonStartStop tests Start and Stop of DNSMon
+// TestDNSMonStartStop tests Start and Stop of DNSMon.
 func TestDNSMonStartStop(t *testing.T) {
 	dnsMon := NewDNSMon(NewConfig())
 	if err := dnsMon.Start(); err != nil {
@@ -49,7 +49,7 @@ func TestDNSMonStartStop(t *testing.T) {
 	dnsMon.Stop()
 }
 
-// TestDNSMonUpdates tests Updates of DNSMon
+// TestDNSMonUpdates tests Updates of DNSMon.
 func TestDNSMonUpdates(t *testing.T) {
 	dnsMon := NewDNSMon(NewConfig())
 	got := dnsMon.Updates()
@@ -59,7 +59,7 @@ func TestDNSMonUpdates(t *testing.T) {
 	}
 }
 
-// TestNewDNSMon tests NewDNSMon
+// TestNewDNSMon tests NewDNSMon.
 func TestNewDNSMon(t *testing.T) {
 	config := NewConfig()
 	dnsMon := NewDNSMon(config)

@@ -1,3 +1,4 @@
+// Package trafpol contains the traffic policing.
 package trafpol
 
 import (
@@ -10,7 +11,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/dnsmon"
 )
 
-// TrafPol is a traffic policing component
+// TrafPol is a traffic policing component.
 type TrafPol struct {
 	config *Config
 	devmon *devmon.DevMon
@@ -27,7 +28,7 @@ type TrafPol struct {
 	done     chan struct{}
 }
 
-// handleDeviceUpdate handles a device update
+// handleDeviceUpdate handles a device update.
 func (t *TrafPol) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
 	// skip physical devices and only allow virtual devices
 	if u.Type == "device" {
@@ -42,7 +43,7 @@ func (t *TrafPol) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
 	t.allowDevs.Remove(ctx, u.Device)
 }
 
-// handleDNSUpdate handles a dns config update
+// handleDNSUpdate handles a dns config update.
 func (t *TrafPol) handleDNSUpdate() {
 	// update allowed hosts
 	t.allowHosts.Update()
@@ -51,7 +52,7 @@ func (t *TrafPol) handleDNSUpdate() {
 	t.cpd.Probe()
 }
 
-// handleCPDReport handles a CPD report
+// handleCPDReport handles a CPD report.
 func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 	if !report.Detected {
 		// no captive portal detected
@@ -75,7 +76,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 	}
 }
 
-// start starts the traffic policing component
+// start starts the traffic policing component.
 func (t *TrafPol) start(ctx context.Context) {
 	defer close(t.loopDone)
 	defer unsetFilterRules(ctx)
@@ -109,7 +110,7 @@ func (t *TrafPol) start(ctx context.Context) {
 	}
 }
 
-// Start starts the traffic policing component
+// Start starts the traffic policing component.
 func (t *TrafPol) Start() error {
 	log.Debug("TrafPol starting")
 
@@ -158,7 +159,7 @@ cleanup_devmon:
 	return err
 }
 
-// Stop stops the traffic policing component
+// Stop stops the traffic policing component.
 func (t *TrafPol) Stop() {
 	close(t.done)
 
@@ -167,7 +168,7 @@ func (t *TrafPol) Stop() {
 	log.Debug("TrafPol stopped")
 }
 
-// NewTrafPol returns a new traffic policing component
+// NewTrafPol returns a new traffic policing component.
 func NewTrafPol(config *Config) *TrafPol {
 	allowHosts := NewAllowHosts(config)
 	for _, h := range config.AllowedHosts {
@@ -187,7 +188,7 @@ func NewTrafPol(config *Config) *TrafPol {
 	}
 }
 
-// Cleanup cleans up old configuration after a failed shutdown
+// Cleanup cleans up old configuration after a failed shutdown.
 func Cleanup(ctx context.Context) {
 	cleanupFilterRules(ctx)
 }

@@ -1,3 +1,6 @@
+/*
+Devmon is a device monitor example.
+*/
 package main
 
 import (

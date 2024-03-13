@@ -1,3 +1,4 @@
+// Package dbusapi contains the D-Bus API.
 package dbusapi
 
 import (
@@ -10,16 +11,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// D-Bus object path and interface
+// D-Bus object path and interface.
 const (
 	Path      = "/com/telekom_mms/oc_daemon/Daemon"
 	Interface = "com.telekom_mms.oc_daemon.Daemon"
 )
 
-// PropertiesChanged is the DBus properties changed signal
+// PropertiesChanged is the DBus properties changed signal.
 const PropertiesChanged = "org.freedesktop.DBus.Properties.PropertiesChanged"
 
-// Properties
+// Properties.
 const (
 	PropertyTrustedNetwork  = "TrustedNetwork"
 	PropertyConnectionState = "ConnectionState"
@@ -32,14 +33,14 @@ const (
 	PropertyVPNConfig       = "VPNConfig"
 )
 
-// Property "Trusted Network" states
+// Property "Trusted Network" states.
 const (
 	TrustedNetworkUnknown uint32 = iota
 	TrustedNetworkNotTrusted
 	TrustedNetworkTrusted
 )
 
-// Property "Connection State" states
+// Property "Connection State" states.
 const (
 	ConnectionStateUnknown uint32 = iota
 	ConnectionStateDisconnected
@@ -48,56 +49,56 @@ const (
 	ConnectionStateDisconnecting
 )
 
-// Property "IP" values
+// Property "IP" values.
 const (
 	IPInvalid = ""
 )
 
-// Property "Device" values
+// Property "Device" values.
 const (
 	DeviceInvalid = ""
 )
 
-// Property "Server" values
+// Property "Server" values.
 const (
 	ServerInvalid = ""
 )
 
-// Property "Connected At" values
+// Property "Connected At" values.
 const (
 	ConnectedAtInvalid int64 = -1
 )
 
-// Property "Servers" values
+// Property "Servers" values.
 var (
 	ServersInvalid []string
 )
 
-// Property "OCRunning" values
+// Property "OCRunning" values.
 const (
 	OCRunningUnknown uint32 = iota
 	OCRunningNotRunning
 	OCRunningRunning
 )
 
-// Property "VPNConfig" values
+// Property "VPNConfig" values.
 const (
 	VPNConfigInvalid = ""
 )
 
-// Methods
+// Methods.
 const (
 	MethodConnect    = Interface + ".Connect"
 	MethodDisconnect = Interface + ".Disconnect"
 )
 
-// Request Names
+// Request Names.
 const (
 	RequestConnect    = "Connect"
 	RequestDisconnect = "Disconnect"
 )
 
-// Request is a D-Bus client request
+// Request is a D-Bus client request.
 type Request struct {
 	Name       string
 	Parameters []any
@@ -108,12 +109,12 @@ type Request struct {
 	done chan struct{}
 }
 
-// Close completes the request handling
+// Close completes the request handling.
 func (r *Request) Close() {
 	close(r.wait)
 }
 
-// Wait waits for the completion of request handling
+// Wait waits for the completion of request handling.
 func (r *Request) Wait() {
 	select {
 	case <-r.wait:
@@ -122,13 +123,13 @@ func (r *Request) Wait() {
 	}
 }
 
-// daemon defines daemon interface methods
+// daemon defines daemon interface methods.
 type daemon struct {
 	requests chan *Request
 	done     chan struct{}
 }
 
-// Connect is the "Connect" method of the D-Bus interface
+// Connect is the "Connect" method of the D-Bus interface.
 func (d daemon) Connect(sender dbus.Sender, server, cookie, host, connectURL, fingerprint, resolve string) *dbus.Error {
 	log.WithField("sender", sender).Debug("Received D-Bus Connect() call")
 	request := &Request{
@@ -150,7 +151,7 @@ func (d daemon) Connect(sender dbus.Sender, server, cookie, host, connectURL, fi
 	return nil
 }
 
-// Disconnect is the "Disconnect" method of the D-Bus interface
+// Disconnect is the "Disconnect" method of the D-Bus interface.
 func (d daemon) Disconnect(sender dbus.Sender) *dbus.Error {
 	log.WithField("sender", sender).Debug("Received D-Bus Connect() call")
 	request := &Request{
@@ -171,13 +172,13 @@ func (d daemon) Disconnect(sender dbus.Sender) *dbus.Error {
 	return nil
 }
 
-// propertyUpdate is an update of a property
+// propertyUpdate is an update of a property.
 type propertyUpdate struct {
 	name  string
 	value any
 }
 
-// Service is a D-Bus Service
+// Service is a D-Bus Service.
 type Service struct {
 	conn  dbusConn
 	props propProperties
@@ -188,30 +189,30 @@ type Service struct {
 	closed   chan struct{}
 }
 
-// dbusConn is an interface for dbus.Conn to allow for testing
+// dbusConn is an interface for dbus.Conn to allow for testing.
 type dbusConn interface {
 	Close() error
 	Export(v any, path dbus.ObjectPath, iface string) error
 	RequestName(name string, flags dbus.RequestNameFlags) (dbus.RequestNameReply, error)
 }
 
-// dbusConnectSystemBus encapsulates dbus.ConnectSystemBus to allow for testing
+// dbusConnectSystemBus encapsulates dbus.ConnectSystemBus to allow for testing.
 var dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
 	return dbus.ConnectSystemBus(opts...)
 }
 
-// propProperties is an interface for prop.Properties to allow for testing
+// propProperties is an interface for prop.Properties to allow for testing.
 type propProperties interface {
 	Introspection(iface string) []introspect.Property
 	SetMust(iface, property string, v any)
 }
 
-// propExport encapsulates prop.Export to allow for testing
+// propExport encapsulates prop.Export to allow for testing.
 var propExport = func(conn dbusConn, path dbus.ObjectPath, props prop.Map) (propProperties, error) {
 	return prop.Export(conn.(*dbus.Conn), path, props)
 }
 
-// start starts the service
+// start starts the service.
 func (s *Service) start() {
 	defer close(s.closed)
 	defer func() { _ = s.conn.Close() }()
@@ -257,7 +258,7 @@ func (s *Service) start() {
 	}
 }
 
-// Start starts the service
+// Start starts the service.
 func (s *Service) Start() error {
 	// connect to session bus
 	conn, err := dbusConnectSystemBus()
@@ -370,18 +371,18 @@ func (s *Service) Start() error {
 	return nil
 }
 
-// Stop stops the service
+// Stop stops the service.
 func (s *Service) Stop() {
 	close(s.done)
 	<-s.closed
 }
 
-// Requests returns the requests channel of service
+// Requests returns the requests channel of service.
 func (s *Service) Requests() chan *Request {
 	return s.requests
 }
 
-// SetProperty sets property with name to value
+// SetProperty sets property with name to value.
 func (s *Service) SetProperty(name string, value any) {
 	select {
 	case s.propUps <- &propertyUpdate{name, value}:
@@ -389,7 +390,7 @@ func (s *Service) SetProperty(name string, value any) {
 	}
 }
 
-// NewService returns a new service
+// NewService returns a new service.
 func NewService() *Service {
 	return &Service{
 		requests: make(chan *Request),

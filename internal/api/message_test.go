@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TestNewMessage tests NewMessage
+// TestNewMessage tests NewMessage.
 func TestNewMessage(t *testing.T) {
 	// message types
 	for _, typ := range []uint16{
@@ -32,7 +32,7 @@ func TestNewMessage(t *testing.T) {
 	}
 }
 
-// TestNewOK tests NewOK
+// TestNewOK tests NewOK.
 func TestNewOK(t *testing.T) {
 	msg := NewOK(nil)
 	if msg.Type != TypeOK {
@@ -40,7 +40,7 @@ func TestNewOK(t *testing.T) {
 	}
 }
 
-// TestNewError tests NewError
+// TestNewError tests NewError.
 func TestNewError(t *testing.T) {
 	msg := NewError(nil)
 	if msg.Type != TypeError {
@@ -105,7 +105,7 @@ func TestWriteMessageErrors(t *testing.T) {
 	}
 }
 
-// TestReadWriteMessage tests ReadMessage and WriteMessage
+// TestReadWriteMessage tests ReadMessage and WriteMessage.
 func TestReadWriteMessage(t *testing.T) {
 	want := &Message{
 		Header: Header{

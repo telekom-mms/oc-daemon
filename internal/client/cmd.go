@@ -13,23 +13,23 @@ import (
 )
 
 var (
-	// config is the OC client config
+	// config is the OC client config.
 	config *client.Config
 
-	// command line arguments
+	// command line arguments.
 	command = ""
 
-	// verbose specifies verbose output
+	// verbose specifies verbose output.
 	verbose = false
 
-	// json specifies whether output should be formatted as json
+	// json specifies whether output should be formatted as json.
 	json = false
 )
 
 // clientUserConfig is client.UserConfig for testing.
 var clientUserConfig = client.UserConfig
 
-// saveConfig saves the user config to the user dir
+// saveConfig saves the user config to the user dir.
 func saveConfig() error {
 	userConfig := clientUserConfig()
 	userDir := filepath.Dir(userConfig)
@@ -48,7 +48,7 @@ var clientLoadUserSystemConfig = client.LoadUserSystemConfig
 // clientSystemConfig is client.SystemConfig for testing.
 var clientSystemConfig = client.SystemConfig
 
-// setConfig sets the config from config files and the command line
+// setConfig sets the config from config files and the command line.
 func setConfig(args []string) error {
 	// status subcommand
 	statusCmd := flag.NewFlagSet("status", flag.ContinueOnError)
@@ -192,6 +192,7 @@ func setConfig(args []string) error {
 	return nil
 }
 
+// run is the main function.
 func run(args []string) error {
 	// load configs and parse command line arguments
 	if err := setConfig(args); err != nil {
@@ -228,7 +229,7 @@ func run(args []string) error {
 	}
 }
 
-// Run is the main entry point of the oc client
+// Run is the main entry point of the oc client.
 func Run() {
 	if err := run(os.Args); err != nil {
 		if err != flag.ErrHelp {

@@ -1,3 +1,6 @@
+/*
+Dbusclient is an example of a D-Bus API client.
+*/
 package main
 
 import (

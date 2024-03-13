@@ -1,3 +1,4 @@
+// Package sleepmon contains the sleep monitor.
 package sleepmon
 
 import (
@@ -6,14 +7,14 @@ import (
 )
 
 const (
-	// object path, destination, interface, signals, methods, properties
+	// object path, destination, interface, signals, methods, properties.
 	path            = "/org/freedesktop/login1"
 	dest            = "org.freedesktop.login1"
 	iface           = dest + ".Manager"
 	prepareForSleep = iface + ".PrepareForSleep"
 )
 
-// SleepMon is a suspend/hibernate monitor
+// SleepMon is a suspend/hibernate monitor.
 type SleepMon struct {
 	conn   *dbus.Conn
 	sigs   chan *dbus.Signal
@@ -22,7 +23,7 @@ type SleepMon struct {
 	closed chan struct{}
 }
 
-// sendEvent sends sleep over the event channel
+// sendEvent sends sleep over the event channel.
 func (s *SleepMon) sendEvent(sleep bool) {
 	select {
 	case s.events <- sleep:
@@ -30,7 +31,7 @@ func (s *SleepMon) sendEvent(sleep bool) {
 	}
 }
 
-// handleSignal handles signal
+// handleSignal handles signal.
 func (s *SleepMon) handleSignal(signal *dbus.Signal) {
 	log.WithField("signal", signal).Debug("SleepMon got signal")
 	switch signal.Name {
@@ -55,7 +56,7 @@ func (s *SleepMon) handleSignal(signal *dbus.Signal) {
 
 }
 
-// start starts the sleep monitor
+// start starts the sleep monitor.
 func (s *SleepMon) start() {
 	defer close(s.closed)
 	defer close(s.events)
@@ -86,7 +87,7 @@ var connAddMatchSignal = func(conn *dbus.Conn, options ...dbus.MatchOption) erro
 	return conn.AddMatchSignal(options...)
 }
 
-// Start starts the sleep monitor
+// Start starts the sleep monitor.
 func (s *SleepMon) Start() error {
 	// connect to system bus
 	conn, err := dbusConnectSystemBus()
@@ -113,18 +114,18 @@ func (s *SleepMon) Start() error {
 	return nil
 }
 
-// Stop stops the sleep monitor
+// Stop stops the sleep monitor.
 func (s *SleepMon) Stop() {
 	close(s.done)
 	<-s.closed
 }
 
-// Events returns the sleep event channel
+// Events returns the sleep event channel.
 func (s *SleepMon) Events() chan bool {
 	return s.events
 }
 
-// NewSleepMon returns a new sleep monitor
+// NewSleepMon returns a new sleep monitor.
 func NewSleepMon() *SleepMon {
 	return &SleepMon{
 		sigs:   make(chan *dbus.Signal, 10),

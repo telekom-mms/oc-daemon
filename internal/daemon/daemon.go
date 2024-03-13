@@ -1,3 +1,4 @@
+// Package daemon contains the OC-Daemon.
 package daemon
 
 import (
@@ -28,7 +29,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Daemon is used to run the daemon
+// Daemon is used to run the daemon.
 type Daemon struct {
 	config *Config
 
@@ -65,7 +66,7 @@ type Daemon struct {
 	disableTrafPol bool
 }
 
-// setStatusTrustedNetwork sets the trusted network status in status
+// setStatusTrustedNetwork sets the trusted network status in status.
 func (d *Daemon) setStatusTrustedNetwork(trusted bool) {
 	// convert bool to trusted network status
 	trustedNetwork := vpnstatus.TrustedNetworkNotTrusted
@@ -84,7 +85,7 @@ func (d *Daemon) setStatusTrustedNetwork(trusted bool) {
 	d.dbus.SetProperty(dbusapi.PropertyTrustedNetwork, trustedNetwork)
 }
 
-// setStatusConnectionState sets the connection state in status
+// setStatusConnectionState sets the connection state in status.
 func (d *Daemon) setStatusConnectionState(connectionState vpnstatus.ConnectionState) {
 	if d.status.ConnectionState == connectionState {
 		// state not changed
@@ -96,7 +97,7 @@ func (d *Daemon) setStatusConnectionState(connectionState vpnstatus.ConnectionSt
 	d.dbus.SetProperty(dbusapi.PropertyConnectionState, connectionState)
 }
 
-// setStatusIP sets the IP in status
+// setStatusIP sets the IP in status.
 func (d *Daemon) setStatusIP(ip string) {
 	if d.status.IP == ip {
 		// ip not changed
@@ -108,7 +109,7 @@ func (d *Daemon) setStatusIP(ip string) {
 	d.dbus.SetProperty(dbusapi.PropertyIP, ip)
 }
 
-// setStatusDevice sets the device in status
+// setStatusDevice sets the device in status.
 func (d *Daemon) setStatusDevice(device string) {
 	if d.status.Device == device {
 		// device not changed
@@ -120,7 +121,7 @@ func (d *Daemon) setStatusDevice(device string) {
 	d.dbus.SetProperty(dbusapi.PropertyDevice, device)
 }
 
-// setStatusServer sets the current server in status
+// setStatusServer sets the current server in status.
 func (d *Daemon) setStatusServer(server string) {
 	if d.status.Server == server {
 		// connected server not changed
@@ -132,7 +133,7 @@ func (d *Daemon) setStatusServer(server string) {
 	d.dbus.SetProperty(dbusapi.PropertyServer, server)
 }
 
-// setStatusConnectedAt sets the connection time in status
+// setStatusConnectedAt sets the connection time in status.
 func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
 	if d.status.ConnectedAt == connectedAt {
 		// connection time not changed
@@ -144,7 +145,7 @@ func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
 	d.dbus.SetProperty(dbusapi.PropertyConnectedAt, connectedAt)
 }
 
-// setStatusServers sets the vpn servers in status
+// setStatusServers sets the vpn servers in status.
 func (d *Daemon) setStatusServers(servers []string) {
 	if reflect.DeepEqual(d.status.Servers, servers) {
 		// servers not changed
@@ -156,7 +157,7 @@ func (d *Daemon) setStatusServers(servers []string) {
 	d.dbus.SetProperty(dbusapi.PropertyServers, servers)
 }
 
-// setStatusOCRunning sets the openconnect running state in status
+// setStatusOCRunning sets the openconnect running state in status.
 func (d *Daemon) setStatusOCRunning(running bool) {
 	ocrunning := vpnstatus.OCRunningNotRunning
 	if running {
@@ -172,7 +173,7 @@ func (d *Daemon) setStatusOCRunning(running bool) {
 	d.dbus.SetProperty(dbusapi.PropertyOCRunning, ocrunning)
 }
 
-// setStatusVPNConfig sets the VPN config in status
+// setStatusVPNConfig sets the VPN config in status.
 func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 	if d.status.VPNConfig.Equal(config) {
 		// config not changed
@@ -198,7 +199,7 @@ func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 	d.dbus.SetProperty(dbusapi.PropertyVPNConfig, string(b))
 }
 
-// connectVPN connects to the VPN using login info from client request
+// connectVPN connects to the VPN using login info from client request.
 func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	// allow only one connection
 	if d.status.OCRunning.Running() {
@@ -224,7 +225,7 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	d.runner.Connect(login, env)
 }
 
-// disconnectVPN disconnects from the VPN
+// disconnectVPN disconnects from the VPN.
 func (d *Daemon) disconnectVPN() {
 	// update status
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnecting)
@@ -237,7 +238,7 @@ func (d *Daemon) disconnectVPN() {
 	d.runner.Disconnect()
 }
 
-// updateVPNConfigUp updates the VPN config for VPN connect
+// updateVPNConfigUp updates the VPN config for VPN connect.
 func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	// check if old and new config differ
 	if config.Equal(d.status.VPNConfig) {
@@ -282,7 +283,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	d.setStatusDevice(config.Device.Name)
 }
 
-// updateVPNConfigDown updates the VPN config for VPN disconnect
+// updateVPNConfigDown updates the VPN config for VPN disconnect.
 func (d *Daemon) updateVPNConfigDown() {
 	// TODO: only call this from Runner Event only and remove down message?
 	// or potentially calling this twice is better than not at all?
@@ -316,7 +317,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	d.setStatusDevice("")
 }
 
-// updateVPNConfig updates the VPN config with config update in client request
+// updateVPNConfig updates the VPN config with config update in client request.
 func (d *Daemon) updateVPNConfig(request *api.Request) {
 	// parse config
 	configUpdate, err := VPNConfigUpdateFromJSON(request.Data())
@@ -348,7 +349,7 @@ func (d *Daemon) updateVPNConfig(request *api.Request) {
 	d.updateVPNConfigUp(configUpdate.Config)
 }
 
-// handleClientRequest handles a client request
+// handleClientRequest handles a client request.
 func (d *Daemon) handleClientRequest(request *api.Request) {
 	defer request.Close()
 	log.Debug("Daemon handling client request")
@@ -360,7 +361,7 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 	}
 }
 
-// handleDBusRequest handles a D-Bus API client request
+// handleDBusRequest handles a D-Bus API client request.
 func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 	defer request.Close()
 	log.Debug("Daemon handling D-Bus client request")
@@ -394,7 +395,7 @@ func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 }
 
 // checkDisconnectVPN checks if we need to disconnect the VPN when handling a
-// TND result
+// TND result.
 func (d *Daemon) checkDisconnectVPN() {
 	if d.status.TrustedNetwork.Trusted() && d.status.OCRunning.Running() {
 		// disconnect VPN when switching from untrusted network with
@@ -404,7 +405,7 @@ func (d *Daemon) checkDisconnectVPN() {
 	}
 }
 
-// handleTNDResult handles a TND result
+// handleTNDResult handles a TND result.
 func (d *Daemon) handleTNDResult(trusted bool) error {
 	log.WithField("trusted", trusted).Debug("Daemon handling TND result")
 	d.setStatusTrustedNetwork(trusted)
@@ -413,7 +414,7 @@ func (d *Daemon) handleTNDResult(trusted bool) error {
 }
 
 // handleRunnerDisconnect handles a disconnect event from the OC runner,
-// cleaning up everthing. This is also called when stopping the daemon
+// cleaning up everthing. This is also called when stopping the daemon.
 func (d *Daemon) handleRunnerDisconnect() {
 	// make sure running and connected are not set
 	d.setStatusOCRunning(false)
@@ -425,7 +426,7 @@ func (d *Daemon) handleRunnerDisconnect() {
 	d.updateVPNConfigDown()
 }
 
-// handleRunnerEvent handles a connect event from the OC runner
+// handleRunnerEvent handles a connect event from the OC runner.
 func (d *Daemon) handleRunnerEvent(e *ocrunner.ConnectEvent) {
 	log.WithField("event", e).Debug("Daemon handling Runner event")
 
@@ -439,7 +440,7 @@ func (d *Daemon) handleRunnerEvent(e *ocrunner.ConnectEvent) {
 	d.handleRunnerDisconnect()
 }
 
-// handleVPNSetupEvent handles a VPN setup event
+// handleVPNSetupEvent handles a VPN setup event.
 func (d *Daemon) handleVPNSetupEvent(event *vpnsetup.Event) {
 	switch event.Type {
 	case vpnsetup.EventSetupOK:
@@ -451,7 +452,7 @@ func (d *Daemon) handleVPNSetupEvent(event *vpnsetup.Event) {
 	}
 }
 
-// handleSleepMonEvent handles a suspend/resume event from SleepMon
+// handleSleepMonEvent handles a suspend/resume event from SleepMon.
 func (d *Daemon) handleSleepMonEvent(sleep bool) {
 	log.WithField("sleep", sleep).Debug("Daemon handling SleepMon event")
 
@@ -461,7 +462,7 @@ func (d *Daemon) handleSleepMonEvent(sleep bool) {
 	}
 }
 
-// readXMLProfile reads the XML profile from file
+// readXMLProfile reads the XML profile from file.
 func readXMLProfile(xmlProfile string) *xmlprofile.Profile {
 	profile, err := xmlprofile.LoadProfile(xmlProfile)
 	if err != nil {
@@ -472,7 +473,7 @@ func readXMLProfile(xmlProfile string) *xmlprofile.Profile {
 	return profile
 }
 
-// handleProfileUpdate handles a xml profile update
+// handleProfileUpdate handles a xml profile update.
 func (d *Daemon) handleProfileUpdate() error {
 	log.Debug("Daemon handling XML profile update")
 	d.profile = readXMLProfile(d.config.OpenConnect.XMLProfile)
@@ -488,14 +489,14 @@ func (d *Daemon) handleProfileUpdate() error {
 	return nil
 }
 
-// cleanup cleans up after a failed shutdown
+// cleanup cleans up after a failed shutdown.
 func (d *Daemon) cleanup(ctx context.Context) {
 	ocrunner.CleanupConnect(d.config.OpenConnect)
 	vpnsetup.Cleanup(ctx, d.config.OpenConnect.VPNDevice, d.config.SplitRouting)
 	trafpol.Cleanup(ctx)
 }
 
-// initToken creates the daemon token for client authentication
+// initToken creates the daemon token for client authentication.
 func (d *Daemon) initToken() error {
 	// TODO: is this good enough for us?
 	b := make([]byte, 16)
@@ -507,7 +508,7 @@ func (d *Daemon) initToken() error {
 	return nil
 }
 
-// getProfileAllowedHosts returns the allowed hosts
+// getProfileAllowedHosts returns the allowed hosts.
 func (d *Daemon) getProfileAllowedHosts() (hosts []string) {
 	// add vpn servers to allowed hosts
 	hosts = append(hosts, d.profile.GetVPNServers()...)
@@ -521,13 +522,13 @@ func (d *Daemon) getProfileAllowedHosts() (hosts []string) {
 	return
 }
 
-// initTNDServers sets the TND servers from the xml profile
+// initTNDServers sets the TND servers from the xml profile.
 func (d *Daemon) initTNDServers() {
 	servers := d.profile.GetTNDHTTPSServers()
 	d.tnd.SetServers(servers)
 }
 
-// setTNDDialer sets a custom dialer for TND
+// setTNDDialer sets a custom dialer for TND.
 func (d *Daemon) setTNDDialer() {
 	// get mark to be set on socket
 	mark, err := strconv.Atoi(d.config.SplitRouting.FirewallMark)
@@ -565,7 +566,7 @@ func (d *Daemon) setTNDDialer() {
 	d.tnd.SetDialer(dialer)
 }
 
-// startTND starts TND if it's not running
+// startTND starts TND if it's not running.
 func (d *Daemon) startTND() error {
 	if d.tnd != nil {
 		return nil
@@ -579,7 +580,7 @@ func (d *Daemon) startTND() error {
 	return nil
 }
 
-// stopTND stops TND if it's running
+// stopTND stops TND if it's running.
 func (d *Daemon) stopTND() {
 	if d.tnd == nil {
 		return
@@ -588,7 +589,7 @@ func (d *Daemon) stopTND() {
 	d.tnd = nil
 }
 
-// checkTND checks if TND should be running and starts or stops it
+// checkTND checks if TND should be running and starts or stops it.
 func (d *Daemon) checkTND() error {
 	if len(d.profile.GetTNDServers()) == 0 {
 		d.stopTND()
@@ -597,7 +598,7 @@ func (d *Daemon) checkTND() error {
 	return d.startTND()
 }
 
-// getTNDResults returns the TND results channel
+// getTNDResults returns the TND results channel.
 // TODO: move this into TND code?
 func (d *Daemon) getTNDResults() chan bool {
 	if d.tnd == nil {
@@ -606,7 +607,7 @@ func (d *Daemon) getTNDResults() chan bool {
 	return d.tnd.Results()
 }
 
-// startTrafPol starts traffic policing if it's not running
+// startTrafPol starts traffic policing if it's not running.
 func (d *Daemon) startTrafPol() error {
 	if d.trafpol != nil {
 		return nil
@@ -621,7 +622,7 @@ func (d *Daemon) startTrafPol() error {
 	return nil
 }
 
-// stopTrafPol stops traffic policing if it's running
+// stopTrafPol stops traffic policing if it's running.
 func (d *Daemon) stopTrafPol() {
 	if d.trafpol == nil {
 		return
@@ -631,7 +632,7 @@ func (d *Daemon) stopTrafPol() {
 }
 
 // checkTrafPol checks if traffic policing should be running and
-// starts or stops it
+// starts or stops it.
 func (d *Daemon) checkTrafPol() error {
 	// check if traffic policing is disabled in the daemon
 	if d.disableTrafPol {
@@ -654,7 +655,7 @@ func (d *Daemon) checkTrafPol() error {
 	return d.startTrafPol()
 }
 
-// start starts the daemon
+// start starts the daemon.
 func (d *Daemon) start() {
 	defer close(d.closed)
 	defer d.sleepmon.Stop()
@@ -705,7 +706,7 @@ func (d *Daemon) start() {
 	}
 }
 
-// Start starts the daemon
+// Start starts the daemon.
 func (d *Daemon) Start() error {
 	// create context
 	ctx := context.Background()
@@ -785,7 +786,7 @@ cleanup_unix:
 	return err
 }
 
-// Stop stops the daemon
+// Stop stops the daemon.
 func (d *Daemon) Stop() {
 	// stop daemon and wait for main loop termination
 	close(d.done)
@@ -797,7 +798,7 @@ func (d *Daemon) Errors() chan error {
 	return d.errors
 }
 
-// NewDaemon returns a new Daemon
+// NewDaemon returns a new Daemon.
 func NewDaemon(config *Config) *Daemon {
 	return &Daemon{
 		config: config,

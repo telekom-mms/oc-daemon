@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// getTestConfig returns a config for testing
+// getTestConfig returns a config for testing.
 func getTestConfig() *Config {
 	return &Config{
 		Address:   "127.0.0.1:4254",
@@ -98,7 +98,7 @@ func TestProxyHandleRequest(t *testing.T) {
 	p.handleRequest(&responseWriter{}, &dns.Msg{Question: []dns.Question{{Name: "test.example.com."}}})
 }
 
-// TestProxyStartStop tests Start and Stop of Proxy
+// TestProxyStartStop tests Start and Stop of Proxy.
 func TestProxyStartStop(_ *testing.T) {
 	// tcp and udp listeners
 	p := NewProxy(getTestConfig())
@@ -125,7 +125,7 @@ func TestProxyStartStop(_ *testing.T) {
 
 }
 
-// TestProxyReports tests Reports of Proxy
+// TestProxyReports tests Reports of Proxy.
 func TestProxyReports(t *testing.T) {
 	p := NewProxy(getTestConfig())
 	want := p.reports
@@ -135,14 +135,14 @@ func TestProxyReports(t *testing.T) {
 	}
 }
 
-// TestProxySetRemotes tests SetRemotes of Proxy
+// TestProxySetRemotes tests SetRemotes of Proxy.
 func TestProxySetRemotes(_ *testing.T) {
 	p := NewProxy(getTestConfig())
 	remotes := getTestRemotes()
 	p.SetRemotes(remotes)
 }
 
-// TestProxySetWatches tests SetWatches of Proxy
+// TestProxySetWatches tests SetWatches of Proxy.
 func TestProxySetWatches(_ *testing.T) {
 	config := &Config{
 		Address:   "127.0.0.1:4254",
@@ -154,7 +154,7 @@ func TestProxySetWatches(_ *testing.T) {
 	p.SetWatches(watches)
 }
 
-// TestNewProxy tests NewProxy
+// TestNewProxy tests NewProxy.
 func TestNewProxy(t *testing.T) {
 	p := NewProxy(getTestConfig())
 	if p.config == nil ||

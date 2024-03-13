@@ -1,3 +1,4 @@
+// Package splitrt contains the split routing.
 package splitrt
 
 import (
@@ -12,7 +13,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
-// SplitRouting is a split routing configuration
+// SplitRouting is a split routing configuration.
 type SplitRouting struct {
 	config    *Config
 	vpnconfig *vpnconfig.Config
@@ -27,7 +28,7 @@ type SplitRouting struct {
 	closed    chan struct{}
 }
 
-// setupRouting sets up routing using config
+// setupRouting sets up routing using config.
 func (s *SplitRouting) setupRouting(ctx context.Context) {
 	// get vpn network addresses
 	ipnet4 := &net.IPNet{
@@ -92,7 +93,7 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 
 }
 
-// teardownRouting tears down the routing configuration
+// teardownRouting tears down the routing configuration.
 func (s *SplitRouting) teardownRouting(ctx context.Context) {
 	deleteDefaultRouteIPv4(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable)
 	deleteDefaultRouteIPv6(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable)
@@ -102,7 +103,7 @@ func (s *SplitRouting) teardownRouting(ctx context.Context) {
 	s.excludes.Stop()
 }
 
-// excludeSettings returns if local (virtual) networks should be excluded
+// excludeSettings returns whether local (virtual) networks should be excluded.
 func (s *SplitRouting) excludeLocalNetworks() (exclude bool, virtual bool) {
 	for _, e := range s.vpnconfig.Split.ExcludeIPv4 {
 		if e.String() == "0.0.0.0/32" {
@@ -115,7 +116,7 @@ func (s *SplitRouting) excludeLocalNetworks() (exclude bool, virtual bool) {
 	return
 }
 
-// updateLocalNetworkExcludes updates the local network split excludes
+// updateLocalNetworkExcludes updates the local network split excludes.
 func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	exclude, virtual := s.excludeLocalNetworks()
 
@@ -166,7 +167,7 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	log.WithField("locals", s.locals).Debug("SplitRouting updated exclude local networks")
 }
 
-// handleDeviceUpdate handles a device update from the device monitor
+// handleDeviceUpdate handles a device update from the device monitor.
 func (s *SplitRouting) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
 	log.WithField("update", u).Debug("SplitRouting got device update")
 
@@ -187,7 +188,7 @@ func (s *SplitRouting) handleDeviceUpdate(ctx context.Context, u *devmon.Update)
 	s.updateLocalNetworkExcludes(ctx)
 }
 
-// handleAddressUpdate handles an address update from the address monitor
+// handleAddressUpdate handles an address update from the address monitor.
 func (s *SplitRouting) handleAddressUpdate(ctx context.Context, u *addrmon.Update) {
 	log.WithField("update", u).Debug("SplitRouting got address update")
 
@@ -199,7 +200,7 @@ func (s *SplitRouting) handleAddressUpdate(ctx context.Context, u *addrmon.Updat
 	s.updateLocalNetworkExcludes(ctx)
 }
 
-// handleDNSReport handles a DNS report
+// handleDNSReport handles a DNS report.
 func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) {
 	defer r.Done()
 	log.WithField("report", r).Debug("SplitRouting handling DNS report")
@@ -217,7 +218,7 @@ func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) 
 	}, r.TTL)
 }
 
-// start starts split routing
+// start starts split routing.
 func (s *SplitRouting) start(ctx context.Context) {
 	defer close(s.closed)
 	defer s.teardownRouting(ctx)
@@ -239,7 +240,7 @@ func (s *SplitRouting) start(ctx context.Context) {
 	}
 }
 
-// Start starts split routing
+// Start starts split routing.
 func (s *SplitRouting) Start() error {
 	log.Debug("SplitRouting starting")
 
@@ -266,19 +267,19 @@ func (s *SplitRouting) Start() error {
 	return nil
 }
 
-// Stop stops split routing
+// Stop stops split routing.
 func (s *SplitRouting) Stop() {
 	close(s.done)
 	<-s.closed
 	log.Debug("SplitRouting stopped")
 }
 
-// DNSReports returns the channel for dns reports
+// DNSReports returns the channel for dns reports.
 func (s *SplitRouting) DNSReports() chan *dnsproxy.Report {
 	return s.dnsreps
 }
 
-// NewSplitRouting returns a new SplitRouting
+// NewSplitRouting returns a new SplitRouting.
 func NewSplitRouting(config *Config, vpnconfig *vpnconfig.Config) *SplitRouting {
 	return &SplitRouting{
 		config:    config,
@@ -294,7 +295,7 @@ func NewSplitRouting(config *Config, vpnconfig *vpnconfig.Config) *SplitRouting 
 	}
 }
 
-// Cleanup cleans up old configuration after a failed shutdown
+// Cleanup cleans up old configuration after a failed shutdown.
 func Cleanup(ctx context.Context, config *Config) {
 	cleanupRouting(ctx, config.RoutingTable, config.RulePriority1,
 		config.RulePriority2)

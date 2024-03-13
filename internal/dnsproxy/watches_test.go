@@ -2,7 +2,7 @@ package dnsproxy
 
 import "testing"
 
-// TestWatchesAdd tests Add of Watches
+// TestWatchesAdd tests Add of Watches.
 func TestWatchesAdd(t *testing.T) {
 	w := NewWatches()
 	domain := "example.com."
@@ -12,7 +12,7 @@ func TestWatchesAdd(t *testing.T) {
 	}
 }
 
-// TestWatchesAddTemp tests AddTemp of Watches
+// TestWatchesAddTemp tests AddTemp of Watches.
 func TestWatchesAddTemp(t *testing.T) {
 	w := NewWatches()
 	domain := "example.com."
@@ -23,7 +23,7 @@ func TestWatchesAddTemp(t *testing.T) {
 	}
 }
 
-// TestWatchesRemove tests Remove of Watches
+// TestWatchesRemove tests Remove of Watches.
 func TestWatchesRemove(t *testing.T) {
 	w := NewWatches()
 	domain := "example.com."
@@ -44,7 +44,7 @@ func TestWatchesRemove(t *testing.T) {
 	}
 }
 
-// TestWatchesCleanTemp tests CleanTemp of Watches
+// TestWatchesCleanTemp tests CleanTemp of Watches.
 func TestWatchesCleanTemp(t *testing.T) {
 	w := NewWatches()
 	domain := "example.com."
@@ -70,7 +70,7 @@ func TestWatchesCleanTemp(t *testing.T) {
 	}
 }
 
-// TestWatchesFlush tests Flush of Watches
+// TestWatchesFlush tests Flush of Watches.
 func TestWatchesFlush(t *testing.T) {
 	w := NewWatches()
 	domain := "sub.example.com."
@@ -87,7 +87,7 @@ func TestWatchesFlush(t *testing.T) {
 	}
 }
 
-// TestWatchesContains tests Contains of Watches
+// TestWatchesContains tests Contains of Watches.
 func TestWatchesContains(t *testing.T) {
 	w := NewWatches()
 	w.Add("example.com.")
@@ -130,7 +130,7 @@ func TestWatchesContains(t *testing.T) {
 	}
 }
 
-// TestNewWatches tests NewWatches
+// TestNewWatches tests NewWatches.
 func TestNewWatches(t *testing.T) {
 	w := NewWatches()
 	if w.m == nil ||

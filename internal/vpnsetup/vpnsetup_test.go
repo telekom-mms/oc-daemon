@@ -18,7 +18,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// TestSetupVPNDevice tests setupVPNDevice
+// TestSetupVPNDevice tests setupVPNDevice.
 func TestSetupVPNDevice(t *testing.T) {
 	// clean up after tests
 	oldRunCmd := execs.RunCmd
@@ -79,7 +79,7 @@ func TestSetupVPNDevice(t *testing.T) {
 	}
 }
 
-// TestTeardownVPNDevice tests teardownVPNDevice
+// TestTeardownVPNDevice tests teardownVPNDevice.
 func TestTeardownVPNDevice(t *testing.T) {
 	// clean up after tests
 	oldRunCmd := execs.RunCmd
@@ -111,7 +111,7 @@ func TestTeardownVPNDevice(t *testing.T) {
 	teardownVPNDevice(context.Background(), c)
 }
 
-// TestVPNSetupSetupDNS tests setupDNS of VPNSetup
+// TestVPNSetupSetupDNS tests setupDNS of VPNSetup.
 func TestVPNSetupSetupDNS(t *testing.T) {
 	// clean up after tests
 	oldRunCmd := execs.RunCmd
@@ -153,7 +153,7 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 	}
 }
 
-// TestVPNSetupTeardownDNS tests teardownDNS of VPNSetup
+// TestVPNSetupTeardownDNS tests teardownDNS of VPNSetup.
 func TestVPNSetupTeardownDNS(t *testing.T) {
 	// clean up after tests
 	oldRunCmd := execs.RunCmd
@@ -193,7 +193,7 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 	}
 }
 
-// TestVPNSetupCheckDNSProtocols tests checkDNSProtocols of VPNSetup
+// TestVPNSetupCheckDNSProtocols tests checkDNSProtocols of VPNSetup.
 func TestVPNSetupCheckDNSProtocols(t *testing.T) {
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 
@@ -218,7 +218,7 @@ func TestVPNSetupCheckDNSProtocols(t *testing.T) {
 	}
 }
 
-// TestVPNSetupCheckDNSServers tests checkDNSServers of VPNSetup
+// TestVPNSetupCheckDNSServers tests checkDNSServers of VPNSetup.
 func TestVPNSetupCheckDNSServers(t *testing.T) {
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 
@@ -239,7 +239,7 @@ func TestVPNSetupCheckDNSServers(t *testing.T) {
 	}
 }
 
-// TestVPNSetupCheckDNSDomain tests checkDNSDomain of VPNSetup
+// TestVPNSetupCheckDNSDomain tests checkDNSDomain of VPNSetup.
 func TestVPNSetupCheckDNSDomain(t *testing.T) {
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	vpnconf := vpnconfig.New()
@@ -331,7 +331,7 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 	}
 }
 
-// TestVPNSetupStartStop tests Start and Stop of VPNSetup
+// TestVPNSetupStartStop tests Start and Stop of VPNSetup.
 func TestVPNSetupStartStop(_ *testing.T) {
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	v.Start()
@@ -393,7 +393,7 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	v.Stop()
 }
 
-// TestVPNSetupEvents tests Events of VPNSetup
+// TestVPNSetupEvents tests Events of VPNSetup.
 func TestVPNSetupEvents(t *testing.T) {
 	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
 	want := v.events
@@ -403,7 +403,7 @@ func TestVPNSetupEvents(t *testing.T) {
 	}
 }
 
-// TestNewVPNSetup tests NewVPNSetup
+// TestNewVPNSetup tests NewVPNSetup.
 func TestNewVPNSetup(t *testing.T) {
 	dnsConfig := dnsproxy.NewConfig()
 	splitrtConfig := splitrt.NewConfig()
@@ -420,7 +420,7 @@ func TestNewVPNSetup(t *testing.T) {
 	}
 }
 
-// TestCleanup tests Cleanup
+// TestCleanup tests Cleanup.
 func TestCleanup(t *testing.T) {
 	got := []string{}
 	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {

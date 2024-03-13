@@ -6,14 +6,14 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
-// VPNConfigUpdate is a VPN configuration update
+// VPNConfigUpdate is a VPN configuration update.
 type VPNConfigUpdate struct {
 	Reason string
 	Token  string
 	Config *vpnconfig.Config
 }
 
-// Valid returns if the config update is valid
+// Valid returns whether the config update is valid.
 func (c *VPNConfigUpdate) Valid() bool {
 	switch c.Reason {
 	case "disconnect":
@@ -36,7 +36,7 @@ func (c *VPNConfigUpdate) Valid() bool {
 	return true
 }
 
-// JSON returns the Config as JSON
+// JSON returns the Config as JSON.
 func (c *VPNConfigUpdate) JSON() ([]byte, error) {
 	b, err := json.Marshal(c)
 	if err != nil {
@@ -46,7 +46,7 @@ func (c *VPNConfigUpdate) JSON() ([]byte, error) {
 	return b, nil
 }
 
-// VPNConfigUpdateFromJSON parses and returns the VPNConfigUpdate in b
+// VPNConfigUpdateFromJSON parses and returns the VPNConfigUpdate in b.
 func VPNConfigUpdateFromJSON(b []byte) (*VPNConfigUpdate, error) {
 	c := NewVPNConfigUpdate()
 	err := json.Unmarshal(b, c)
@@ -57,7 +57,7 @@ func VPNConfigUpdateFromJSON(b []byte) (*VPNConfigUpdate, error) {
 	return c, nil
 }
 
-// NewVPNConfigUpdate returns a new VPNConfigUpdate
+// NewVPNConfigUpdate returns a new VPNConfigUpdate.
 func NewVPNConfigUpdate() *VPNConfigUpdate {
 	return &VPNConfigUpdate{}
 }

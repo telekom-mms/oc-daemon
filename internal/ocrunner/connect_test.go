@@ -12,7 +12,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
 )
 
-// TestConnectStartStop tests Start and Stop of Connect
+// TestConnectStartStop tests Start and Stop of Connect.
 func TestConnectStartStop(_ *testing.T) {
 	c := NewConnect(NewConfig())
 	c.Start()
@@ -138,7 +138,7 @@ func TestConnectConnect(t *testing.T) {
 	c.Stop()
 }
 
-// TestConnectDisconnect tests Disconnect of Connect
+// TestConnectDisconnect tests Disconnect of Connect.
 func TestConnectDisconnect(t *testing.T) {
 	// clean up after tests
 	oldProcessSignal := processSignal
@@ -177,7 +177,7 @@ func TestConnectDisconnect(t *testing.T) {
 	c.handleDisconnect()
 }
 
-// TestConnectEvents tests Events of Connect
+// TestConnectEvents tests Events of Connect.
 func TestConnectEvents(t *testing.T) {
 	c := NewConnect(NewConfig())
 
@@ -188,7 +188,7 @@ func TestConnectEvents(t *testing.T) {
 	}
 }
 
-// TestNewConnect tests NewConnect
+// TestNewConnect tests NewConnect.
 func TestNewConnect(t *testing.T) {
 	config := NewConfig()
 	config.XMLProfile = "/some/profile/file"

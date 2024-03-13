@@ -12,7 +12,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// TestTrafPolHandleDeviceUpdate tests handleDeviceUpdate of TrafPol
+// TestTrafPolHandleDeviceUpdate tests handleDeviceUpdate of TrafPol.
 func TestTrafPolHandleDeviceUpdate(_ *testing.T) {
 	tp := NewTrafPol(NewConfig())
 	ctx := context.Background()
@@ -28,7 +28,7 @@ func TestTrafPolHandleDeviceUpdate(_ *testing.T) {
 	tp.handleDeviceUpdate(ctx, update)
 }
 
-// TestTrafPolHandleDNSUpdate tests handleDNSUpdate of TrafPol
+// TestTrafPolHandleDNSUpdate tests handleDNSUpdate of TrafPol.
 func TestTrafPolHandleDNSUpdate(_ *testing.T) {
 	tp := NewTrafPol(NewConfig())
 
@@ -40,7 +40,7 @@ func TestTrafPolHandleDNSUpdate(_ *testing.T) {
 	tp.handleDNSUpdate()
 }
 
-// TestTrafPolHandleCPDReport tests handleCPDReport of TrafPol
+// TestTrafPolHandleCPDReport tests handleCPDReport of TrafPol.
 func TestTrafPolHandleCPDReport(t *testing.T) {
 	tp := NewTrafPol(NewConfig())
 	ctx := context.Background()
@@ -120,7 +120,7 @@ func TestTrafPolStartEvents(t *testing.T) {
 	tp.Stop()
 }
 
-// TestTrafPolStartStop tests Start and Stop of TrafPol
+// TestTrafPolStartStop tests Start and Stop of TrafPol.
 func TestTrafPolStartStop(t *testing.T) {
 	// set dummy low level function for devmon
 	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
@@ -136,7 +136,7 @@ func TestTrafPolStartStop(t *testing.T) {
 	tp.Stop()
 }
 
-// TestNewTrafPol tests NewTrafPol
+// TestNewTrafPol tests NewTrafPol.
 func TestNewTrafPol(t *testing.T) {
 	tp := NewTrafPol(NewConfig())
 	if tp.devmon == nil ||
@@ -151,7 +151,7 @@ func TestNewTrafPol(t *testing.T) {
 	}
 }
 
-// TestCleanup tests Cleanup
+// TestCleanup tests Cleanup.
 func TestCleanup(t *testing.T) {
 	want := []string{
 		"delete table inet oc-daemon-filter",

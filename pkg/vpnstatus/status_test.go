@@ -116,7 +116,7 @@ func TestOCRunningString(t *testing.T) {
 	}
 }
 
-// TestStatusCopy tests Copy of Status
+// TestStatusCopy tests Copy of Status.
 func TestStatusCopy(t *testing.T) {
 	// test nil
 	if (*Status)(nil).Copy() != nil {
@@ -132,7 +132,7 @@ func TestStatusCopy(t *testing.T) {
 	}
 }
 
-// TestJSON tests JSON and NewFromJSON of Status
+// TestJSON tests JSON and NewFromJSON of Status.
 func TestJSON(t *testing.T) {
 	// test without json errors
 	s := New()
@@ -166,7 +166,7 @@ func TestJSON(t *testing.T) {
 	}
 }
 
-// TestNew tests New
+// TestNew tests New.
 func TestNew(t *testing.T) {
 	s := New()
 	if s == nil {

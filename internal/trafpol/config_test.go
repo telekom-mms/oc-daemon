@@ -2,7 +2,7 @@ package trafpol
 
 import "testing"
 
-// TestConfigValid tests Valid of Config
+// TestConfigValid tests Valid of Config.
 func TestConfigValid(t *testing.T) {
 	// test invalid
 	for _, invalid := range []*Config{
@@ -27,7 +27,7 @@ func TestConfigValid(t *testing.T) {
 	}
 }
 
-// TestNewConfig tests NewConfig
+// TestNewConfig tests NewConfig.
 func TestNewConfig(t *testing.T) {
 	c := NewConfig()
 	if !c.Valid() {

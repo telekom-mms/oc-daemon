@@ -7,7 +7,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 )
 
-// getTestDevMonUpdate returns a DevMon Update for testing
+// getTestDevMonUpdate returns a DevMon Update for testing.
 func getTestDevMonUpdate() *devmon.Update {
 	return &devmon.Update{
 		Add:    true,
@@ -17,7 +17,7 @@ func getTestDevMonUpdate() *devmon.Update {
 	}
 }
 
-// TestDevicesAdd tests Add of Devices
+// TestDevicesAdd tests Add of Devices.
 func TestDevicesAdd(t *testing.T) {
 	d := NewDevices()
 	update := getTestDevMonUpdate()
@@ -29,7 +29,7 @@ func TestDevicesAdd(t *testing.T) {
 	}
 }
 
-// TestDevicesRemove tests Remove of Devices
+// TestDevicesRemove tests Remove of Devices.
 func TestDevicesRemove(t *testing.T) {
 	d := NewDevices()
 	update := getTestDevMonUpdate()
@@ -51,7 +51,7 @@ func TestDevicesRemove(t *testing.T) {
 	}
 }
 
-// TestDevicesGetReal tests GetReal of Devices
+// TestDevicesGetReal tests GetReal of Devices.
 func TestDevicesGetReal(t *testing.T) {
 	d := NewDevices()
 	realDev := getTestDevMonUpdate()
@@ -68,7 +68,7 @@ func TestDevicesGetReal(t *testing.T) {
 	}
 }
 
-// TestDevicesGetVirtual tests GetVirtual of Devices
+// TestDevicesGetVirtual tests GetVirtual of Devices.
 func TestDevicesGetVirtual(t *testing.T) {
 	d := NewDevices()
 	realDev := getTestDevMonUpdate()
@@ -85,7 +85,7 @@ func TestDevicesGetVirtual(t *testing.T) {
 	}
 }
 
-// TestDevicesGetAll tests GetAll of Devices
+// TestDevicesGetAll tests GetAll of Devices.
 func TestDevicesGetAll(t *testing.T) {
 	d := NewDevices()
 	realDev := getTestDevMonUpdate()
@@ -104,7 +104,7 @@ func TestDevicesGetAll(t *testing.T) {
 	}
 }
 
-// TestNewDevices tests NewDevices
+// TestNewDevices tests NewDevices.
 func TestNewDevices(t *testing.T) {
 	d := NewDevices()
 	if d.m == nil {

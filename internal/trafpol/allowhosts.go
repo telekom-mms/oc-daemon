@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// allowHost is an allowed hosts entry
+// allowHost is an allowed hosts entry.
 type allowHost struct {
 	host string
 	ips  []*net.IPNet
@@ -17,7 +17,7 @@ type allowHost struct {
 	lastUpdate time.Time
 }
 
-// sleepResolveTry is used to sleep before resolve (re)tries, can be canceled
+// sleepResolveTry is used to sleep before resolve (re)tries, can be canceled.
 func (a *allowHost) sleepResolveTry(ctx context.Context, config *Config) {
 	timer := time.NewTimer(config.ResolveTriesSleep)
 	select {
@@ -30,7 +30,7 @@ func (a *allowHost) sleepResolveTry(ctx context.Context, config *Config) {
 	}
 }
 
-// resolve resolves the allowed host to its IP addresses
+// resolve resolves the allowed host to its IP addresses.
 func (a *allowHost) resolve(ctx context.Context, config *Config) {
 	// check if host is a network address
 	if _, ipnet, err := net.ParseCIDR(a.host); err == nil {
@@ -108,7 +108,7 @@ func (a *allowHost) resolve(ctx context.Context, config *Config) {
 	}
 }
 
-// AllowHosts contains allowed hosts
+// AllowHosts contains allowed hosts.
 type AllowHosts struct {
 	sync.Mutex
 	config *Config
@@ -119,7 +119,7 @@ type AllowHosts struct {
 	closed  chan struct{}
 }
 
-// Add adds host to the allowed hosts
+// Add adds host to the allowed hosts.
 func (a *AllowHosts) Add(host string) {
 	a.Lock()
 	defer a.Unlock()
@@ -131,7 +131,7 @@ func (a *AllowHosts) Add(host string) {
 	}
 }
 
-// Remove removes host from the allowed hosts
+// Remove removes host from the allowed hosts.
 func (a *AllowHosts) Remove(host string) {
 	a.Lock()
 	defer a.Unlock()
@@ -141,7 +141,7 @@ func (a *AllowHosts) Remove(host string) {
 	}
 }
 
-// resolveAll resolves the IP addresses of all allowed hosts
+// resolveAll resolves the IP addresses of all allowed hosts.
 func (a *AllowHosts) resolveAll(ctx context.Context) {
 	a.Lock()
 	defer a.Unlock()
@@ -158,7 +158,7 @@ func (a *AllowHosts) resolveAll(ctx context.Context) {
 }
 
 // getAndClearUpdates checks if the allowed hosts contain updates and resets
-// all the update flags
+// all the update flags.
 func (a *AllowHosts) getAndClearUpdates() bool {
 	a.Lock()
 	defer a.Unlock()
@@ -172,7 +172,7 @@ func (a *AllowHosts) getAndClearUpdates() bool {
 	return updates
 }
 
-// setFilter sets the allowed hosts in the traffic filter
+// setFilter sets the allowed hosts in the traffic filter.
 func (a *AllowHosts) setFilter(ctx context.Context) {
 	a.Lock()
 	defer a.Unlock()
@@ -193,7 +193,7 @@ func (a *AllowHosts) setFilter(ctx context.Context) {
 	setAllowedIPs(ctx, ips)
 }
 
-// update updates all allowed hosts
+// update updates all allowed hosts.
 func (a *AllowHosts) update(ctx context.Context, upDone chan<- struct{}) {
 	a.resolveAll(ctx)
 	if a.getAndClearUpdates() {
@@ -203,7 +203,7 @@ func (a *AllowHosts) update(ctx context.Context, upDone chan<- struct{}) {
 }
 
 // resolvePeriodic resolves the IP addresses of all allowed hosts with old or
-// no ip addresses, called periodically
+// no ip addresses, called periodically.
 func (a *AllowHosts) resolvePeriodic(ctx context.Context) {
 	a.Lock()
 	defer a.Unlock()
@@ -224,7 +224,7 @@ func (a *AllowHosts) resolvePeriodic(ctx context.Context) {
 }
 
 // updatePeriodic updates old entries and entries without ip addresses,
-// called periodically
+// called periodically.
 func (a *AllowHosts) updatePeriodic(ctx context.Context, upDone chan<- struct{}) {
 	a.resolvePeriodic(ctx)
 	if a.getAndClearUpdates() {
@@ -233,7 +233,7 @@ func (a *AllowHosts) updatePeriodic(ctx context.Context, upDone chan<- struct{})
 	upDone <- struct{}{}
 }
 
-// start starts the allowed hosts
+// start starts the allowed hosts.
 func (a *AllowHosts) start() {
 	defer close(a.closed)
 
@@ -293,12 +293,12 @@ func (a *AllowHosts) start() {
 	}
 }
 
-// Start starts the allowed hosts
+// Start starts the allowed hosts.
 func (a *AllowHosts) Start() {
 	go a.start()
 }
 
-// Stop stops the allowed hosts
+// Stop stops the allowed hosts.
 func (a *AllowHosts) Stop() {
 	close(a.done)
 
@@ -306,12 +306,12 @@ func (a *AllowHosts) Stop() {
 	<-a.closed
 }
 
-// Update updates the allowed hosts entry
+// Update updates the allowed hosts entry.
 func (a *AllowHosts) Update() {
 	a.updates <- struct{}{}
 }
 
-// NewAllowHosts returns new AllowHosts
+// NewAllowHosts returns new AllowHosts.
 func NewAllowHosts(config *Config) *AllowHosts {
 	return &AllowHosts{
 		config: config,

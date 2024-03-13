@@ -1,3 +1,4 @@
+// Package ocrunner contains the openconnect runner.
 package ocrunner
 
 import (
@@ -13,7 +14,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
 )
 
-// ConnectEvent is a connect runner event
+// ConnectEvent is a connect runner event.
 type ConnectEvent struct {
 	// Connect indicates connect and disconnect
 	// TODO: use a Type with more values?
@@ -26,7 +27,7 @@ type ConnectEvent struct {
 	env []string
 }
 
-// Connect is a openconnect connection runner
+// Connect is a openconnect connection runner.
 type Connect struct {
 	// connection runner configuration
 	config *Config
@@ -68,7 +69,7 @@ func (c *Connect) sendEvent(event *ConnectEvent) {
 	}
 }
 
-// setPIDOwner sets the owner of the pid file
+// setPIDOwner sets the owner of the pid file.
 func (c *Connect) setPIDOwner() {
 	if c.config.PIDOwner == "" {
 		// do not change owner
@@ -92,7 +93,7 @@ func (c *Connect) setPIDOwner() {
 	}
 }
 
-// setPIDGroup sets the group of the pid file
+// setPIDGroup sets the group of the pid file.
 func (c *Connect) setPIDGroup() {
 	if c.config.PIDGroup == "" {
 		// do not change group
@@ -116,7 +117,7 @@ func (c *Connect) setPIDGroup() {
 	}
 }
 
-// savePidFile saves the running command to pid file
+// savePidFile saves the running command to pid file.
 func (c *Connect) savePidFile() {
 	if c.command == nil || c.command.Process == nil {
 		return
@@ -143,7 +144,7 @@ func (c *Connect) savePidFile() {
 	c.setPIDGroup()
 }
 
-// handleConnect establishes the connection by starting openconnect
+// handleConnect establishes the connection by starting openconnect.
 func (c *Connect) handleConnect(e *ConnectEvent) {
 	if c.command != nil {
 		// command seems to be running, stop here
@@ -219,7 +220,7 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 
 }
 
-// handleDisconnect tears down the connection by stopping openconnect
+// handleDisconnect tears down the connection by stopping openconnect.
 func (c *Connect) handleDisconnect() {
 	if c.command == nil || c.command.Process == nil {
 		log.WithField("error", "no openconnect process running").
@@ -232,7 +233,7 @@ func (c *Connect) handleDisconnect() {
 	}
 }
 
-// handleOCExit handles openconnect program terminations
+// handleOCExit handles openconnect program terminations.
 func (c *Connect) handleOCExit() {
 	// clear command
 	c.command = nil
@@ -241,7 +242,7 @@ func (c *Connect) handleOCExit() {
 	c.sendEvent(&ConnectEvent{})
 }
 
-// handleStop handles stopping the runner
+// handleStop handles stopping the runner.
 func (c *Connect) handleStop() {
 	if c.command != nil {
 		// TODO: is this ok or ugly?
@@ -251,7 +252,7 @@ func (c *Connect) handleStop() {
 	}
 }
 
-// start starts the connect runner
+// start starts the connect runner.
 func (c *Connect) start() {
 	defer close(c.closed)
 	defer close(c.events)
@@ -274,18 +275,18 @@ func (c *Connect) start() {
 	}
 }
 
-// Start starts the connect runner
+// Start starts the connect runner.
 func (c *Connect) Start() {
 	go c.start()
 }
 
-// Stop stops the connect runner
+// Stop stops the connect runner.
 func (c *Connect) Stop() {
 	close(c.done)
 	<-c.closed
 }
 
-// Connect connects the vpn by starting openconnect
+// Connect connects the vpn by starting openconnect.
 func (c *Connect) Connect(login *logininfo.LoginInfo, env []string) {
 	e := &ConnectEvent{
 		Connect: true,
@@ -295,18 +296,18 @@ func (c *Connect) Connect(login *logininfo.LoginInfo, env []string) {
 	c.commands <- e
 }
 
-// Disconnect disconnects the vpn by stopping openconnect
+// Disconnect disconnects the vpn by stopping openconnect.
 func (c *Connect) Disconnect() {
 	e := &ConnectEvent{}
 	c.commands <- e
 }
 
-// Events returns the connect events channel
+// Events returns the connect events channel.
 func (c *Connect) Events() chan *ConnectEvent {
 	return c.events
 }
 
-// NewConnect returns a new Connect
+// NewConnect returns a new Connect.
 func NewConnect(config *Config) *Connect {
 	return &Connect{
 		config: config,
@@ -321,7 +322,7 @@ func NewConnect(config *Config) *Connect {
 	}
 }
 
-// CleanupConnect cleans up connect after a failed shutdown
+// CleanupConnect cleans up connect after a failed shutdown.
 func CleanupConnect(config *Config) {
 	// get pid from file
 	b, err := osReadFile(config.PIDFile)

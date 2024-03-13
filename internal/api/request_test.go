@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestRequestType tests Type of Request
+// TestRequestType tests Type of Request.
 func TestRequestType(t *testing.T) {
 	req := &Request{
 		msg: NewOK(nil),
@@ -16,7 +16,7 @@ func TestRequestType(t *testing.T) {
 	}
 }
 
-// TestRequestData tests Data of Request
+// TestRequestData tests Data of Request.
 func TestRequestData(t *testing.T) {
 	// test with no data
 	req := &Request{
@@ -36,7 +36,7 @@ func TestRequestData(t *testing.T) {
 	}
 }
 
-// TestRequestReply tests Reply of Request
+// TestRequestReply tests Reply of Request.
 func TestRequestReply(t *testing.T) {
 	req := &Request{}
 	reply := []byte("this is a reply")
@@ -46,7 +46,7 @@ func TestRequestReply(t *testing.T) {
 	}
 }
 
-// TestRequestError tests Error of Request
+// TestRequestError tests Error of Request.
 func TestRequestError(t *testing.T) {
 	req := &Request{}
 	err := "this is an error"
@@ -80,7 +80,7 @@ func TestRequestCloseErrors(t *testing.T) {
 	req.Close()
 }
 
-// TestRequestClose tests Close of Request
+// TestRequestClose tests Close of Request.
 func TestRequestClose(t *testing.T) {
 	// test OK
 	c1, c2 := net.Pipe()
