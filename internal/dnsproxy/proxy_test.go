@@ -69,11 +69,12 @@ func TestProxyHandleRequest(t *testing.T) {
 		reply := &dns.Msg{}
 		reply.SetReply(r)
 
+		dname, _ := dns.NewRR("test.example.com 3600 IN DNAME example.com.")
 		cname, _ := dns.NewRR("test.example.com 3600 IN CNAME example.com.")
 		a, _ := dns.NewRR("example.com. 3600 IN A 127.0.0.1")
 		aaaa, _ := dns.NewRR("example.com. 3600 IN AAAA ::1")
 
-		reply.Answer = []dns.RR{cname, aaaa, a}
+		reply.Answer = []dns.RR{dname, cname, aaaa, a}
 		if err := w.WriteMsg(reply); err != nil {
 			log.WithError(err).Error("error sending reply")
 		}

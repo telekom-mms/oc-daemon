@@ -93,6 +93,19 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 				"ttl":    ttl,
 			}).Debug("DNS-Proxy received CNAME in reply")
 			p.watches.AddTemp(rr.Target, ttl)
+
+		case dns.TypeDNAME:
+			// DNAME record, store temporary watch
+			rr, ok := a.(*dns.DNAME)
+			if !ok {
+				log.Error("DNS-Proxy received invalid DNAME record in reply")
+				continue
+			}
+			log.WithFields(log.Fields{
+				"target": rr.Target,
+				"ttl":    ttl,
+			}).Debug("DNS-Proxy received DNAME in reply")
+			p.watches.AddTemp(rr.Target, ttl)
 		}
 	}
 
