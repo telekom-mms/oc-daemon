@@ -255,6 +255,8 @@ func TestDBusClientAuthenticate(t *testing.T) {
 
 	// create test client
 	conf := NewConfig()
+	conf.UserCertificate = "/test/user-cert"
+	conf.UserKey = "/test/user-key"
 	conf.CACertificate = "/test/ca"
 	conf.User = "test-user"
 	conf.Password = "test-passwd"

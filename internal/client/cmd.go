@@ -61,6 +61,10 @@ func setConfig(args []string) error {
 	cert := flags.String("cert", "", "set client certificate `file` or "+
 		"PKCS11 URI")
 	key := flags.String("key", "", "set client key `file` or PKCS11 URI")
+	userCert := flags.String("user-cert", "", "set user certificate `file` or PKCS11 URI.\n"+
+		"Note: requires OpenConnect v9.00 or higher")
+	userKey := flags.String("user-key", "", "set user key `file` or PKCS11 URI.\n"+
+		"Note: requires OpenConnect v9.00 or higher")
 	ca := flags.String("ca", "", "set additional CA certificate `file`")
 	profile := flags.String("profile", "", "set XML profile `file`")
 	srv := flags.String("server", "", "set server `address`")
@@ -158,6 +162,16 @@ func setConfig(args []string) error {
 	// set client key
 	if *key != "" {
 		config.ClientKey = *key
+	}
+
+	// set user certificate
+	if *userCert != "" {
+		config.UserCertificate = *userCert
+	}
+
+	// set user key
+	if *userKey != "" {
+		config.UserKey = *userKey
 	}
 
 	// set ca certificate

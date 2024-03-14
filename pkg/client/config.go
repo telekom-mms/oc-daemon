@@ -48,6 +48,8 @@ var (
 type Config struct {
 	ClientCertificate string
 	ClientKey         string
+	UserCertificate   string
+	UserKey           string
 	CACertificate     string
 	XMLProfile        string
 	VPNServer         string
