@@ -8,7 +8,7 @@ import (
 
 const (
 	// MaxPayloadLength is the maximum allowed length of a message payload.
-	MaxPayloadLength = 32768
+	MaxPayloadLength = 2097152
 )
 
 // Message types.
@@ -23,7 +23,7 @@ const (
 // Header is a message header.
 type Header struct {
 	Type   uint16
-	Length uint16
+	Length uint32
 }
 
 // Message is an API message.
@@ -40,7 +40,7 @@ func NewMessage(t uint16, p []byte) *Message {
 	return &Message{
 		Header: Header{
 			Type:   t,
-			Length: uint16(len(p)),
+			Length: uint32(len(p)),
 		},
 		Value: p,
 	}
