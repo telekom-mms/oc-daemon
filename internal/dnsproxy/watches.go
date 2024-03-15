@@ -2,8 +2,15 @@ package dnsproxy
 
 import (
 	"sync"
+	"time"
 
 	"github.com/miekg/dns"
+)
+
+const (
+	// tempWatchCleanInterval clean interval for temporary watches
+	// in seconds.
+	tempWatchCleanInterval = 10
 )
 
 // tempWatch is information about a temporary watch domain.
@@ -17,6 +24,9 @@ type Watches struct {
 	sync.RWMutex
 	m map[string]bool
 	t map[string]*tempWatch
+
+	done   chan struct{}
+	closed chan struct{}
 }
 
 // Add adds domain to the watch list.
@@ -47,10 +57,10 @@ func (w *Watches) Remove(domain string) {
 	delete(w.t, domain)
 }
 
-// CleanTemp removes expired temporary entries from the watch list and reduces
+// cleanTemp removes expired temporary entries from the watch list and reduces
 // the ttl of all other entries by interval seconds; this is meant to be called
 // once every interval seconds to actually implement cleaning of the cache.
-func (w *Watches) CleanTemp(interval uint32) {
+func (w *Watches) cleanTemp(interval uint32) {
 	w.Lock()
 	defer w.Unlock()
 
@@ -69,6 +79,30 @@ func (w *Watches) CleanTemp(interval uint32) {
 
 		// reduce ttl
 		t.ttl -= interval
+	}
+}
+
+// cleanTempWatches cleans temporary watches.
+func (w *Watches) cleanTempWatches() {
+	defer close(w.closed)
+
+	timer := time.NewTimer(tempWatchCleanInterval * time.Second)
+	for {
+		select {
+		case <-timer.C:
+			// reset timer
+			timer.Reset(tempWatchCleanInterval * time.Second)
+
+			// clean temporary watches
+			w.cleanTemp(tempWatchCleanInterval)
+
+		case <-w.done:
+			// stop timer
+			if !timer.Stop() {
+				<-timer.C
+			}
+			return
+		}
 	}
 }
 
@@ -111,10 +145,24 @@ func (w *Watches) Contains(domain string) bool {
 	return false
 }
 
+// Close closes the watches
+func (w *Watches) Close() {
+	close(w.done)
+	<-w.closed
+}
+
 // NewWatches returns a new Watches.
 func NewWatches() *Watches {
-	return &Watches{
+	w := &Watches{
 		m: make(map[string]bool),
 		t: make(map[string]*tempWatch),
+
+		done:   make(chan struct{}),
+		closed: make(chan struct{}),
 	}
+
+	// start cleaning goroutine
+	go w.cleanTempWatches()
+
+	return w
 }

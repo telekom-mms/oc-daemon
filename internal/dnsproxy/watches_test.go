@@ -5,6 +5,7 @@ import "testing"
 // TestWatchesAdd tests Add of Watches.
 func TestWatchesAdd(t *testing.T) {
 	w := NewWatches()
+	defer w.Close()
 	domain := "example.com."
 	w.Add(domain)
 	if !w.Contains(domain) {
@@ -15,6 +16,7 @@ func TestWatchesAdd(t *testing.T) {
 // TestWatchesAddTemp tests AddTemp of Watches.
 func TestWatchesAddTemp(t *testing.T) {
 	w := NewWatches()
+	defer w.Close()
 	domain := "example.com."
 	ttl := uint32(300)
 	w.AddTemp(domain, ttl)
@@ -26,6 +28,7 @@ func TestWatchesAddTemp(t *testing.T) {
 // TestWatchesRemove tests Remove of Watches.
 func TestWatchesRemove(t *testing.T) {
 	w := NewWatches()
+	defer w.Close()
 	domain := "example.com."
 	ttl := uint32(300)
 
@@ -44,9 +47,10 @@ func TestWatchesRemove(t *testing.T) {
 	}
 }
 
-// TestWatchesCleanTemp tests CleanTemp of Watches.
+// TestWatchesCleanTemp tests cleanTemp of Watches.
 func TestWatchesCleanTemp(t *testing.T) {
 	w := NewWatches()
+	defer w.Close()
 	domain := "example.com."
 	interval := uint32(15)
 
@@ -56,14 +60,14 @@ func TestWatchesCleanTemp(t *testing.T) {
 
 		// cleanups with element staying in watches
 		for i := uint32(0); i <= ttl; i += interval {
-			w.CleanTemp(interval)
+			w.cleanTemp(interval)
 			if !w.Contains(domain) {
 				t.Errorf("got %t, want true (ttl: %d, interval: %d)", w.Contains(domain), ttl, interval)
 			}
 		}
 
 		// cleanup that finally removes the element from watches
-		w.CleanTemp(interval)
+		w.cleanTemp(interval)
 		if w.Contains(domain) {
 			t.Errorf("got %t, want false (ttl: %d, interval: %d)", w.Contains(domain), ttl, interval)
 		}
@@ -73,6 +77,7 @@ func TestWatchesCleanTemp(t *testing.T) {
 // TestWatchesFlush tests Flush of Watches.
 func TestWatchesFlush(t *testing.T) {
 	w := NewWatches()
+	defer w.Close()
 	domain := "sub.example.com."
 	tempDomain := "temp.example.com."
 	ttl := uint32(300)
@@ -90,6 +95,7 @@ func TestWatchesFlush(t *testing.T) {
 // TestWatchesContains tests Contains of Watches.
 func TestWatchesContains(t *testing.T) {
 	w := NewWatches()
+	defer w.Close()
 	w.Add("example.com.")
 	w.Add(".")
 
@@ -138,4 +144,5 @@ func TestNewWatches(t *testing.T) {
 
 		t.Errorf("got nil, want != nil")
 	}
+	w.Close()
 }

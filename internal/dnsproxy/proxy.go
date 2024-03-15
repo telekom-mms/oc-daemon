@@ -3,16 +3,9 @@ package dnsproxy
 
 import (
 	"math/rand"
-	"time"
 
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
-)
-
-const (
-	// tempWatchCleanInterval clean interval for temporary watches
-	// in seconds.
-	tempWatchCleanInterval = 10
 )
 
 // Proxy is a DNS proxy.
@@ -25,10 +18,6 @@ type Proxy struct {
 	reports chan *Report
 	done    chan struct{}
 	closed  chan struct{}
-
-	// channels for temp watch cleaning goroutine
-	stopClean chan struct{}
-	doneClean chan struct{}
 }
 
 // handleRequest handles a dns client request.
@@ -113,30 +102,6 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	}
 }
 
-// cleanTempWatches cleans temporary watches.
-func (p *Proxy) cleanTempWatches() {
-	defer close(p.doneClean)
-
-	timer := time.NewTimer(tempWatchCleanInterval * time.Second)
-	for {
-		select {
-		case <-timer.C:
-			// reset timer
-			timer.Reset(tempWatchCleanInterval * time.Second)
-
-			// clean temporary watches
-			p.watches.CleanTemp(tempWatchCleanInterval)
-
-		case <-p.stopClean:
-			// stop timer
-			if !timer.Stop() {
-				<-timer.C
-			}
-			return
-		}
-	}
-}
-
 // startDNSServer starts the dns server.
 func (p *Proxy) startDNSServer(server *dns.Server) {
 	if server == nil {
@@ -173,9 +138,7 @@ func (p *Proxy) stopDNSServer(server *dns.Server) {
 func (p *Proxy) start() {
 	defer close(p.closed)
 	defer close(p.reports)
-
-	// start cleaning goroutine
-	go p.cleanTempWatches()
+	defer p.watches.Close()
 
 	// start dns servers
 	log.Debug("DNS-Proxy registering handler")
@@ -186,10 +149,6 @@ func (p *Proxy) start() {
 
 	// wait for proxy termination
 	<-p.done
-
-	// stop cleaning goroutine
-	close(p.stopClean)
-	<-p.doneClean
 
 	// stop dns servers
 	for _, srv := range []*dns.Server{p.udp, p.tcp} {
@@ -254,8 +213,5 @@ func NewProxy(config *Config) *Proxy {
 		reports: make(chan *Report),
 		done:    make(chan struct{}),
 		closed:  make(chan struct{}),
-
-		stopClean: make(chan struct{}),
-		doneClean: make(chan struct{}),
 	}
 }

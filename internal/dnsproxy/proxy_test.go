@@ -164,9 +164,7 @@ func TestNewProxy(t *testing.T) {
 		p.watches == nil ||
 		p.reports == nil ||
 		p.done == nil ||
-		p.closed == nil ||
-		p.stopClean == nil ||
-		p.doneClean == nil {
+		p.closed == nil {
 
 		t.Errorf("got nil, want != nil")
 	}
