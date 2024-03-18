@@ -92,7 +92,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 				"target": rr.Target,
 				"ttl":    ttl,
 			}).Debug("DNS-Proxy received CNAME in reply")
-			p.watches.AddTemp(rr.Target, ttl)
+			p.watches.AddTempCNAME(rr.Target, ttl)
 
 		case dns.TypeDNAME:
 			// DNAME record, store temporary watch
@@ -105,7 +105,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 				"target": rr.Target,
 				"ttl":    ttl,
 			}).Debug("DNS-Proxy received DNAME in reply")
-			p.watches.AddTemp(rr.Target, ttl)
+			p.watches.AddTempDNAME(rr.Target, ttl)
 		}
 	}
 
