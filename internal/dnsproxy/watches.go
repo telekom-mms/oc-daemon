@@ -23,7 +23,10 @@ type tempWatch struct {
 type Watches struct {
 	sync.RWMutex
 	m map[string]bool
-	t map[string]*tempWatch
+	// temporary CNAMEs
+	c map[string]*tempWatch
+	// temporary DNAMEs
+	d map[string]*tempWatch
 
 	done   chan struct{}
 	closed chan struct{}
@@ -37,12 +40,23 @@ func (w *Watches) Add(domain string) {
 	w.m[domain] = true
 }
 
-// AddTemp adds a temporary domain to the watch list with a ttl.
-func (w *Watches) AddTemp(domain string, ttl uint32) {
+// AddTempCNAME adds a temporary CNAME domain to the watch list with a ttl.
+func (w *Watches) AddTempCNAME(domain string, ttl uint32) {
 	w.Lock()
 	defer w.Unlock()
 
-	w.t[domain] = &tempWatch{
+	w.c[domain] = &tempWatch{
+		ttl:     ttl,
+		updated: true,
+	}
+}
+
+// AddTempDNAME adds a temporary DNAME domain to the watch list with a ttl.
+func (w *Watches) AddTempDNAME(domain string, ttl uint32) {
+	w.Lock()
+	defer w.Unlock()
+
+	w.d[domain] = &tempWatch{
 		ttl:     ttl,
 		updated: true,
 	}
@@ -54,7 +68,8 @@ func (w *Watches) Remove(domain string) {
 	defer w.Unlock()
 
 	delete(w.m, domain)
-	delete(w.t, domain)
+	delete(w.c, domain)
+	delete(w.d, domain)
 }
 
 // cleanTemp removes expired temporary entries from the watch list and reduces
@@ -64,21 +79,23 @@ func (w *Watches) cleanTemp(interval uint32) {
 	w.Lock()
 	defer w.Unlock()
 
-	for d, t := range w.t {
-		if t.updated {
-			// mark new entries as old
-			t.updated = false
-			continue
-		}
+	for _, temps := range []map[string]*tempWatch{w.c, w.d} {
+		for d, t := range temps {
+			if t.updated {
+				// mark new entries as old
+				t.updated = false
+				continue
+			}
 
-		if t.ttl < interval {
-			// delete expired entry
-			delete(w.t, d)
-			continue
-		}
+			if t.ttl < interval {
+				// delete expired entry
+				delete(temps, d)
+				continue
+			}
 
-		// reduce ttl
-		t.ttl -= interval
+			// reduce ttl
+			t.ttl -= interval
+		}
 	}
 }
 
@@ -112,7 +129,8 @@ func (w *Watches) Flush() {
 	defer w.Unlock()
 
 	w.m = make(map[string]bool)
-	w.t = make(map[string]*tempWatch)
+	w.c = make(map[string]*tempWatch)
+	w.d = make(map[string]*tempWatch)
 }
 
 // Contains returns whether the domain is in the watch list.
@@ -130,13 +148,19 @@ func (w *Watches) Contains(domain string) bool {
 	if labels == nil {
 		// root domain
 		// TODO: remove temp domain check here?
-		return w.m["."] || w.t["."] != nil
+		return w.m["."] || w.c["."] != nil || w.d["."] != nil
 	}
 
-	// try finding longest matching domain name
+	// try finding exact domain name in temporary CNAMEs
+	if w.c[domain] != nil {
+		return true
+	}
+
+	// try finding longest matching domain name in watched domains and
+	// temporary DNAMEs
 	for _, i := range labels {
 		d := domain[i:]
-		if w.m[d] || w.t[d] != nil {
+		if w.m[d] || w.d[d] != nil {
 			return true
 		}
 	}
@@ -155,7 +179,8 @@ func (w *Watches) Close() {
 func NewWatches() *Watches {
 	w := &Watches{
 		m: make(map[string]bool),
-		t: make(map[string]*tempWatch),
+		c: make(map[string]*tempWatch),
+		d: make(map[string]*tempWatch),
 
 		done:   make(chan struct{}),
 		closed: make(chan struct{}),
