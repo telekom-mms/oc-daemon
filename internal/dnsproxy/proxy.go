@@ -47,65 +47,83 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	// parse answers in reply from remote server
-	for _, a := range reply.Answer {
-		name := a.Header().Name
-		if !p.watches.Contains(r.Question[0].Name) &&
-			!p.watches.Contains(name) {
-			// not on watch list, ignore answer
-			continue
+	// handler for DNAME answers
+	handleDNAME := func(a dns.RR) {
+		// DNAME record, store temporary watch
+		rr, ok := a.(*dns.DNAME)
+		if !ok {
+			log.Error("DNS-Proxy received invalid DNAME record in reply")
+			return
 		}
+		log.WithFields(log.Fields{
+			"target": rr.Target,
+			"ttl":    rr.Hdr.Ttl,
+		}).Debug("DNS-Proxy received DNAME in reply")
+		p.watches.AddTempDNAME(rr.Target, rr.Hdr.Ttl)
+	}
 
-		// get TTL
-		ttl := a.Header().Ttl
+	// handler for CNAME answers
+	handleCNAME := func(a dns.RR) {
+		// CNAME record, store temporary watch
+		rr, ok := a.(*dns.CNAME)
+		if !ok {
+			log.Error("DNS-Proxy received invalid CNAME record in reply")
+			return
+		}
+		log.WithFields(log.Fields{
+			"target": rr.Target,
+			"ttl":    rr.Hdr.Ttl,
+		}).Debug("DNS-Proxy received CNAME in reply")
+		p.watches.AddTempCNAME(rr.Target, rr.Hdr.Ttl)
+	}
 
-		switch a.Header().Rrtype {
-		case dns.TypeA:
-			// A Record, get IPv4 address
-			rr, ok := a.(*dns.A)
-			if !ok {
-				log.Error("DNS-Proxy received invalid A record in reply")
+	// handler for A answers
+	handleA := func(a dns.RR) {
+		// A Record, get IPv4 address
+		rr, ok := a.(*dns.A)
+		if !ok {
+			log.Error("DNS-Proxy received invalid A record in reply")
+			return
+		}
+		report := NewReport(rr.Hdr.Name, rr.A, rr.Hdr.Ttl)
+		p.reports <- report
+		report.Wait()
+	}
+
+	// handler for AAAA answers
+	handleAAAA := func(a dns.RR) {
+		// AAAA Record, get IPv6 address
+		rr, ok := a.(*dns.AAAA)
+		if !ok {
+			log.Error("DNS-Proxy received invalid AAAA record in reply")
+			return
+		}
+		report := NewReport(rr.Hdr.Name, rr.AAAA, rr.Hdr.Ttl)
+		p.reports <- report
+		report.Wait()
+	}
+
+	// handle DNAME and CNAME records before A and AAAA records to make
+	// sure temporary watches are set before checking address records
+	for _, m := range []map[uint16]func(dns.RR){
+		{dns.TypeDNAME: handleDNAME},
+		{dns.TypeCNAME: handleCNAME},
+		{dns.TypeA: handleA, dns.TypeAAAA: handleAAAA},
+	} {
+		for _, a := range reply.Answer {
+			// ignore domain names we do not watch
+			name := a.Header().Name
+			if !p.watches.Contains(r.Question[0].Name) &&
+				!p.watches.Contains(name) {
+				// not on watch list, ignore answer
 				continue
 			}
-			report := NewReport(name, rr.A, ttl)
-			p.reports <- report
-			report.Wait()
 
-		case dns.TypeAAAA:
-			// AAAA Record, get IPv6 address
-			rr, ok := a.(*dns.AAAA)
-			if !ok {
-				log.Error("DNS-Proxy received invalid AAAA record in reply")
-				continue
+			// handle record types
+			typ := a.Header().Rrtype
+			if m[typ] != nil {
+				m[typ](a)
 			}
-			report := NewReport(name, rr.AAAA, ttl)
-			p.reports <- report
-			report.Wait()
-
-		case dns.TypeCNAME:
-			// CNAME record, store temporary watch
-			rr, ok := a.(*dns.CNAME)
-			if !ok {
-				log.Error("DNS-Proxy received invalid CNAME record in reply")
-				continue
-			}
-			log.WithFields(log.Fields{
-				"target": rr.Target,
-				"ttl":    ttl,
-			}).Debug("DNS-Proxy received CNAME in reply")
-			p.watches.AddTempCNAME(rr.Target, ttl)
-
-		case dns.TypeDNAME:
-			// DNAME record, store temporary watch
-			rr, ok := a.(*dns.DNAME)
-			if !ok {
-				log.Error("DNS-Proxy received invalid DNAME record in reply")
-				continue
-			}
-			log.WithFields(log.Fields{
-				"target": rr.Target,
-				"ttl":    ttl,
-			}).Debug("DNS-Proxy received DNAME in reply")
-			p.watches.AddTempDNAME(rr.Target, ttl)
 		}
 	}
 
