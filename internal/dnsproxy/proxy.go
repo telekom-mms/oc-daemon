@@ -66,7 +66,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			continue
 		}
 
-		// get TTL and enforce minimum TTL
+		// get TTL
 		ttl := a.Header().Ttl
 
 		switch a.Header().Rrtype {
@@ -93,7 +93,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			report.Wait()
 
 		case dns.TypeCNAME:
-			// CNAME recort, store temporary watch
+			// CNAME record, store temporary watch
 			rr, ok := a.(*dns.CNAME)
 			if !ok {
 				log.Error("DNS-Proxy received invalid CNAME record in reply")

@@ -165,7 +165,7 @@ func createConfigSplit(env *env, config *vpnconfig.Config) error {
 	// set dns excludes
 	config.Split.ExcludeDNS = env.dnsSplitExc
 
-	// set exclude virtual subnets only IPv5 flag
+	// set exclude virtual subnets only IPv4 flag
 	config.Split.ExcludeVirtualSubnetsOnlyIPv4 =
 		env.bypassVirtualSubnetsOnlyV4
 
