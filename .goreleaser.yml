@@ -37,15 +37,22 @@ builds:
       - -s -w -X github.com/telekom-mms/oc-daemon/internal/daemon.Version={{.Version}}-{{.Commit}}
 archives:
   - format: tar.gz
-    rlcp: true
     wrap_in_directory: true
     files:
       - src: init/oc-daemon.service
-        dst: oc-daemon.service
+        dst: systemd/oc-daemon.service
         info:
           mode: 0644
       - src: configs/oc-client.json
-        dst: example_config.json
+        dst: examples/oc-client.json
+        info:
+          mode: 0644
+      - src: configs/oc-daemon.json
+        dst: examples/oc-daemon.json
+        info:
+          mode: 0644
+      - src: configs/dbus/com.telekom_mms.oc_daemon.Daemon.conf
+        dst: dbus/com.telekom_mms.oc_daemon.Daemon.conf
         info:
           mode: 0644
       - README.md
@@ -99,7 +106,15 @@ nfpms:
         dst: /lib/systemd/system/
         file_info:
           mode: 0644
+      - src: configs/dbus/com.telekom_mms.oc_daemon.Daemon.conf
+        dst: /usr/share/dbus-1/system.d/
+        file_info:
+          mode: 0644
       - src: configs/oc-client.json
+        dst: /usr/share/doc/oc-daemon/examples/
+        file_info:
+          mode: 0644
+      - src: configs/oc-daemon.json
         dst: /usr/share/doc/oc-daemon/examples/
         file_info:
           mode: 0644

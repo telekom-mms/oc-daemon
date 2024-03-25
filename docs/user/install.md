@@ -44,7 +44,7 @@ $ tar -xf oc-daemon.tar.gz && cd <extracted directory>
 
 # prepare config
 $ sudo mkdir /var/lib/oc-daemon
-$ sudo cp /example_config.json /var/lib/oc-daemon/oc-client.json # and adjust config parameters
+$ sudo cp examples/oc-client.json /var/lib/oc-daemon/oc-client.json # and adjust config parameters
 $ sudo cp profile.xml /var/lib/oc-daemon/
 $ sudo chgrp -R dialout /var/lib/oc-daemon/
 $ sudo chmod 664 /var/lib/oc-daemon/profile.xml
@@ -53,9 +53,12 @@ $ sudo chmod 644 /var/lib/oc-daemon/oc-client.json
 # setup user to use vpn
 $ sudo usermod -a -G dialout $USER
 $ sudo cp oc-client oc-daemon oc-daemon-vpncscript /usr/bin/
-$ sudo cp oc-daemon.service /lib/systemd/system/
+
+# setup dbus config
+$ sudo cp dbus/com.telekom_mms.oc_daemon.Daemon.conf /usr/share/dbus-1/system.d/
 
 # enable and start daemon
+$ sudo cp systemd/oc-daemon.service /lib/systemd/system/
 $ sudo systemctl --system daemon-reload
 $ sudo systemctl enable oc-daemon.service
 $ sudo systemctl start oc-daemon.service
