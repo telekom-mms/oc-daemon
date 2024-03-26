@@ -146,9 +146,8 @@ func (w *Watches) Contains(domain string) bool {
 	// get label indexes and find matching domains
 	labels := dns.Split(domain)
 	if labels == nil {
-		// root domain
-		// TODO: remove temp domain check here?
-		return w.m["."] || w.c["."] != nil || w.d["."] != nil
+		// root domain, not supported in watch list
+		return false
 	}
 
 	// try finding exact domain name in temporary CNAMEs
