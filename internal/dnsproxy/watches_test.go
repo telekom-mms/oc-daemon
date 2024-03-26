@@ -121,7 +121,6 @@ func TestWatchesContains(t *testing.T) {
 		w := NewWatches()
 		defer w.Close()
 		w.Add("example.com.")
-		w.Add(".")
 
 		// test invalid domain name
 		invalid := "this is not a domain name..."
@@ -130,15 +129,9 @@ func TestWatchesContains(t *testing.T) {
 				w.Contains(invalid), invalid)
 		}
 
-		// test root domain
-		root := "."
-		if !w.Contains(root) {
-			t.Errorf("got %t, want true (domain: %s)",
-				w.Contains(root), root)
-		}
-
 		// try not matching (sub)domain
 		for _, domain := range []string{
+			".",
 			"test.com.",
 			"sub.test.com.",
 			"sub.sub.test.com.",
@@ -168,10 +161,10 @@ func TestWatchesContains(t *testing.T) {
 		w := NewWatches()
 		defer w.Close()
 		w.AddTempCNAME("example.com.", 500)
-		w.AddTempCNAME(".", 500)
 
 		// try not matching (sub)domain
 		for _, domain := range []string{
+			".",
 			"test.com.",
 			"sub.test.com.",
 			"sub.sub.test.com.",
@@ -189,7 +182,6 @@ func TestWatchesContains(t *testing.T) {
 		// try matching domain
 		for _, domain := range []string{
 			"example.com.",
-			".",
 		} {
 			if !w.Contains(domain) {
 				t.Errorf("got %t, want true (domain: %s)",
@@ -202,10 +194,10 @@ func TestWatchesContains(t *testing.T) {
 		w := NewWatches()
 		defer w.Close()
 		w.AddTempDNAME("example.com.", 500)
-		w.AddTempDNAME(".", 500)
 
 		// try not matching (sub)domain
 		for _, domain := range []string{
+			".",
 			"test.com.",
 			"sub.test.com.",
 			"sub.sub.test.com.",
@@ -223,7 +215,6 @@ func TestWatchesContains(t *testing.T) {
 			"sub.example.com.",
 			"sub.sub.example.com.",
 			"sub.sub.sub.example.com.",
-			".",
 		} {
 			if !w.Contains(domain) {
 				t.Errorf("got %t, want true (domain: %s)",
