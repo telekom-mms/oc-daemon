@@ -113,8 +113,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		for _, a := range reply.Answer {
 			// ignore domain names we do not watch
 			name := a.Header().Name
-			if !p.watches.Contains(r.Question[0].Name) &&
-				!p.watches.Contains(name) {
+			if !p.watches.Contains(name) {
 				// not on watch list, ignore answer
 				continue
 			}
