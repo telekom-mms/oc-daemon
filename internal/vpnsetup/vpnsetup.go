@@ -72,8 +72,8 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 		log.WithError(err).WithFields(log.Fields{
 			"device": c.Device.Name,
 			"mtu":    mtu,
-			"stdout": stdout,
-			"stderr": stderr,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("Daemon could not set mtu on device")
 		return
 	}
@@ -82,8 +82,8 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	if stdout, stderr, err := execs.RunIPLink(ctx, "set", c.Device.Name, "up"); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"device": c.Device.Name,
-			"stdout": stdout,
-			"stderr": stderr,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("Daemon could not set device up")
 		return
 	}
@@ -100,8 +100,8 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 			log.WithError(err).WithFields(log.Fields{
 				"device": dev,
 				"ip":     addr,
-				"stdout": stdout,
-				"stderr": stderr,
+				"stdout": string(stdout),
+				"stderr": string(stderr),
 			}).Error("Daemon could not set ip on device")
 			return
 		}
@@ -121,8 +121,8 @@ func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	if stdout, stderr, err := execs.RunIPLink(ctx, "set", c.Device.Name, "down"); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"device": c.Device.Name,
-			"stdout": stdout,
-			"stderr": stderr,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("Daemon could not set device down")
 		return
 	}
@@ -156,8 +156,8 @@ func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config)
 		log.WithError(err).WithFields(log.Fields{
 			"device": device,
 			"server": v.dnsProxyConf.Address,
-			"stdout": stdout,
-			"stderr": stderr,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("VPNSetup error setting dns server")
 	}
 }
@@ -169,8 +169,8 @@ func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config
 		log.WithError(err).WithFields(log.Fields{
 			"device": device,
 			"domain": config.DNS.DefaultDomain,
-			"stdout": stdout,
-			"stderr": stderr,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("VPNSetup error setting dns domains")
 	}
 }
@@ -181,8 +181,8 @@ func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.C
 	if stdout, stderr, err := execs.RunResolvectl(ctx, "default-route", device, "yes"); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"device": device,
-			"stdout": stdout,
-			"stderr": stderr,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("VPNSetup error setting dns default route")
 	}
 }
@@ -214,14 +214,18 @@ func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 
 	// flush dns caches
 	if stdout, stderr, err := execs.RunResolvectl(ctx, "flush-caches"); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("VPNSetup error flushing dns caches during setup")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error flushing dns caches during setup")
 	}
 
 	// reset learnt server features
 	if stdout, stderr, err := execs.RunResolvectl(ctx, "reset-server-features"); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("VPNSetup error resetting server features during setup")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error resetting server features during setup")
 	}
 }
 
@@ -242,21 +246,25 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 	if stdout, stderr, err := execs.RunResolvectl(ctx, "revert", vpnconf.Device.Name); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"device": vpnconf.Device.Name,
-			"stdout": stdout,
-			"stderr": stderr,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("VPNSetup error reverting dns configuration")
 	}
 
 	// flush dns caches
 	if stdout, stderr, err := execs.RunResolvectl(ctx, "flush-caches"); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("VPNSetup error flushing dns caches during teardown")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error flushing dns caches during teardown")
 	}
 
 	// reset learnt server features
 	if stdout, stderr, err := execs.RunResolvectl(ctx, "reset-server-features"); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("VPNSetup error resetting server features during teardown")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error resetting server features during teardown")
 	}
 }
 
@@ -318,8 +326,8 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool
 	if err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"device": device,
-			"stdout": stdout,
-			"stderr": stderr,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("VPNSetup error getting DNS settings")
 		return false
 	}

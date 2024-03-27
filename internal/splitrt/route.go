@@ -12,27 +12,35 @@ func addDefaultRouteIPv4(ctx context.Context, device, rtTable, rulePrio1, fwMark
 	// set default route
 	if stdout, stderr, err := execs.RunIP4Route(ctx, "add", "0.0.0.0/0", "dev", device,
 		"table", rtTable); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting ipv4 default route")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting ipv4 default route")
 	}
 
 	// set routing rules
 	if stdout, stderr, err := execs.RunIP4Rule(ctx, "add", "iif", device, "table", "main",
 		"pref", rulePrio1); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting ipv4 routing rule 1")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting ipv4 routing rule 1")
 	}
 	if stdout, stderr, err := execs.RunIP4Rule(ctx, "add", "not", "fwmark", fwMark,
 		"table", rtTable, "pref", rulePrio2); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting ipv4 routing rule 2")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting ipv4 routing rule 2")
 	}
 
 	// set src_valid_mark with sysctl
 	if stdout, stderr, err := execs.RunSysctl(ctx, "-q",
 		"net.ipv4.conf.all.src_valid_mark=1"); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting ipv4 sysctl")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting ipv4 sysctl")
 	}
 }
 
@@ -41,20 +49,26 @@ func addDefaultRouteIPv6(ctx context.Context, device, rtTable, rulePrio1, fwMark
 	// set default route
 	if stdout, stderr, err := execs.RunIP6Route(ctx, "add", "::/0", "dev", device, "table",
 		rtTable); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting ipv6 default route")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting ipv6 default route")
 	}
 
 	// set routing rules
 	if stdout, stderr, err := execs.RunIP6Rule(ctx, "add", "iif", device, "table", "main",
 		"pref", rulePrio1); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting ipv6 routing rule 1")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting ipv6 routing rule 1")
 	}
 	if stdout, stderr, err := execs.RunIP6Rule(ctx, "add", "not", "fwmark", fwMark,
 		"table", rtTable, "pref", rulePrio2); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting ipv6 routing rule 2")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting ipv6 routing rule 2")
 	}
 }
 
@@ -62,13 +76,17 @@ func addDefaultRouteIPv6(ctx context.Context, device, rtTable, rulePrio1, fwMark
 func deleteDefaultRouteIPv4(ctx context.Context, device, rtTable string) {
 	// delete routing rules
 	if stdout, stderr, err := execs.RunIP4Rule(ctx, "delete", "table", rtTable); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error deleting ipv4 routing rule 2")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error deleting ipv4 routing rule 2")
 	}
 	if stdout, stderr, err := execs.RunIP4Rule(ctx, "delete", "iif", device, "table",
 		"main"); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error deleting ipv4 routing rule 1")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error deleting ipv4 routing rule 1")
 	}
 }
 
@@ -76,13 +94,17 @@ func deleteDefaultRouteIPv4(ctx context.Context, device, rtTable string) {
 func deleteDefaultRouteIPv6(ctx context.Context, device, rtTable string) {
 	// delete routing rules
 	if stdout, stderr, err := execs.RunIP6Rule(ctx, "delete", "table", rtTable); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error deleting ipv6 routing rule 2")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error deleting ipv6 routing rule 2")
 	}
 	if stdout, stderr, err := execs.RunIP6Rule(ctx, "delete", "iif", device, "table",
 		"main"); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error deleting ipv6 routing rule 1")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error deleting ipv6 routing rule 1")
 	}
 }
 

@@ -104,16 +104,20 @@ table inet oc-daemon-routing {
 	r := strings.NewReplacer("$FWMARK", fwMark)
 	rules := r.Replace(routeRules)
 	if stdout, stderr, err := execs.RunNft(ctx, rules); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting routing rules")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting routing rules")
 	}
 }
 
 // unsetRoutingRules removes the nftables rules for routing.
 func unsetRoutingRules(ctx context.Context) {
 	if stdout, stderr, err := execs.RunNft(ctx, "delete table inet oc-daemon-routing"); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error unsetting routing rules")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error unsetting routing rules")
 	}
 }
 
@@ -132,8 +136,10 @@ func addLocalAddresses(ctx context.Context, device, family string, addresses []*
 	}
 
 	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error adding local addresses")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error adding local addresses")
 	}
 }
 
@@ -164,8 +170,10 @@ func rejectIPVersion(ctx context.Context, device, version string) {
 	}
 
 	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting ip version reject rules")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting ip version reject rules")
 	}
 }
 
@@ -191,8 +199,10 @@ func addExclude(ctx context.Context, address *net.IPNet) {
 	nftconf := fmt.Sprintf("add element inet oc-daemon-routing %s { %s }",
 		set, address)
 	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error adding exclude")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error adding exclude")
 	}
 }
 
@@ -216,8 +226,10 @@ func setExcludes(ctx context.Context, addresses []*net.IPNet) {
 
 	// run command
 	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
-			Error("SplitRouting error setting excludes")
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("SplitRouting error setting excludes")
 	}
 }
 
