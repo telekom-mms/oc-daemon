@@ -14,9 +14,9 @@ func TestAllowDevsAdd(t *testing.T) {
 	ctx := context.Background()
 
 	got := []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, s)
-		return nil
+		return nil, nil, nil
 	}
 
 	// test adding
@@ -42,9 +42,9 @@ func TestAllowDevsRemove(t *testing.T) {
 	ctx := context.Background()
 
 	got := []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, s)
-		return nil
+		return nil, nil, nil
 	}
 
 	// test removing device

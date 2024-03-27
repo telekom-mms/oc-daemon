@@ -68,18 +68,23 @@ func (v *VPNSetup) sendEvent(event *Event) {
 func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	// set mtu on device
 	mtu := strconv.Itoa(c.Device.MTU)
-	if err := execs.RunIPLink(ctx, "set", c.Device.Name, "mtu", mtu); err != nil {
+	if stdout, stderr, err := execs.RunIPLink(ctx, "set", c.Device.Name, "mtu", mtu); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"device": c.Device.Name,
 			"mtu":    mtu,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("Daemon could not set mtu on device")
 		return
 	}
 
 	// set device up
-	if err := execs.RunIPLink(ctx, "set", c.Device.Name, "up"); err != nil {
-		log.WithError(err).WithField("device", c.Device.Name).
-			Error("Daemon could not set device up")
+	if stdout, stderr, err := execs.RunIPLink(ctx, "set", c.Device.Name, "up"); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"device": c.Device.Name,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("Daemon could not set device up")
 		return
 	}
 
@@ -91,10 +96,12 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 		}
 		dev := c.Device.Name
 		addr := ipnet.String()
-		if err := execs.RunIPAddress(ctx, "add", addr, "dev", dev); err != nil {
+		if stdout, stderr, err := execs.RunIPAddress(ctx, "add", addr, "dev", dev); err != nil {
 			log.WithError(err).WithFields(log.Fields{
 				"device": dev,
 				"ip":     addr,
+				"stdout": string(stdout),
+				"stderr": string(stderr),
 			}).Error("Daemon could not set ip on device")
 			return
 		}
@@ -111,9 +118,12 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 // teardownVPNDevice tears down the configured vpn device.
 func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	// set device down
-	if err := execs.RunIPLink(ctx, "set", c.Device.Name, "down"); err != nil {
-		log.WithError(err).WithField("device", c.Device.Name).
-			Error("Daemon could not set device down")
+	if stdout, stderr, err := execs.RunIPLink(ctx, "set", c.Device.Name, "down"); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"device": c.Device.Name,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("Daemon could not set device down")
 		return
 	}
 
@@ -142,10 +152,12 @@ func (v *VPNSetup) teardownRouting() {
 // setupDNSServer sets the DNS server.
 func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config) {
 	device := config.Device.Name
-	if err := execs.RunResolvectl(ctx, "dns", device, v.dnsProxyConf.Address); err != nil {
+	if stdout, stderr, err := execs.RunResolvectl(ctx, "dns", device, v.dnsProxyConf.Address); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"device": device,
 			"server": v.dnsProxyConf.Address,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("VPNSetup error setting dns server")
 	}
 }
@@ -153,10 +165,12 @@ func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config)
 // setupDNSDomains sets the DNS domains.
 func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config) {
 	device := config.Device.Name
-	if err := execs.RunResolvectl(ctx, "domain", device, config.DNS.DefaultDomain, "~."); err != nil {
+	if stdout, stderr, err := execs.RunResolvectl(ctx, "domain", device, config.DNS.DefaultDomain, "~."); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"device": device,
 			"domain": config.DNS.DefaultDomain,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
 		}).Error("VPNSetup error setting dns domains")
 	}
 }
@@ -164,9 +178,12 @@ func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config
 // setupDNSDefaultRoute sets the DNS default route.
 func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.Config) {
 	device := config.Device.Name
-	if err := execs.RunResolvectl(ctx, "default-route", device, "yes"); err != nil {
-		log.WithError(err).WithField("device", device).
-			Error("VPNSetup error setting dns default route")
+	if stdout, stderr, err := execs.RunResolvectl(ctx, "default-route", device, "yes"); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"device": device,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error setting dns default route")
 	}
 }
 
@@ -196,13 +213,19 @@ func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 	v.setupDNSDefaultRoute(ctx, config)
 
 	// flush dns caches
-	if err := execs.RunResolvectl(ctx, "flush-caches"); err != nil {
-		log.WithError(err).Error("VPNSetup error flushing dns caches during setup")
+	if stdout, stderr, err := execs.RunResolvectl(ctx, "flush-caches"); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error flushing dns caches during setup")
 	}
 
 	// reset learnt server features
-	if err := execs.RunResolvectl(ctx, "reset-server-features"); err != nil {
-		log.WithError(err).Error("VPNSetup error resetting server features during setup")
+	if stdout, stderr, err := execs.RunResolvectl(ctx, "reset-server-features"); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error resetting server features during setup")
 	}
 }
 
@@ -220,19 +243,28 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 	// update dns configuration of host
 
 	// undo device dns configuration
-	if err := execs.RunResolvectl(ctx, "revert", vpnconf.Device.Name); err != nil {
-		log.WithError(err).WithField("device", vpnconf.Device.Name).
-			Error("VPNSetup error reverting dns configuration")
+	if stdout, stderr, err := execs.RunResolvectl(ctx, "revert", vpnconf.Device.Name); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"device": vpnconf.Device.Name,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error reverting dns configuration")
 	}
 
 	// flush dns caches
-	if err := execs.RunResolvectl(ctx, "flush-caches"); err != nil {
-		log.WithError(err).Error("VPNSetup error flushing dns caches during teardown")
+	if stdout, stderr, err := execs.RunResolvectl(ctx, "flush-caches"); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error flushing dns caches during teardown")
 	}
 
 	// reset learnt server features
-	if err := execs.RunResolvectl(ctx, "reset-server-features"); err != nil {
-		log.WithError(err).Error("VPNSetup error resetting server features during teardown")
+	if stdout, stderr, err := execs.RunResolvectl(ctx, "reset-server-features"); err != nil {
+		log.WithError(err).WithFields(log.Fields{
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error resetting server features during teardown")
 	}
 }
 
@@ -290,9 +322,13 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool
 
 	// get dns settings
 	device := config.Device.Name
-	stdout, err := execs.RunResolvectlOutput(ctx, "status", device, "--no-pager")
+	stdout, stderr, err := execs.RunResolvectl(ctx, "status", device, "--no-pager")
 	if err != nil {
-		log.WithError(err).WithField("device", device).Error("VPNSetup error getting DNS settings")
+		log.WithError(err).WithFields(log.Fields{
+			"device": device,
+			"stdout": string(stdout),
+			"stderr": string(stderr),
+		}).Error("VPNSetup error getting DNS settings")
 		return false
 	}
 
@@ -521,11 +557,11 @@ func NewVPNSetup(
 // Cleanup cleans up the configuration after a failed shutdown.
 func Cleanup(ctx context.Context, vpnDevice string, splitrtConfig *splitrt.Config) {
 	// dns, device, split routing
-	if err := execs.RunResolvectl(ctx, "revert", vpnDevice); err == nil {
+	if _, _, err := execs.RunResolvectl(ctx, "revert", vpnDevice); err == nil {
 		log.WithField("device", vpnDevice).
 			Warn("VPNSetup cleaned up dns config")
 	}
-	if err := execs.RunIPLink(ctx, "delete", vpnDevice); err == nil {
+	if _, _, err := execs.RunIPLink(ctx, "delete", vpnDevice); err == nil {
 		log.WithField("device", vpnDevice).
 			Warn("VPNSetup cleaned up vpn device")
 	}
