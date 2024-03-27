@@ -14,39 +14,30 @@ func TestRunCmd(t *testing.T) {
 
 	// test not existing
 	dir := t.TempDir()
-	if err := RunCmd(ctx, filepath.Join(dir, "does/not/exist"), ""); err == nil {
+	if _, _, err := RunCmd(ctx, filepath.Join(dir, "does/not/exist"), ""); err == nil {
 		t.Errorf("running not existing command should fail: %v", err)
 	}
 
 	// test existing
-	if err := RunCmd(ctx, "echo", "", "this", "is", "a", "test"); err != nil {
+	if _, _, err := RunCmd(ctx, "echo", "", "this", "is", "a", "test"); err != nil {
 		t.Errorf("running echo failed: %v", err)
 	}
 
 	// test with stdin
-	if err := RunCmd(ctx, "echo", "this is a test"); err != nil {
+	if _, _, err := RunCmd(ctx, "echo", "this is a test"); err != nil {
 		t.Errorf("running echo failed: %v", err)
 	}
-}
 
-// TestRunCmdOutput tests RunCmdOutput.
-func TestRunCmdOutput(t *testing.T) {
-	ctx := context.Background()
-	dir := t.TempDir()
-
-	// test with error
-	if _, err := RunCmdOutput(ctx, filepath.Join(dir, "does/not/exist"), ""); err == nil {
-		t.Errorf("running should fail: %v", err)
+	// test stdout
+	stdout, stderr, err := RunCmd(ctx, "cat", "this is a test")
+	if err != nil || string(stdout) != "this is a test" {
+		t.Errorf("running echo failed: %s, %s, %v", stdout, stderr, err)
 	}
 
-	// test without error
-	if b, err := RunCmdOutput(ctx, "ls", "", "-d", dir); err != nil || len(b) == 0 {
-		t.Errorf("running should not fail: %v, %v", b, err)
-	}
-
-	// test with stdin
-	if b, err := RunCmdOutput(ctx, "echo", "this is a test"); err != nil || len(b) == 0 {
-		t.Errorf("running should not fail: %v, %v", b, err)
+	// test stderr and error
+	stdout, stderr, err = RunCmd(ctx, "cat", "", "does/not/exist")
+	if err == nil || string(stderr) != "cat: does/not/exist: No such file or directory\n" {
+		t.Errorf("running echo failed: %s, %s, %v", stdout, stderr, err)
 	}
 }
 
@@ -56,13 +47,13 @@ func TestRunIP(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunIP(context.Background(), "address", "show")
+	_, _, _ = RunIP(context.Background(), "address", "show")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -74,13 +65,13 @@ func TestRunIPLink(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunIPLink(context.Background(), "show")
+	_, _, _ = RunIPLink(context.Background(), "show")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -92,13 +83,13 @@ func TestRunIPAddress(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunIPAddress(context.Background(), "show")
+	_, _, _ = RunIPAddress(context.Background(), "show")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -110,13 +101,13 @@ func TestRunIP4Route(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunIP4Route(context.Background(), "show")
+	_, _, _ = RunIP4Route(context.Background(), "show")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -128,13 +119,13 @@ func TestRunIP6Route(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunIP6Route(context.Background(), "show")
+	_, _, _ = RunIP6Route(context.Background(), "show")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -146,13 +137,13 @@ func TestRunIP4Rule(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunIP4Rule(context.Background(), "show")
+	_, _, _ = RunIP4Rule(context.Background(), "show")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -164,13 +155,13 @@ func TestRunIP6Rule(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunIP6Rule(context.Background(), "show")
+	_, _, _ = RunIP6Rule(context.Background(), "show")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -182,13 +173,13 @@ func TestRunSysctl(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunSysctl(context.Background(), "-q", "net.ipv4.conf.all.src_valid_mark=1")
+	_, _, _ = RunSysctl(context.Background(), "-q", "net.ipv4.conf.all.src_valid_mark=1")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -200,13 +191,13 @@ func TestRunNft(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunNft(context.Background(), "list tables")
+	_, _, _ = RunNft(context.Background(), "list tables")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -218,32 +209,14 @@ func TestRunResolvectl(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return nil
+		return []byte("OK"), nil, nil
 	}
 	defer func() { RunCmd = oldRunCmd }()
 
-	_ = RunResolvectl(context.Background(), "dns")
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
-}
-
-// TestRunResolvectlOutput tests RunResolvectlOutput.
-func TestRunResolvectlOutput(t *testing.T) {
-	want := []string{"resolvectl dns"}
-	got := []string{}
-
-	oldRunCmdOutput := RunCmdOutput
-	RunCmdOutput = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, error) {
-		got = append(got, cmd+" "+strings.Join(arg, " "))
-		return []byte("OK"), nil
-	}
-	defer func() { RunCmdOutput = oldRunCmdOutput }()
-
-	if b, err := RunResolvectlOutput(context.Background(), "dns"); err != nil || string(b) != "OK" {
-		t.Errorf("invalid return values %v, %v", b, err)
+	if b, _, err := RunResolvectl(context.Background(), "dns"); err != nil || string(b) != "OK" {
+		t.Errorf("invalid return values %s, %v", b, err)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)

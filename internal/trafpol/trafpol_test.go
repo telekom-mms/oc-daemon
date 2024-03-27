@@ -51,11 +51,11 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	var nftMutex sync.Mutex
 	nftCmds := []string{}
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		nftMutex.Lock()
 		defer nftMutex.Unlock()
 		nftCmds = append(nftCmds, s)
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
 
@@ -157,9 +157,9 @@ func TestCleanup(t *testing.T) {
 		"delete table inet oc-daemon-filter",
 	}
 	got := []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, s)
-		return nil
+		return nil, nil, nil
 	}
 	Cleanup(context.Background())
 	if !reflect.DeepEqual(got, want) {

@@ -155,31 +155,35 @@ table inet oc-daemon-filter {
 `
 	r := strings.NewReplacer("$FWMARK", fwMark)
 	rules := r.Replace(filterRules)
-	if err := execs.RunNft(ctx, rules); err != nil {
-		log.WithError(err).Error("TrafPol error setting routing rules")
+	if stdout, stderr, err := execs.RunNft(ctx, rules); err != nil {
+		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+			Error("TrafPol error setting routing rules")
 	}
 }
 
 // unsetFilterRules unsets the filter rules.
 func unsetFilterRules(ctx context.Context) {
-	if err := execs.RunNft(ctx, "delete table inet oc-daemon-filter"); err != nil {
-		log.WithError(err).Error("TrafPol error unsetting routing rules")
+	if stdout, stderr, err := execs.RunNft(ctx, "delete table inet oc-daemon-filter"); err != nil {
+		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+			Error("TrafPol error unsetting routing rules")
 	}
 }
 
 // addAllowedDevice adds device to the allowed devices.
 func addAllowedDevice(ctx context.Context, device string) {
 	nftconf := fmt.Sprintf("add element inet oc-daemon-filter allowdevs { %s }", device)
-	if err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).Error("TrafPol error adding allowed device")
+	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
+		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+			Error("TrafPol error adding allowed device")
 	}
 }
 
 // removeAllowedDevice removes device from the allowed devices.
 func removeAllowedDevice(ctx context.Context, device string) {
 	nftconf := fmt.Sprintf("delete element inet oc-daemon-filter allowdevs { %s }", device)
-	if err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).Error("TrafPol error removing allowed device")
+	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
+		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+			Error("TrafPol error removing allowed device")
 	}
 }
 
@@ -190,11 +194,13 @@ func setAllowedIPs(ctx context.Context, ips []*net.IPNet) {
 	// runs into "file exists" errors even though we remove duplicates from
 	// ips before calling this function and we flush the existing entries
 
-	if err := execs.RunNft(ctx, "flush set inet oc-daemon-filter allowhosts4"); err != nil {
-		log.WithError(err).Error("TrafPol error flushing allowed ipv4s")
+	if stdout, stderr, err := execs.RunNft(ctx, "flush set inet oc-daemon-filter allowhosts4"); err != nil {
+		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+			Error("TrafPol error flushing allowed ipv4s")
 	}
-	if err := execs.RunNft(ctx, "flush set inet oc-daemon-filter allowhosts6"); err != nil {
-		log.WithError(err).Error("TrafPol error flushing allowed ipv6s")
+	if stdout, stderr, err := execs.RunNft(ctx, "flush set inet oc-daemon-filter allowhosts6"); err != nil {
+		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+			Error("TrafPol error flushing allowed ipv6s")
 	}
 
 	fmt4 := "add element inet oc-daemon-filter allowhosts4 { %s }"
@@ -203,14 +209,16 @@ func setAllowedIPs(ctx context.Context, ips []*net.IPNet) {
 		if ip.IP.To4() != nil {
 			// ipv4 address
 			nftconf := fmt.Sprintf(fmt4, ip)
-			if err := execs.RunNft(ctx, nftconf); err != nil {
-				log.WithError(err).Error("TrafPol error adding allowed ipv4")
+			if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
+				log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+					Error("TrafPol error adding allowed ipv4")
 			}
 		} else {
 			// ipv6 address
 			nftconf := fmt.Sprintf(fmt6, ip)
-			if err := execs.RunNft(ctx, nftconf); err != nil {
-				log.WithError(err).Error("TrafPol error adding allowed ipv6")
+			if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
+				log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+					Error("TrafPol error adding allowed ipv6")
 			}
 		}
 	}
@@ -229,8 +237,9 @@ func portsToString(ports []uint16) string {
 func addPortalPorts(ctx context.Context, ports []uint16) {
 	p := portsToString(ports)
 	nftconf := fmt.Sprintf("add element inet oc-daemon-filter allowports { %s }", p)
-	if err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).Error("TrafPol error adding portal ports")
+	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
+		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+			Error("TrafPol error adding portal ports")
 	}
 }
 
@@ -238,14 +247,15 @@ func addPortalPorts(ctx context.Context, ports []uint16) {
 func removePortalPorts(ctx context.Context, ports []uint16) {
 	p := portsToString(ports)
 	nftconf := fmt.Sprintf("delete element inet oc-daemon-filter allowports { %s }", p)
-	if err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).Error("TrafPol error removing portal ports")
+	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
+		log.WithError(err).WithField("stdout", stdout).WithField("stderr", stderr).
+			Error("TrafPol error removing portal ports")
 	}
 }
 
 // cleanupFilterRules cleans up the filter rules after a failed shutdown.
 func cleanupFilterRules(ctx context.Context) {
-	if err := execs.RunNft(ctx, "delete table inet oc-daemon-filter"); err == nil {
+	if _, _, err := execs.RunNft(ctx, "delete table inet oc-daemon-filter"); err == nil {
 		log.Debug("TrafPol cleaned up nft")
 	}
 }

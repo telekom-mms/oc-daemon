@@ -34,9 +34,9 @@ func TestExcludesAddStatic(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, s)
-		return nil
+		return nil, nil, nil
 	}
 
 	// test adding excludes
@@ -68,9 +68,9 @@ func TestExcludesAddDynamic(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, s)
-		return nil
+		return nil, nil, nil
 	}
 
 	// test adding excludes
@@ -103,9 +103,9 @@ func TestExcludesRemove(t *testing.T) {
 	// set testing runNft function
 	got := []string{}
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, s)
-		return nil
+		return nil, nil, nil
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
 
@@ -159,9 +159,9 @@ func TestExcludesRemove(t *testing.T) {
 
 	// test with nft error
 	got = []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, s)
-		return errors.New("test error")
+		return nil, nil, errors.New("test error")
 	}
 	for _, exclude := range excludes {
 		e.AddStatic(ctx, exclude)
@@ -182,9 +182,9 @@ func TestExcludesCleanup(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) error {
+	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, s)
-		return nil
+		return nil, nil, nil
 	}
 
 	// test without excludes
