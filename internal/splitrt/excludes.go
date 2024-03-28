@@ -52,6 +52,7 @@ func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 	a, err := netip.ParsePrefix(address.String())
 	if err != nil {
 		log.WithError(err).Error("SplitRouting could not parse static exclude")
+		return
 	}
 
 	e.Lock()
@@ -59,6 +60,7 @@ func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 
 	// make sure new prefix in address does not overlap with existing
 	// prefixes in static excludes
+	removed := false
 	for k, v := range e.s {
 		if !v.Overlaps(a) {
 			// no overlap
@@ -72,6 +74,7 @@ func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 
 		// new prefix contains old prefix, remove old prefix
 		delete(e.s, k)
+		removed = true
 	}
 
 	// add new prefix to static excludes
@@ -79,6 +82,12 @@ func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 	e.s[key] = &a
 
 	// add to netfilter
+	if removed {
+		// existing entries removed, we need to reset all excludes
+		e.setFilter(ctx)
+		return
+	}
+	// single new entry, add it
 	addExclude(ctx, &a)
 }
 
@@ -92,9 +101,11 @@ func (e *Excludes) AddDynamic(ctx context.Context, address *net.IPNet, ttl uint3
 	prefix, err := netip.ParsePrefix(address.String())
 	if err != nil {
 		log.WithError(err).Error("SplitRouting could not parse dynamic exclude")
+		return
 	}
 	if !prefix.IsSingleIP() {
 		log.WithError(err).Error("SplitRouting error adding dynamic exclude with multiple IPs")
+		return
 	}
 	a := prefix.Addr()
 
