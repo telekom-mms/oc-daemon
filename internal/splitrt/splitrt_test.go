@@ -25,7 +25,7 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 	got := []string{"nothing else"}
 
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, nil
 	}
@@ -79,7 +79,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 
 	got := []string{}
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, nil
 	}
@@ -159,7 +159,7 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 
 	got := []string{}
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, nil
 	}
@@ -188,7 +188,7 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 func TestSplitRoutingStartStop(t *testing.T) {
 	// set dummy low level functions for testing
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, nil
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
@@ -263,7 +263,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	s.Stop()
 
 	// test with nft errors
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("test error")
 	}
 	s = NewSplitRouting(NewConfig(), vpnconfig.New())
@@ -312,7 +312,7 @@ func TestCleanup(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		if s == "" {
 			got = append(got, cmd+" "+strings.Join(arg, " "))
 			return nil, nil, nil

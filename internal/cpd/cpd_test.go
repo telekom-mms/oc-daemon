@@ -12,7 +12,7 @@ import (
 func TestCPDProbeCheck(t *testing.T) {
 	// probe with status code 400 (-> detected) and early stop
 	t.Run("stop during probe", func(_ *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		}))
 		defer ts.Close()
@@ -25,7 +25,7 @@ func TestCPDProbeCheck(t *testing.T) {
 
 	// check with redirect and no url
 	t.Run("redirect without url", func(t *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusFound)
 		}))
 		defer ts.Close()
@@ -53,7 +53,7 @@ func TestCPDProbeCheck(t *testing.T) {
 
 	// check with invalid content length
 	t.Run("invalid content length", func(t *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Length", "100")
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -167,7 +167,7 @@ func TestCPDHosts(t *testing.T) {
 func TestCPDProbe(t *testing.T) {
 	// status code 204, not detected
 	t.Run("not detected", func(t *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusNoContent)
 		}))
 		defer ts.Close()

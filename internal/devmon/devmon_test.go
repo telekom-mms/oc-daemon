@@ -11,7 +11,7 @@ import (
 // TestDevMonStartStop tests Start and Stop of DevMon.
 func TestDevMonStartStop(t *testing.T) {
 	// test without LinkUpdates
-	RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
+	RegisterLinkUpdates = func(*DevMon) (chan netlink.LinkUpdate, error) {
 		return nil, nil
 	}
 
@@ -84,7 +84,7 @@ func TestDevMonStartStop(t *testing.T) {
 		// send test update in goroutine spawned in RegisterLinkUpdates
 		// and signal sending complete
 		sendDone := make(chan struct{})
-		RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
+		RegisterLinkUpdates = func(*DevMon) (chan netlink.LinkUpdate, error) {
 			updates := make(chan netlink.LinkUpdate)
 			go func(up netlink.LinkUpdate) {
 				defer close(sendDone)
@@ -137,7 +137,7 @@ func TestDevMonStartStop(t *testing.T) {
 
 	// test with unexpected close and LinkUpdates
 	runOnce := false
-	RegisterLinkUpdates = func(d *DevMon) (chan netlink.LinkUpdate, error) {
+	RegisterLinkUpdates = func(*DevMon) (chan netlink.LinkUpdate, error) {
 		updates := make(chan netlink.LinkUpdate)
 		if !runOnce {
 			// on first run, close updates

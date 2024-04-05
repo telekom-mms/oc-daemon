@@ -19,8 +19,8 @@ func TestAddrMonStartStop(t *testing.T) {
 	// test RegisterAddrUpdates without netlink error
 	addrMon := NewAddrMon()
 
-	netlinkAddrSubscribeWithOptions = func(ch chan<- netlink.AddrUpdate,
-		done <-chan struct{}, options netlink.AddrSubscribeOptions) error {
+	netlinkAddrSubscribeWithOptions = func(chan<- netlink.AddrUpdate,
+		<-chan struct{}, netlink.AddrSubscribeOptions) error {
 		return nil
 	}
 
@@ -32,7 +32,7 @@ func TestAddrMonStartStop(t *testing.T) {
 	// test without AddrUpdates
 	addrMon = NewAddrMon()
 
-	RegisterAddrUpdates = func(a *AddrMon) (chan netlink.AddrUpdate, error) {
+	RegisterAddrUpdates = func(*AddrMon) (chan netlink.AddrUpdate, error) {
 		return nil, nil
 	}
 

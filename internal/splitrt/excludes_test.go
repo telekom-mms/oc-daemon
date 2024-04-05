@@ -68,7 +68,7 @@ func TestExcludesAddStatic(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, nil
 	}
@@ -113,7 +113,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, nil
 	}
@@ -177,7 +177,7 @@ func TestExcludesRemove(t *testing.T) {
 	// set testing runNft function
 	got := []string{}
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, nil
 	}
@@ -220,7 +220,7 @@ func TestExcludesRemove(t *testing.T) {
 
 	// test with nft error
 	got = []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, errors.New("test error")
 	}
@@ -269,7 +269,7 @@ func TestExcludesCleanup(t *testing.T) {
 
 	// set testing runNft function
 	got := []string{}
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, nil
 	}
