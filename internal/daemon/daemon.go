@@ -538,7 +538,7 @@ func (d *Daemon) setTNDDialer() {
 	}
 
 	// control function that sets socket option on raw connection
-	control := func(network, address string, c syscall.RawConn) error {
+	control := func(_, _ string, c syscall.RawConn) error {
 		// set socket option function for setting mark with SO_MARK
 		var soerr error
 		setsockopt := func(fd uintptr) {

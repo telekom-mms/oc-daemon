@@ -41,7 +41,7 @@ func (c *CPD) check() *Report {
 	// send http request
 	client := &http.Client{
 		Timeout: c.config.HTTPTimeout,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
