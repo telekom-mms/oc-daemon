@@ -99,6 +99,87 @@ func TestProxyHandleRequest(t *testing.T) {
 	p.handleRequest(&responseWriter{}, &dns.Msg{Question: []dns.Question{{Name: "test.example.com."}}})
 }
 
+// TestProxyHandleRequest tests handleRequest of Proxy, DNS records.
+// This tests different CNAME, DNAME, A, AAAA combinations.
+func TestProxyHandleRequestRecords(t *testing.T) {
+	// dns records
+	dname, _ := dns.NewRR("test.example.com 3600 IN DNAME example.com.")
+	cname, _ := dns.NewRR("test.example.com 3600 IN CNAME example.com.")
+	a, _ := dns.NewRR("example.com. 3600 IN A 127.0.0.1")
+	aaaa, _ := dns.NewRR("example.com. 3600 IN AAAA ::1")
+
+	// answers to test with CNAME, DNAME, A, AAAA combinations
+	answers := [][]dns.RR{
+		{cname, a, aaaa},
+		{aaaa, a, cname},
+		{dname, a, aaaa},
+		{aaaa, a, dname},
+		{dname, cname, aaaa, a},
+		{cname, aaaa, a, dname},
+		{aaaa, a, dname, cname},
+		{aaaa, a, cname, dname},
+	}
+
+	// start test server that returns answers
+	answersChan := make(chan []dns.RR, len(answers))
+	for _, a := range answers {
+		answersChan <- a
+	}
+	s := getTestDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		reply := &dns.Msg{}
+		reply.SetReply(r)
+
+		reply.Answer = <-answersChan
+		if err := w.WriteMsg(reply); err != nil {
+			log.WithError(err).Error("error sending reply")
+		}
+	}))
+	defer func() { _ = s.Shutdown() }()
+
+	// test helper function
+	handle := func() []*Report {
+		// start proxy with remotes and watches
+		p := NewProxy(getTestConfig())
+		p.SetRemotes(map[string][]string{".": {s.Addr}})
+		p.SetWatches([]string{"test.example.com."})
+
+		// collect reports
+		reports := []*Report{}
+		reportsDone := make(chan struct{})
+		go func() {
+			defer close(reportsDone)
+			for r := range p.Reports() {
+				reports = append(reports, r)
+				r.Done()
+			}
+		}()
+
+		// handle request and return reports
+		p.handleRequest(&responseWriter{}, &dns.Msg{Question: []dns.Question{
+			{Name: "test.example.com."}}})
+		close(p.reports)
+		<-reportsDone
+
+		return reports
+	}
+
+	// test CNAME, DNAME, A, AAAA combinations in answers
+	for i := range answers {
+		reports := handle()
+		if len(reports) != 2 {
+			t.Fatalf("invalid reports for run %d: %v", i, reports)
+		}
+		for _, r := range reports {
+			if !r.IP.Equal(net.ParseIP("127.0.0.1")) &&
+				!r.IP.Equal(net.ParseIP("::1")) {
+
+				t.Errorf("invalid report for run %d: %v", i, r)
+			}
+		}
+
+	}
+}
+
 // TestProxyStartStop tests Start and Stop of Proxy.
 func TestProxyStartStop(_ *testing.T) {
 	// tcp and udp listeners
