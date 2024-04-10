@@ -12,7 +12,7 @@ import (
 // TestFilterFunctionsErrors tests filter functions, errors.
 func TestFilterFunctionsErrors(_ *testing.T) {
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("test error")
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()

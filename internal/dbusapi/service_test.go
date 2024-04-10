@@ -221,13 +221,13 @@ func TestServiceStartStop(t *testing.T) {
 	}()
 
 	// no errors
-	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+	dbusConnectSystemBus = func(...dbus.ConnOption) (dbusConn, error) {
 		return &testConn{
 			reqNameReply: dbus.RequestNameReplyPrimaryOwner,
 			exportOKNum:  2,
 		}, nil
 	}
-	propExport = func(conn dbusConn, path dbus.ObjectPath, props prop.Map) (propProperties, error) {
+	propExport = func(dbusConn, dbus.ObjectPath, prop.Map) (propProperties, error) {
 		return &testProperties{}, nil
 	}
 	s := NewService()
@@ -237,7 +237,7 @@ func TestServiceStartStop(t *testing.T) {
 	s.Stop()
 
 	// conn export introspectable error
-	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+	dbusConnectSystemBus = func(...dbus.ConnOption) (dbusConn, error) {
 		return &testConn{
 			reqNameReply: dbus.RequestNameReplyPrimaryOwner,
 			exportOKNum:  1,
@@ -250,7 +250,7 @@ func TestServiceStartStop(t *testing.T) {
 	}
 
 	// props export error
-	propExport = func(conn dbusConn, path dbus.ObjectPath, props prop.Map) (propProperties, error) {
+	propExport = func(dbusConn, dbus.ObjectPath, prop.Map) (propProperties, error) {
 		return nil, errors.New("test error")
 	}
 	s = NewService()
@@ -259,7 +259,7 @@ func TestServiceStartStop(t *testing.T) {
 	}
 
 	// conn export methods error
-	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+	dbusConnectSystemBus = func(...dbus.ConnOption) (dbusConn, error) {
 		return &testConn{
 			reqNameReply: dbus.RequestNameReplyPrimaryOwner,
 			exportError:  errors.New("test error"),
@@ -271,7 +271,7 @@ func TestServiceStartStop(t *testing.T) {
 	}
 
 	// bus name alredy taken
-	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+	dbusConnectSystemBus = func(...dbus.ConnOption) (dbusConn, error) {
 		return &testConn{
 			reqNameReply: dbus.RequestNameReplyExists,
 		}, nil
@@ -282,7 +282,7 @@ func TestServiceStartStop(t *testing.T) {
 	}
 
 	// conn request name error
-	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+	dbusConnectSystemBus = func(...dbus.ConnOption) (dbusConn, error) {
 		return &testConn{
 			reqNameError: errors.New("test error"),
 		}, nil
@@ -293,7 +293,7 @@ func TestServiceStartStop(t *testing.T) {
 	}
 
 	// dbus connect error
-	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+	dbusConnectSystemBus = func(...dbus.ConnOption) (dbusConn, error) {
 		return nil, errors.New("test error")
 	}
 	s = NewService()
@@ -322,14 +322,14 @@ func TestServiceSetProperty(t *testing.T) {
 		propExport = oldPropExport
 	}()
 
-	dbusConnectSystemBus = func(opts ...dbus.ConnOption) (dbusConn, error) {
+	dbusConnectSystemBus = func(...dbus.ConnOption) (dbusConn, error) {
 		return &testConn{
 			reqNameReply: dbus.RequestNameReplyPrimaryOwner,
 			exportOKNum:  2,
 		}, nil
 	}
 	properties := &testProperties{props: make(map[string]any)}
-	propExport = func(conn dbusConn, path dbus.ObjectPath, props prop.Map) (propProperties, error) {
+	propExport = func(dbusConn, dbus.ObjectPath, prop.Map) (propProperties, error) {
 		return properties, nil
 	}
 	s := NewService()

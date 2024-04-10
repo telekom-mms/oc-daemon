@@ -47,7 +47,7 @@ func TestRunIP(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
 		return nil, nil, nil
 	}
@@ -65,7 +65,7 @@ func TestRunIPLink(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
 		return nil, nil, nil
 	}
@@ -83,7 +83,7 @@ func TestRunIPAddress(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
 		return nil, nil, nil
 	}
@@ -101,7 +101,7 @@ func TestRunIP4Route(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
 		return nil, nil, nil
 	}
@@ -119,7 +119,7 @@ func TestRunIP6Route(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
 		return nil, nil, nil
 	}
@@ -137,7 +137,7 @@ func TestRunIP4Rule(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
 		return nil, nil, nil
 	}
@@ -155,7 +155,7 @@ func TestRunIP6Rule(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
 		return nil, nil, nil
 	}
@@ -173,7 +173,7 @@ func TestRunSysctl(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
 		return nil, nil, nil
 	}
@@ -191,7 +191,7 @@ func TestRunNft(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
 		return nil, nil, nil
 	}
@@ -209,7 +209,7 @@ func TestRunResolvectl(t *testing.T) {
 	got := []string{}
 
 	oldRunCmd := RunCmd
-	RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	RunCmd = func(_ context.Context, cmd string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(arg, " "))
 		return []byte("OK"), nil, nil
 	}

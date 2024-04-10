@@ -144,7 +144,7 @@ func TestDBusClientSubscribe(t *testing.T) {
 	connAddMatchSignal = func(*dbus.Conn, ...dbus.MatchOption) error {
 		return nil
 	}
-	connSignal = func(conn *dbus.Conn, ch chan<- *dbus.Signal) {}
+	connSignal = func(*dbus.Conn, chan<- *dbus.Signal) {}
 
 	client := &DBusClient{
 		updates: make(chan *vpnstatus.Status),
@@ -342,7 +342,7 @@ func TestDBusClientConnect(t *testing.T) {
 	query = func(*DBusClient) (map[string]dbus.Variant, error) {
 		return nil, nil
 	}
-	connect = func(d *DBusClient) error {
+	connect = func(*DBusClient) error {
 		return nil
 	}
 	if err := client.Connect(); err != nil {
@@ -386,7 +386,7 @@ func TestDBusClientDisconnect(t *testing.T) {
 		}
 		return props, nil
 	}
-	disconnect = func(d *DBusClient) error {
+	disconnect = func(*DBusClient) error {
 		return nil
 	}
 	err := client.Disconnect()
