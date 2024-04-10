@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -190,9 +191,11 @@ func rejectIPv4(ctx context.Context, device string) {
 }
 
 // addExclude adds exclude address to netfilter.
-func addExclude(ctx context.Context, address *net.IPNet) {
+func addExclude(ctx context.Context, address *netip.Prefix) {
+	log.WithField("address", address).Debug("SplitRouting adding exclude to netfilter")
+
 	set := "excludes4"
-	if address.IP.To4() == nil {
+	if address.Addr().Is6() {
 		set = "excludes6"
 	}
 
@@ -207,7 +210,7 @@ func addExclude(ctx context.Context, address *net.IPNet) {
 }
 
 // setExcludes resets the excludes to addresses in netfilter.
-func setExcludes(ctx context.Context, addresses []*net.IPNet) {
+func setExcludes(ctx context.Context, addresses []*netip.Prefix) {
 	// flush existing entries
 	nftconf := ""
 	nftconf += "flush set inet oc-daemon-routing excludes4\n"
@@ -216,7 +219,7 @@ func setExcludes(ctx context.Context, addresses []*net.IPNet) {
 	// add entries
 	for _, a := range addresses {
 		set := "excludes4"
-		if a.IP.To4() == nil {
+		if a.Addr().Is6() {
 			set = "excludes6"
 		}
 		nftconf += fmt.Sprintf(

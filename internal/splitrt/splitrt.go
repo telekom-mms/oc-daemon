@@ -158,7 +158,7 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	// remove old excludes
 	for _, l := range s.locals {
 		if !isIn(l, excludes) {
-			s.excludes.Remove(ctx, l)
+			s.excludes.RemoveStatic(ctx, l)
 		}
 	}
 
