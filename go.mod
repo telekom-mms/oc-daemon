@@ -7,7 +7,7 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0
 	github.com/miekg/dns v1.1.58
 	github.com/sirupsen/logrus v1.9.3
-	github.com/telekom-mms/tnd v0.3.0
+	github.com/telekom-mms/tnd v0.4.0
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/sys v0.19.0
 )
