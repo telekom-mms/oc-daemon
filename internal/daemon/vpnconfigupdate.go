@@ -38,12 +38,7 @@ func (c *VPNConfigUpdate) Valid() bool {
 
 // JSON returns the Config as JSON.
 func (c *VPNConfigUpdate) JSON() ([]byte, error) {
-	b, err := json.Marshal(c)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
+	return json.Marshal(c)
 }
 
 // VPNConfigUpdateFromJSON parses and returns the VPNConfigUpdate in b.

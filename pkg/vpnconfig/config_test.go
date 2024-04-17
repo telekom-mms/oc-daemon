@@ -2,7 +2,6 @@ package vpnconfig
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"net"
 	"reflect"
@@ -249,16 +248,6 @@ func TestConfigJSON(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
-	}
-
-	// test with marshal error
-	jsonMarshal = func(any) ([]byte, error) {
-		return nil, errors.New("test error")
-	}
-	defer func() { jsonMarshal = json.Marshal }()
-
-	if _, err := c.JSON(); err == nil {
-		t.Error("Marshal error should return error")
 	}
 }
 

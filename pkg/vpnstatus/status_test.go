@@ -1,8 +1,6 @@
 package vpnstatus
 
 import (
-	"encoding/json"
-	"errors"
 	"reflect"
 	"testing"
 )
@@ -148,20 +146,8 @@ func TestJSON(t *testing.T) {
 		t.Errorf("got %v, want %v", n, s)
 	}
 
-	// test with errors
-	jsonMarshal = func(any) ([]byte, error) {
-		return nil, errors.New("test error")
-	}
-	defer func() { jsonMarshal = json.Marshal }()
-
-	// marshal error
-	b, err = s.JSON()
-	if err == nil {
-		t.Error("marshal error should return error")
-	}
-
 	// unmarshal error
-	if _, err := NewFromJSON(b); err == nil {
+	if _, err := NewFromJSON(nil); err == nil {
 		t.Error("unmarshal error should return error")
 	}
 }
