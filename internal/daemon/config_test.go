@@ -15,6 +15,21 @@ import (
 	"github.com/telekom-mms/tnd/pkg/tnd"
 )
 
+// TestConfigString tests String of Config.
+func TestConfigString(t *testing.T) {
+	// test new config
+	c := NewConfig()
+	if c.String() == "" {
+		t.Errorf("string should not be empty: %s", c.String())
+	}
+
+	// test nil
+	c = nil
+	if c.String() != "null" {
+		t.Errorf("string should be null: %s", c.String())
+	}
+}
+
 // TestConfigValid tests Valid of Config.
 func TestConfigValid(t *testing.T) {
 	// test invalid

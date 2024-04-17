@@ -102,6 +102,9 @@ func run(args []string) error {
 		log.SetLevel(log.DebugLevel)
 	}
 
+	// log config
+	log.WithField("config", config).Debug("Daemon starting with valid config")
+
 	// prepare directories
 	if err := prepareFolders(config); err != nil {
 		return err

@@ -41,6 +41,12 @@ type Config struct {
 	TND             *tnd.Config
 }
 
+// String returns the configuration as string.
+func (c *Config) String() string {
+	b, _ := json.Marshal(c)
+	return string(b)
+}
+
 // Valid returns whether config is valid.
 func (c *Config) Valid() bool {
 	if c == nil ||
