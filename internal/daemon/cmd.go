@@ -71,6 +71,9 @@ func run(args []string) error {
 		return nil
 	}
 
+	// log version
+	log.WithField("version", Version).Info("Starting Daemon")
+
 	// load config
 	config := NewConfig()
 	if flagIsSet(flags, argConfig) {
