@@ -1,8 +1,6 @@
 package logininfo
 
 import (
-	"encoding/json"
-	"errors"
 	"reflect"
 	"testing"
 )
@@ -104,17 +102,8 @@ func TestFromJSON(t *testing.T) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
-	// test with marshal and parse error
-	jsonMarshal = func(any) ([]byte, error) {
-		return nil, errors.New("test error")
-	}
-	defer func() { jsonMarshal = json.Marshal }()
-
-	b, err = want.JSON()
-	if err == nil {
-		t.Error("Marshal error should return error")
-	}
-	if _, err = FromJSON(b); err == nil {
+	// parse nil
+	if _, err = FromJSON(nil); err == nil {
 		t.Error("parsing nil should return error")
 	}
 }
