@@ -81,6 +81,7 @@ func (d *Daemon) setStatusTrustedNetwork(trusted bool) {
 	}
 
 	// status changed
+	log.WithField("TrustedNetwork", trustedNetwork).Info("Daemon changed TrustedNetwork status")
 	d.status.TrustedNetwork = trustedNetwork
 	d.dbus.SetProperty(dbusapi.PropertyTrustedNetwork, trustedNetwork)
 }
@@ -93,6 +94,7 @@ func (d *Daemon) setStatusConnectionState(connectionState vpnstatus.ConnectionSt
 	}
 
 	// state changed
+	log.WithField("ConnectionState", connectionState).Info("Daemon changed ConnectionState status")
 	d.status.ConnectionState = connectionState
 	d.dbus.SetProperty(dbusapi.PropertyConnectionState, connectionState)
 }
@@ -105,6 +107,7 @@ func (d *Daemon) setStatusIP(ip string) {
 	}
 
 	// ip changed
+	log.WithField("IP", ip).Info("Daemon changed IP status")
 	d.status.IP = ip
 	d.dbus.SetProperty(dbusapi.PropertyIP, ip)
 }
@@ -117,6 +120,7 @@ func (d *Daemon) setStatusDevice(device string) {
 	}
 
 	// device changed
+	log.WithField("Device", device).Info("Daemon changed Device status")
 	d.status.Device = device
 	d.dbus.SetProperty(dbusapi.PropertyDevice, device)
 }
@@ -129,6 +133,7 @@ func (d *Daemon) setStatusServer(server string) {
 	}
 
 	// connected server changed
+	log.WithField("Server", server).Info("Daemon changed Server status")
 	d.status.Server = server
 	d.dbus.SetProperty(dbusapi.PropertyServer, server)
 }
@@ -141,6 +146,7 @@ func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
 	}
 
 	// connection time changed
+	log.WithField("ConnectedAt", connectedAt).Info("Daemon changed ConnectedAt status")
 	d.status.ConnectedAt = connectedAt
 	d.dbus.SetProperty(dbusapi.PropertyConnectedAt, connectedAt)
 }
@@ -153,6 +159,7 @@ func (d *Daemon) setStatusServers(servers []string) {
 	}
 
 	// servers changed
+	log.WithField("Servers", servers).Info("Daemon changed Servers status")
 	d.status.Servers = servers
 	d.dbus.SetProperty(dbusapi.PropertyServers, servers)
 }
@@ -169,6 +176,7 @@ func (d *Daemon) setStatusOCRunning(running bool) {
 	}
 
 	// OC running state changed
+	log.WithField("OCRunning", ocrunning).Info("Daemon changed OCRunning status")
 	d.status.OCRunning = ocrunning
 	d.dbus.SetProperty(dbusapi.PropertyOCRunning, ocrunning)
 }
@@ -196,7 +204,9 @@ func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 		d.dbus.SetProperty(dbusapi.PropertyVPNConfig, dbusapi.VPNConfigInvalid)
 		return
 	}
-	d.dbus.SetProperty(dbusapi.PropertyVPNConfig, string(b))
+	s := string(b)
+	log.WithField("VPNConfig", s).Info("Daemon changed VPNConfig status")
+	d.dbus.SetProperty(dbusapi.PropertyVPNConfig, s)
 }
 
 // connectVPN connects to the VPN using login info from client request.
