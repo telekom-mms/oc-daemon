@@ -581,6 +581,7 @@ func (d *Daemon) startTND() error {
 	if d.tnd != nil {
 		return nil
 	}
+	log.Info("Daemon starting TND")
 	d.tnd = tnd.NewDetector(d.config.TND)
 	d.initTNDServers()
 	d.setTNDDialer()
@@ -595,6 +596,7 @@ func (d *Daemon) stopTND() {
 	if d.tnd == nil {
 		return
 	}
+	log.Info("Daemon stopping TND")
 	d.tnd.Stop()
 	d.tnd = nil
 }
@@ -622,6 +624,7 @@ func (d *Daemon) startTrafPol() error {
 	if d.trafpol != nil {
 		return nil
 	}
+	log.Info("Daemon starting TrafPol")
 	c := trafpol.NewConfig()
 	c.AllowedHosts = append(c.AllowedHosts, d.getProfileAllowedHosts()...)
 	c.FirewallMark = d.config.SplitRouting.FirewallMark
@@ -637,6 +640,7 @@ func (d *Daemon) stopTrafPol() {
 	if d.trafpol == nil {
 		return
 	}
+	log.Info("Daemon stopping TrafPol")
 	d.trafpol.Stop()
 	d.trafpol = nil
 }
