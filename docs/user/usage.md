@@ -21,14 +21,24 @@ Options:
         set additional CA certificate file
   -cert file
         set client certificate file or PKCS11 URI
+  -config file
+        set config file
   -key file
         set client key file or PKCS11 URI
+  -profile file
+        set XML profile file
   -server address
         set server address
   -system-settings
         use system settings instead of user configuration
   -user username
         set username
+  -user-cert file
+        set user certificate file or PKCS11 URI.
+        Note: requires OpenConnect v9.00 or higher
+  -user-key file
+        set user key file or PKCS11 URI.
+        Note: requires OpenConnect v9.00 or higher
   -version
         print version
 
@@ -43,6 +53,8 @@ Commands:
         list VPN servers in XML Profile
   status
         show VPN status
+  monitor
+        monitor VPN status updates
   save
         save current settings to user configuration
 
@@ -70,9 +82,8 @@ option `-system-settings` and load the system-wide configuration instead of the
 user-specific configuration.
 
 You can override settings in the configuration files with the `oc-client`
-command line options `-ca`, `-cert`, `-key`, `-server` and `-user`. You can use
-the `oc-client` command `save` to save the currently loaded settings into your
-user-specific configuration.
+command line options. You can use the `oc-client` command `save` to save the
+currently loaded settings into your user-specific configuration.
 
 The JSON format of the system-wide and user-specific configuration is
 identical. Your system-wide or user-specific configuration file could, for
@@ -128,6 +139,14 @@ You can show the current status with:
 $ oc-client status
 ```
 
+### Monitoring Status
+
+You can monitor the current status with:
+
+```console
+$ oc-client monitor
+```
+
 ### Listing Servers
 
 You can list VPN servers in your XML profile (`/var/lib/oc-daemon/profile.xml`)
@@ -146,6 +165,8 @@ line arguments:
 
 ```
 Usage of oc-daemon:
+  -config file
+        set config file (default "/var/lib/oc-daemon/oc-daemon.json")
   -verbose
         enable verbose output
   -version
