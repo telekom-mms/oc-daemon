@@ -17,7 +17,7 @@ components inside the oc-daemon. It performs the following operations:
   * Check domain names in DNS queries using watch list
   * Report A records to oc-daemon
   * Report AAAA records to oc-daemon
-  * Store CNAMES in watch list (with a timeout)
+  * Store DNAME and CNAME records in watch list (with a timeout)
 
 ## Split-DNS
 

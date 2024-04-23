@@ -16,6 +16,7 @@ On startup, Traffic Policing performs the following configuration steps:
   * Allow traffic of related and established connections
   * Allow traffic on allowed devices
   * Allow incoming and outgoing ICMPv4 and ICMPv6 traffic
+  * Allow incoming and outgoing DHCPv4 and DHCPv6 traffic
   * Allow outgoing DNS traffic (port 53)
   * Allow outgoing traffic to allowed IPv4/6 hosts
   * Block all other traffic
@@ -30,7 +31,7 @@ On startup, Traffic Policing performs the following configuration steps:
 * Start Captive Portal Detection (CPD)
   * If portal is detected:
     * Allow HTTP(S) traffic (ports 80 and 443)
-  * If no more portal is detected (after login):
+  * If portal is not detected anymore (after login):
     * Remove HTTP(S) traffic exception
     * Resolve/Update all IPs in sets of allowed IPv4/6 hosts
 
@@ -42,9 +43,7 @@ firewall exceptions in Traffic Policing, so we can log onto the network.
 Captive Portal Detection uses Ubuntu's portal detection scheme. It sends an
 HTTP request to `connectivity-check.ubuntu.com` and expects the response `204
 (No Content)`. If CPD receives a different response, it assumes, there is a
-portal. If the response is a `302 (Redirect)`, CPD reports the host name of the
-redirect location, so Traffic Policing can add the host name to the allowed
-IPv4/6 hosts.
+portal.
 
 In order to allow Ubuntu's and other portal detection schemes, the following
 CPD hosts are added to the allowed IPv4/6 hosts:
