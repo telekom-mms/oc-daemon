@@ -104,7 +104,7 @@ func (e *Excludes) AddDynamic(ctx context.Context, address *net.IPNet, ttl uint3
 		return
 	}
 	if !prefix.IsSingleIP() {
-		log.WithError(err).Error("SplitRouting error adding dynamic exclude with multiple IPs")
+		log.Error("SplitRouting error adding dynamic exclude with multiple IPs")
 		return
 	}
 	a := prefix.Addr()
