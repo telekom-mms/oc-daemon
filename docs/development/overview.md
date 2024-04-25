@@ -67,6 +67,8 @@ User    OC-Client      OC-Daemon     OpenConnect        OC-Daemon-VPNCScript
  |          | <--------    |              |                      |
  |          | ---------------------> Authenticate                |
  |          | <---------------------      |                      |
+ |          | --------> Status            |                      |
+ |          | <--------    |              |                      |
  |          | --------> Connect -----> Connect ----------> Config Update
  |          |           Network <-------------------------       |
  |          |           Config            |                      |
@@ -80,9 +82,10 @@ User    OC-Client      OC-Daemon     OpenConnect        OC-Daemon-VPNCScript
       2. abort, if VPN is already running
    2. runs `openconnect -authenticate`
    3. parses login info from openconnect
-   4. sends "connect" message with login info to oc-daemon
+   4. retrieves and checks status again
+   5. passes login info to oc-daemon with "connect" request
 3. oc-daemon connects to VPN server
-   1. receives login info in oc-client "connect" message
+   1. receives login info in oc-client "connect" request
    2. runs `openconnect -script oc-daemon-vpncscript`
 4. openconnect starts running
    1. establishes tunnel
@@ -110,12 +113,12 @@ User    OC-Client      OC-Daemon     OpenConnect        OC-Daemon-VPNCScript
 ```
 
 1. user runs oc-client with "disconnect" command
-2. oc-client sends "disconnect" request
+2. oc-client requests "disconnect"
    1. oc client retrieves status from oc-daemon
       1. abort, if VPN is not running
-   2. sends "disconnect" message to oc-daemon
+   2. requests "disconnect" from oc-daemon
 3. oc-daemon disconnects VPN
-   1. receives "disconnect" message from oc-client
+   1. receives "disconnect" request from oc-client
    2. terminates running openconnect process
 4. openconect stops running
    1. disconnects tunnel
