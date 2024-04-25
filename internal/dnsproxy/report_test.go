@@ -1,14 +1,14 @@
 package dnsproxy
 
 import (
-	"net"
+	"net/netip"
 	"testing"
 )
 
 // TestReportString tests String of Report.
 func TestReportString(t *testing.T) {
 	name := "example.com."
-	ip := net.IPv4(192, 168, 1, 1)
+	ip := netip.MustParseAddr("192.168.1.1")
 	ttl := uint32(300)
 	r := NewReport(name, ip, ttl)
 
@@ -22,7 +22,7 @@ func TestReportString(t *testing.T) {
 // TestReportDone tests Wait and Done of Report.
 func TestReportWaitDone(_ *testing.T) {
 	name := "example.com."
-	ip := net.IPv4(192, 168, 1, 1)
+	ip := netip.MustParseAddr("192.168.1.1")
 	ttl := uint32(300)
 	r := NewReport(name, ip, ttl)
 
@@ -33,7 +33,7 @@ func TestReportWaitDone(_ *testing.T) {
 // TestNewReport tests NewReport.
 func TestNewReport(t *testing.T) {
 	name := "example.com."
-	ip := net.IPv4(192, 168, 1, 1)
+	ip := netip.MustParseAddr("192.168.1.1")
 	ttl := uint32(300)
 	r := NewReport(name, ip, ttl)
 
@@ -43,7 +43,7 @@ func TestNewReport(t *testing.T) {
 	if r.Name != name {
 		t.Errorf("got %s, want %s", r.Name, name)
 	}
-	if !r.IP.Equal(ip) {
+	if r.IP != ip {
 		t.Errorf("got %s, want %s", r.IP, ip)
 	}
 	if r.TTL != ttl {

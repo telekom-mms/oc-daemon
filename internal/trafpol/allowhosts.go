@@ -3,15 +3,18 @@ package trafpol
 import (
 	"context"
 	"net"
+	"net/netip"
 	"sort"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // allowHost is an allowed hosts entry.
 type allowHost struct {
 	host string
-	ips  []*net.IPNet
+	ips  []netip.Prefix
 
 	updated    bool
 	lastUpdate time.Time
@@ -33,7 +36,7 @@ func (a *allowHost) sleepResolveTry(ctx context.Context, config *Config) {
 // resolve resolves the allowed host to its IP addresses.
 func (a *allowHost) resolve(ctx context.Context, config *Config) {
 	// check if host is a network address
-	if _, ipnet, err := net.ParseCIDR(a.host); err == nil {
+	if ipnet, err := netip.ParsePrefix(a.host); err == nil {
 		a.lastUpdate = time.Now()
 
 		// check if address already exists
@@ -42,7 +45,7 @@ func (a *allowHost) resolve(ctx context.Context, config *Config) {
 		}
 
 		// add new address
-		a.ips = []*net.IPNet{ipnet}
+		a.ips = []netip.Prefix{ipnet}
 		a.updated = true
 		return
 	}
@@ -68,15 +71,14 @@ func (a *allowHost) resolve(ctx context.Context, config *Config) {
 		a.lastUpdate = time.Now()
 
 		// convert ips
-		ipnets := []*net.IPNet{}
+		ipnets := []netip.Prefix{}
 		for _, ip := range ips {
-			ipnet := &net.IPNet{
-				IP:   ip,
-				Mask: net.CIDRMask(32, 32),
+			ip, ok := netip.AddrFromSlice(ip)
+			if !ok {
+				log.Error("TrafPol: got invalid allow host IP from resolver")
+				continue
 			}
-			if ip.To4() == nil {
-				ipnet.Mask = net.CIDRMask(128, 128)
-			}
+			ipnet := netip.PrefixFrom(ip, ip.BitLen())
 			ipnets = append(ipnets, ipnet)
 		}
 
@@ -178,13 +180,13 @@ func (a *AllowHosts) setFilter(ctx context.Context) {
 	defer a.Unlock()
 
 	// get a list of all unique ip addresses
-	ipset := make(map[string]*net.IPNet)
+	ipset := make(map[string]netip.Prefix)
 	for _, h := range a.m {
 		for _, ip := range h.ips {
 			ipset[ip.String()] = ip
 		}
 	}
-	ips := []*net.IPNet{}
+	ips := []netip.Prefix{}
 	for _, ip := range ipset {
 		ips = append(ips, ip)
 	}
