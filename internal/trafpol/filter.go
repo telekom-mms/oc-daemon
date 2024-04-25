@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 
@@ -206,7 +206,7 @@ func removeAllowedDevice(ctx context.Context, device string) {
 }
 
 // setAllowedIPs set the allowed hosts.
-func setAllowedIPs(ctx context.Context, ips []*net.IPNet) {
+func setAllowedIPs(ctx context.Context, ips []netip.Prefix) {
 	// we perform all nft commands separately here and not as one atomic
 	// operation to avoid issues where the whole update fails because nft
 	// runs into "file exists" errors even though we remove duplicates from
@@ -234,7 +234,7 @@ func setAllowedIPs(ctx context.Context, ips []*net.IPNet) {
 	fmt4 := "add element inet oc-daemon-filter allowhosts4 { %s }"
 	fmt6 := "add element inet oc-daemon-filter allowhosts6 { %s }"
 	for _, ip := range ips {
-		if ip.IP.To4() != nil {
+		if ip.Addr().Is4() {
 			// ipv4 address
 			nftconf := fmt.Sprintf(fmt4, ip)
 			if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil &&

@@ -2,7 +2,6 @@ package splitrt
 
 import (
 	"context"
-	"net"
 	"net/netip"
 	"sync"
 	"time"
@@ -24,7 +23,7 @@ type dynExclude struct {
 // Excludes contains split Excludes.
 type Excludes struct {
 	sync.Mutex
-	s      map[string]*netip.Prefix
+	s      map[string]netip.Prefix
 	d      map[netip.Addr]*dynExclude
 	done   chan struct{}
 	closed chan struct{}
@@ -34,31 +33,20 @@ type Excludes struct {
 func (e *Excludes) setFilter(ctx context.Context) {
 	log.Debug("SplitRouting resetting excludes in netfilter")
 
-	addresses := []*netip.Prefix{}
+	addresses := []netip.Prefix{}
 	for _, v := range e.s {
 		addresses = append(addresses, v)
 	}
 	for k := range e.d {
 		prefix := netip.PrefixFrom(k, k.BitLen())
-		addresses = append(addresses, &prefix)
+		addresses = append(addresses, prefix)
 	}
 	setExcludes(ctx, addresses)
 }
 
-// prefixFromIPNet returns ipnet as netip.Prefix.
-func prefixFromIPNet(ipnet *net.IPNet) netip.Prefix {
-	addr, _ := netip.AddrFromSlice(ipnet.IP)
-	bits, _ := ipnet.Mask.Size()
-	return netip.PrefixFrom(addr.Unmap(), bits)
-}
-
 // AddStatic adds a static entry to the split excludes.
-func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
+func (e *Excludes) AddStatic(ctx context.Context, address netip.Prefix) {
 	log.WithField("address", address).Debug("SplitRouting adding static exclude")
-
-	// convert address
-	a := prefixFromIPNet(address)
-
 	e.Lock()
 	defer e.Unlock()
 
@@ -66,11 +54,11 @@ func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 	// prefixes in static excludes
 	removed := false
 	for k, v := range e.s {
-		if !v.Overlaps(a) {
+		if !v.Overlaps(address) {
 			// no overlap
 			continue
 		}
-		if v.Bits() <= a.Bits() {
+		if v.Bits() <= address.Bits() {
 			// new prefix is already in existing prefix,
 			// do not add it
 			return
@@ -83,7 +71,7 @@ func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 
 	// add new prefix to static excludes
 	key := address.String()
-	e.s[key] = &a
+	e.s[key] = address
 
 	// add to netfilter
 	if removed {
@@ -92,23 +80,21 @@ func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 		return
 	}
 	// single new entry, add it
-	addExclude(ctx, &a)
+	addExclude(ctx, address)
 }
 
 // AddDynamic adds a dynamic entry to the split excludes.
-func (e *Excludes) AddDynamic(ctx context.Context, address *net.IPNet, ttl uint32) {
+func (e *Excludes) AddDynamic(ctx context.Context, address netip.Prefix, ttl uint32) {
 	log.WithFields(log.Fields{
 		"address": address,
 		"ttl":     ttl,
 	}).Debug("SplitRouting adding dynamic exclude")
 
-	// convert address
-	prefix := prefixFromIPNet(address)
-	if !prefix.IsSingleIP() {
+	if !address.IsSingleIP() {
 		log.Error("SplitRouting error adding dynamic exclude with multiple IPs")
 		return
 	}
-	a := prefix.Addr()
+	a := address.Addr()
 
 	e.Lock()
 	defer e.Unlock()
@@ -135,11 +121,11 @@ func (e *Excludes) AddDynamic(ctx context.Context, address *net.IPNet, ttl uint3
 	}
 
 	// add to netfilter
-	addExclude(ctx, &prefix)
+	addExclude(ctx, address)
 }
 
 // RemoveStatic removes a static entry from the split excludes.
-func (e *Excludes) RemoveStatic(ctx context.Context, address *net.IPNet) {
+func (e *Excludes) RemoveStatic(ctx context.Context, address netip.Prefix) {
 	e.Lock()
 	defer e.Unlock()
 
@@ -214,7 +200,7 @@ func (e *Excludes) Stop() {
 // NewExcludes returns new split excludes.
 func NewExcludes() *Excludes {
 	return &Excludes{
-		s:      make(map[string]*netip.Prefix),
+		s:      make(map[string]netip.Prefix),
 		d:      make(map[netip.Addr]*dynExclude),
 		done:   make(chan struct{}),
 		closed: make(chan struct{}),

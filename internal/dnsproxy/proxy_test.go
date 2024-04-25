@@ -3,6 +3,7 @@ package dnsproxy
 import (
 	"errors"
 	"net"
+	"net/netip"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -127,8 +128,8 @@ func TestProxyHandleRequest(t *testing.T) {
 		if r.Name != "example.com." {
 			t.Errorf("invalid domain name: %s", r.Name)
 		}
-		if !r.IP.Equal(net.IPv4(127, 0, 0, 1)) &&
-			!r.IP.Equal(net.ParseIP("::1")) {
+		if r.IP != netip.MustParseAddr("127.0.0.1") &&
+			r.IP != netip.MustParseAddr("::1") {
 			t.Errorf("invalid IP: %s", r.IP)
 		}
 	}
@@ -205,8 +206,8 @@ func TestProxyHandleRequestRecords(t *testing.T) {
 			t.Fatalf("invalid reports for run %d: %v", i, reports)
 		}
 		for _, r := range reports {
-			if !r.IP.Equal(net.ParseIP("127.0.0.1")) &&
-				!r.IP.Equal(net.ParseIP("::1")) {
+			if r.IP != netip.MustParseAddr("127.0.0.1") &&
+				r.IP != netip.MustParseAddr("::1") {
 
 				t.Errorf("invalid report for run %d: %v", i, r)
 			}

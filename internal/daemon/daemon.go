@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"reflect"
 	"slices"
 	"strconv"
@@ -66,7 +67,7 @@ type Daemon struct {
 	disableTrafPol bool
 
 	// serverIP is the IP address of the current VPN server
-	serverIP net.IP
+	serverIP netip.Addr
 
 	// serverIPAllowed indicates whether server IP was added to
 	// the allowed addresses
@@ -281,7 +282,9 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	}
 
 	// set server address
-	d.serverIP = net.ParseIP(strings.Trim(login.Host, "[]"))
+	if serverIP, err := netip.ParseAddr(strings.Trim(login.Host, "[]")); err == nil {
+		d.serverIP = serverIP
+	}
 
 	// update status
 	d.setStatusOCRunning(true)
@@ -290,7 +293,7 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
 
 	// add server address to allowed addrs in trafpol
-	if d.trafpol != nil && d.serverIP != nil {
+	if d.trafpol != nil && d.serverIP.IsValid() {
 		d.serverIPAllowed = d.trafpol.AddAllowedAddr(d.serverIP)
 	}
 
@@ -350,13 +353,14 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	// save config
 	d.setStatusVPNConfig(config)
 	ip := ""
-	for _, addr := range []net.IP{config.IPv4.Address, config.IPv6.Address} {
+	for _, addr := range []netip.Prefix{config.IPv4, config.IPv6} {
 		// this assumes either a single IPv4 or a single IPv6 address
 		// is configured on a vpn device
-		if addr != nil {
+		if addr.IsValid() {
 			ip = addr.String()
 		}
 	}
+	// TODO: this will set prefix and not only the ip, ok?
 	d.setStatusIP(ip)
 	d.setStatusDevice(config.Device.Name)
 
@@ -514,7 +518,7 @@ func (d *Daemon) handleRunnerDisconnect() {
 	if d.trafpol != nil && d.serverIPAllowed {
 		d.trafpol.RemoveAllowedAddr(d.serverIP)
 	}
-	d.serverIP = nil
+	d.serverIP = netip.Addr{}
 	d.serverIPAllowed = false
 }
 
@@ -713,7 +717,7 @@ func (d *Daemon) startTrafPol() error {
 	d.setStatusTrafPolState(vpnstatus.TrafPolStateActive)
 	d.setStatusAllowedHosts(c.AllowedHosts)
 
-	if d.serverIP != nil {
+	if d.serverIP.IsValid() {
 		// VPN connection active, allow server IP
 		d.serverIPAllowed = d.trafpol.AddAllowedAddr(d.serverIP)
 	}

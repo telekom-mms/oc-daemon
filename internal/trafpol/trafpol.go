@@ -4,7 +4,7 @@ package trafpol
 import (
 	"context"
 	"fmt"
-	"net"
+	"net/netip"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
@@ -15,7 +15,7 @@ import (
 // trafPolAddrCmd is a TrafPol address command.
 type trafPolAddrCmd struct {
 	add  bool
-	ip   net.IP
+	ip   netip.Addr
 	ok   bool
 	done chan struct{}
 }
@@ -32,8 +32,8 @@ type TrafPol struct {
 
 	// allowed devices, addresses, names
 	allowDevs  *AllowDevs
-	allowAddrs map[string]*net.IPNet
-	allowNames map[string][]net.IP
+	allowAddrs map[string]netip.Prefix
+	allowNames map[string][]netip.Addr
 
 	// resolver for allowed names, channel for resolver updates
 	resolver *Resolver
@@ -96,21 +96,15 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 
 // getAllowedHostsIPs returns the IPs of the allowed hosts,
 // used for filter rules
-func (t *TrafPol) getAllowedHostsIPs() []*net.IPNet {
+func (t *TrafPol) getAllowedHostsIPs() []netip.Prefix {
 	// get a list of all unique ip addresses from
 	// - allowed names
 	// - allowed addrs
-	ipset := make(map[string]*net.IPNet)
+	ipset := make(map[string]netip.Prefix)
 	for _, n := range t.allowNames {
 		for _, ip := range n {
-			ipnet := &net.IPNet{
-				IP:   ip,
-				Mask: net.CIDRMask(32, 32),
-			}
-			if ip.To4() == nil {
-				ipnet.Mask = net.CIDRMask(128, 128)
-			}
-			ipset[ipnet.String()] = ipnet
+			prefix := netip.PrefixFrom(ip, ip.BitLen())
+			ipset[prefix.String()] = prefix
 		}
 	}
 	for _, a := range t.allowAddrs {
@@ -118,7 +112,7 @@ func (t *TrafPol) getAllowedHostsIPs() []*net.IPNet {
 	}
 
 	// get resulting list of IPs
-	ips := []*net.IPNet{}
+	ips := []netip.Prefix{}
 	for _, ip := range ipset {
 		ips = append(ips, ip)
 	}
@@ -139,20 +133,17 @@ func (t *TrafPol) handleResolverUpdate(ctx context.Context, update *ResolvedName
 func (t *TrafPol) handleAddressCommand(ctx context.Context, cmd *trafPolAddrCmd) {
 	defer close(cmd.done)
 
-	// convert to ipnet
-	ipnet := &net.IPNet{IP: cmd.ip, Mask: net.CIDRMask(32, 32)}
-	if cmd.ip.To4() == nil {
-		ipnet.Mask = net.CIDRMask(128, 128)
-	}
+	// convert to prefix
+	prefix := netip.PrefixFrom(cmd.ip, cmd.ip.BitLen())
 
 	// update allowed addrs
-	s := ipnet.String()
+	s := prefix.String()
 	if cmd.add {
 		if _, ok := t.allowAddrs[s]; ok {
 			// ip already in allowed addrs
 			return
 		}
-		t.allowAddrs[s] = ipnet
+		t.allowAddrs[s] = prefix
 	} else {
 		if _, ok := t.allowAddrs[s]; !ok {
 			// ip not in allowed addrs
@@ -269,7 +260,7 @@ func (t *TrafPol) Stop() {
 }
 
 // AddAllowedAddr adds addr to the allowed addresses.
-func (t *TrafPol) AddAllowedAddr(addr net.IP) (ok bool) {
+func (t *TrafPol) AddAllowedAddr(addr netip.Addr) (ok bool) {
 	log.WithField("addr", addr).
 		Debug("TrafPol adding IP to allowed addresses")
 
@@ -285,7 +276,7 @@ func (t *TrafPol) AddAllowedAddr(addr net.IP) (ok bool) {
 }
 
 // RemoveAllowedAddr removes addr from the allowed addresses.
-func (t *TrafPol) RemoveAllowedAddr(addr net.IP) (ok bool) {
+func (t *TrafPol) RemoveAllowedAddr(addr netip.Addr) (ok bool) {
 	log.WithField("addr", addr).
 		Debug("TrafPol removing IP from allowed addresses")
 
@@ -300,23 +291,17 @@ func (t *TrafPol) RemoveAllowedAddr(addr net.IP) (ok bool) {
 }
 
 // parseAllowedHosts parses the allowed hosts and returns IP addresses and DNS names
-func parseAllowedHosts(hosts []string) (addrs []*net.IPNet, names []string) {
+func parseAllowedHosts(hosts []string) (addrs []netip.Prefix, names []string) {
 	for _, h := range hosts {
 		// check if it's an IP address
-		if ip := net.ParseIP(h); ip != nil {
-			ipnet := &net.IPNet{
-				IP:   ip,
-				Mask: net.CIDRMask(32, 32),
-			}
-			if ip.To4() == nil {
-				ipnet.Mask = net.CIDRMask(128, 128)
-			}
-			addrs = append(addrs, ipnet)
+		if ip, err := netip.ParseAddr(h); err == nil {
+			prefix := netip.PrefixFrom(ip, ip.BitLen())
+			addrs = append(addrs, prefix)
 			continue
 		}
 		// check if it's an IP network
-		if _, ipnet, err := net.ParseCIDR(h); err == nil {
-			addrs = append(addrs, ipnet)
+		if prefix, err := netip.ParsePrefix(h); err == nil {
+			addrs = append(addrs, prefix)
 			continue
 		}
 
@@ -336,13 +321,13 @@ func NewTrafPol(config *Config) *TrafPol {
 	a, n := parseAllowedHosts(hosts)
 
 	// create allowed addrs and names
-	addrs := make(map[string]*net.IPNet)
-	names := make(map[string][]net.IP)
+	addrs := make(map[string]netip.Prefix)
+	names := make(map[string][]netip.Addr)
 	for _, addr := range a {
 		addrs[addr.String()] = addr
 	}
 	for _, name := range n {
-		names[name] = []net.IP{}
+		names[name] = []netip.Addr{}
 	}
 
 	// create channel for resolver updates

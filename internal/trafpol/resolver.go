@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"net/netip"
 	"sort"
 	"sync"
 	"time"
@@ -12,7 +13,7 @@ import (
 // ResolvedName is a resolved DNS name.
 type ResolvedName struct {
 	Name string
-	IPs  []net.IP
+	IPs  []netip.Addr
 	TTL  time.Duration
 }
 
@@ -48,8 +49,8 @@ func (r *ResolvedName) resolve(ctx context.Context, config *Config, updates chan
 		// lookup IPv4 and IPv6 addresses in one call (argument
 		// network == "ip"). So, resolve IPv4 and IPv6 addresses in
 		// separate calls
-		ipv4s, err4 := resolver.LookupIP(ctxTO, "ip4", r.Name)
-		ipv6s, err6 := resolver.LookupIP(ctxTO, "ip6", r.Name)
+		ipv4s, err4 := resolver.LookupNetIP(ctxTO, "ip4", r.Name)
+		ipv6s, err6 := resolver.LookupNetIP(ctxTO, "ip6", r.Name)
 		if err4 != nil && err6 != nil {
 			// do not retry hostnames that are not found
 			var dnsErr4 *net.DNSError
@@ -79,7 +80,7 @@ func (r *ResolvedName) resolve(ctx context.Context, config *Config, updates chan
 				return false
 			}
 			for i := range r.IPs {
-				if !r.IPs[i].Equal(ips[i]) {
+				if r.IPs[i] != ips[i] {
 					return false
 				}
 			}

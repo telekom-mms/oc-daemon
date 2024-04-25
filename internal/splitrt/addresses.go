@@ -1,7 +1,7 @@
 package splitrt
 
 import (
-	"net"
+	"net/netip"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 )
@@ -51,9 +51,9 @@ func (a *Addresses) Remove(addr *addrmon.Update) {
 }
 
 // Get returns the addresses of the device identified by index.
-func (a *Addresses) Get(index int) (addrs []*net.IPNet) {
+func (a *Addresses) Get(index int) (addrs []netip.Prefix) {
 	for _, x := range a.m[index] {
-		addrs = append(addrs, &x.Address)
+		addrs = append(addrs, x.Address)
 	}
 	return
 }
