@@ -107,7 +107,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
-	// test with exculde and virtual
+	// test with exclude and virtual
 	vpnconf = vpnconfig.New()
 	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
 		{
