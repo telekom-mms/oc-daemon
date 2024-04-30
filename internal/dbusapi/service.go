@@ -363,10 +363,26 @@ func (s *Service) Start() error {
 		m.Args[5].Name = "resolve"
 
 	}
+	// set peer interface
+	peerData := introspect.Interface{
+		Name: "org.freedesktop.DBus.Peer",
+		Methods: []introspect.Method{
+			{
+				Name: "Ping",
+			},
+			{
+				Name: "GetMachineId",
+				Args: []introspect.Arg{
+					{Name: "machine_uuid", Type: "s", Direction: "out"},
+				},
+			},
+		},
+	}
 	n := &introspect.Node{
 		Name: Path,
 		Interfaces: []introspect.Interface{
 			introspect.IntrospectData,
+			peerData,
 			prop.IntrospectData,
 			{
 				Name:       Interface,
