@@ -349,6 +349,20 @@ func (s *Service) Start() error {
 	s.props = props
 
 	// introspection
+	// set names of method arguments
+	introMeths := introspect.Methods(meths)
+	for _, m := range introMeths {
+		if m.Name != "Connect" {
+			continue
+		}
+		m.Args[0].Name = "server"
+		m.Args[1].Name = "cookie"
+		m.Args[2].Name = "host"
+		m.Args[3].Name = "connect_url"
+		m.Args[4].Name = "fingerprint"
+		m.Args[5].Name = "resolve"
+
+	}
 	n := &introspect.Node{
 		Name: Path,
 		Interfaces: []introspect.Interface{
@@ -356,7 +370,7 @@ func (s *Service) Start() error {
 			prop.IntrospectData,
 			{
 				Name:       Interface,
-				Methods:    introspect.Methods(meths),
+				Methods:    introMeths,
 				Properties: props.Introspection(Interface),
 			},
 		},

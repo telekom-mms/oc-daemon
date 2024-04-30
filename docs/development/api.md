@@ -18,7 +18,7 @@ node /com/telekom_mms/oc_daemon/Daemon {
       Connect(in  s server,
               in  s cookie,
               in  s host,
-              in  s connectURL,
+              in  s connect_url,
               in  s fingerprint,
               in  s resolve);
       Disconnect();
@@ -41,10 +41,10 @@ node /com/telekom_mms/oc_daemon/Daemon {
 
 `Connect()` is used to connect to a VPN server. The parameter `server` is the
 name of the VPN server. The remaining parameters are the login information
-returned by `openconnect -authenticate`: `Cookie` is an access token containing
-information for authentication and authorization on the VPN server. `Host` is
-the VPN server address. `ConnectURL` is the VPN server URL. `Fingerprint` is
-the fingerprint of the server's certificate. `Resolve` maps the server's host
+returned by `openconnect -authenticate`: `cookie` is an access token containing
+information for authentication and authorization on the VPN server. `host` is
+the VPN server address. `connect_url` is the VPN server URL. `fingerprint` is
+the fingerprint of the server's certificate. `resolve` maps the server's host
 name to its IP address to bypass DNS resolution.
 
 `Disconnect()` is used to disconnect from the current VPN server.
