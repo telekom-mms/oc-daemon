@@ -27,12 +27,8 @@ func TestRun(t *testing.T) {
 	// prepare environment with not existing sockfile
 	os.Clearenv()
 	sockfile := filepath.Join(t.TempDir(), "sockfile")
-	if err := os.Setenv("oc_daemon_socket_file", sockfile); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Setenv("oc_daemon_verbose", "true"); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv("oc_daemon_socket_file", sockfile)
+	t.Setenv("oc_daemon_verbose", "true")
 
 	// test with errors
 	for _, v := range []string{
@@ -40,9 +36,7 @@ func TestRun(t *testing.T) {
 		"disconnect",
 		"invalid",
 	} {
-		if err := os.Setenv("reason", v); err != nil {
-			t.Fatal(err)
-		}
+		t.Setenv("reason", v)
 		if err := run([]string{"test"}); err == nil {
 			t.Errorf("%s: should return error", v)
 		}
@@ -54,9 +48,7 @@ func TestRun(t *testing.T) {
 		"attempt-reconnect",
 		"reconnect",
 	} {
-		if err := os.Setenv("reason", v); err != nil {
-			t.Fatal(err)
-		}
+		t.Setenv("reason", v)
 		if err := run([]string{"test"}); err != nil {
 			t.Errorf("%s: should not return error, got: %v", v, err)
 		}
