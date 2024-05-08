@@ -145,5 +145,7 @@ func NewFromJSON(b []byte) (*Status, error) {
 
 // New returns a new Status.
 func New() *Status {
-	return &Status{}
+	return &Status{
+		ConnectedAt: -1,
+	}
 }
