@@ -20,6 +20,14 @@ type Proxy struct {
 	closed  chan struct{}
 }
 
+// sendReport sends report over the reports channel.
+func (p *Proxy) sendReport(report *Report) {
+	select {
+	case p.reports <- report:
+	case <-p.done:
+	}
+}
+
 // handleRequest handles a dns client request.
 func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	// make sure the client request is valid
@@ -86,7 +94,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			return
 		}
 		report := NewReport(rr.Hdr.Name, rr.A, rr.Hdr.Ttl)
-		p.reports <- report
+		p.sendReport(report)
 		report.Wait()
 	}
 
@@ -99,7 +107,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			return
 		}
 		report := NewReport(rr.Hdr.Name, rr.AAAA, rr.Hdr.Ttl)
-		p.reports <- report
+		p.sendReport(report)
 		report.Wait()
 	}
 
