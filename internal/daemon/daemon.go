@@ -779,8 +779,10 @@ func (d *Daemon) Start() error {
 	}
 
 	// set initial status
+	d.setStatusTrustedNetwork(false)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusServers(d.profile.GetVPNServerHostNames())
+	d.setStatusConnectedAt(0)
 
 	go d.start()
 	return nil

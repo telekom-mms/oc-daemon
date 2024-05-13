@@ -217,17 +217,22 @@ func (s *Service) start() {
 	defer close(s.closed)
 	defer func() { _ = s.conn.Close() }()
 
+	// helper for setting initial property values
+	setInitialProps := func() {
+		s.props.SetMust(Interface, PropertyTrustedNetwork, TrustedNetworkUnknown)
+		s.props.SetMust(Interface, PropertyConnectionState, ConnectionStateUnknown)
+		s.props.SetMust(Interface, PropertyIP, IPInvalid)
+		s.props.SetMust(Interface, PropertyDevice, DeviceInvalid)
+		s.props.SetMust(Interface, PropertyServer, ServerInvalid)
+		s.props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
+		s.props.SetMust(Interface, PropertyServers, ServersInvalid)
+		s.props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)
+		s.props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
+	}
+
 	// set properties values to emit properties changed signal and make
 	// sure existing clients get updated values after restart
-	s.props.SetMust(Interface, PropertyTrustedNetwork, TrustedNetworkNotTrusted)
-	s.props.SetMust(Interface, PropertyConnectionState, ConnectionStateDisconnected)
-	s.props.SetMust(Interface, PropertyIP, IPInvalid)
-	s.props.SetMust(Interface, PropertyDevice, DeviceInvalid)
-	s.props.SetMust(Interface, PropertyServer, ServerInvalid)
-	s.props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
-	s.props.SetMust(Interface, PropertyServers, ServersInvalid)
-	s.props.SetMust(Interface, PropertyOCRunning, OCRunningNotRunning)
-	s.props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
+	setInitialProps()
 
 	// main loop
 	for {
@@ -244,15 +249,7 @@ func (s *Service) start() {
 			log.Debug("D-Bus service stopping")
 			// set properties values to unknown/invalid to emit
 			// properties changed signal and inform clients
-			s.props.SetMust(Interface, PropertyTrustedNetwork, TrustedNetworkUnknown)
-			s.props.SetMust(Interface, PropertyConnectionState, ConnectionStateUnknown)
-			s.props.SetMust(Interface, PropertyIP, IPInvalid)
-			s.props.SetMust(Interface, PropertyDevice, DeviceInvalid)
-			s.props.SetMust(Interface, PropertyServer, ServerInvalid)
-			s.props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
-			s.props.SetMust(Interface, PropertyServers, ServersInvalid)
-			s.props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)
-			s.props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
+			setInitialProps()
 			return
 		}
 	}
