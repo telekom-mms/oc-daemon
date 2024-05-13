@@ -91,12 +91,16 @@ func TestProxyHandleRequest(t *testing.T) {
 
 	// with watches in proxy
 	p.SetWatches([]string{"test.example.com."})
+	reportsDone := make(chan struct{})
 	go func() {
+		defer close(reportsDone)
 		for r := range p.Reports() {
 			r.Done()
 		}
 	}()
 	p.handleRequest(&responseWriter{}, &dns.Msg{Question: []dns.Question{{Name: "test.example.com."}}})
+	close(p.reports)
+	<-reportsDone
 }
 
 // TestProxyHandleRequest tests handleRequest of Proxy, DNS records.
