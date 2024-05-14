@@ -130,6 +130,13 @@ func getValidTestConfig() *Config {
 	return c
 }
 
+// getTestConfigPID returns a Config with only PID set to 1.
+func getTestConfigPID() *Config {
+	c := New()
+	c.PID = 1
+	return c
+}
+
 // TestConfigCopy tests Copy of Config.
 func TestConfigCopy(t *testing.T) {
 	// test nil
@@ -156,76 +163,91 @@ func TestConfigCopy(t *testing.T) {
 	if !got.Equal(want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test modification after copy
+	c1 := getValidTestConfig()
+	c2 := c1.Copy()
+	c1.PID = 0
+
+	if c1.Equal(c2) {
+		t.Error("copies should not be equal after modification")
+	}
 }
 
 // TestConfigEmpty tests Empty of Config.
 func TestConfigEmpty(t *testing.T) {
 	// test empty
 	c := New()
-	want := true
-	got := c.Empty()
-	if got != want {
-		t.Errorf("got %t, want %t", got, want)
+	if !c.Empty() {
+		t.Errorf("%v should be empty", c)
 	}
 
 	// test not empty
-	c = New()
-	c.PID = 1
-	want = false
-	got = c.Empty()
-	if got != want {
-		t.Errorf("got %t, want %t", got, want)
+	for _, ne := range []*Config{
+		// only PID set
+		getTestConfigPID(),
+		// full valid config
+		getValidTestConfig(),
+	} {
+		if ne.Empty() {
+			t.Errorf("%v should not be empty", ne)
+		}
 	}
 }
 
 // TestConfigEqual tests Equal of Config.
 func TestConfigEqual(t *testing.T) {
-	// test empty
+	// test not equal
 	c1 := New()
-	c2 := New()
-	want := true
-	got := c1.Equal(c2)
-	if got != want {
-		t.Errorf("got %t, want %t", got, want)
+	c2 := getValidTestConfig()
+	if c1.Equal(c2) {
+		t.Errorf("%v and %v should not be equal", c1, c2)
 	}
 
-	// test not empty
-	c1 = New()
-	c1.PID = 1
-	c2 = New()
-	c2.PID = 1
-	want = true
-	got = c1.Equal(c2)
-	if got != want {
-		t.Errorf("got %t, want %t", got, want)
+	// test equal
+	for _, ne := range [][]*Config{
+		// empty
+		{New(), New()},
+		// only PID set
+		{getTestConfigPID(), getTestConfigPID()},
+		// full valid config
+		{getValidTestConfig(), getValidTestConfig()},
+	} {
+		c1, c2 := ne[0], ne[1]
+		if !c1.Equal(c2) {
+			t.Errorf("%v and %v should be equal", c1, c2)
+		}
 	}
 }
 
 // TestConfigValid tests Valid of Config.
 func TestConfigValid(t *testing.T) {
-	// test empty, valid
-	c := New()
-	want := true
-	got := c.Valid()
-	if got != want {
-		t.Errorf("got %t, want %t", got, want)
-	}
-
 	// test invalid
-	c = New()
-	c.Device.Name = "this is too long for a device name"
-	want = false
-	got = c.Valid()
-	if got != want {
-		t.Errorf("got %t, want %t", got, want)
+	for _, invalid := range []*Config{
+		// only device name set, invalid device name
+		func() *Config {
+			c := New()
+			c.Device.Name = "this is too long for a device name"
+			return c
+		}(),
+		// only PID set
+		getTestConfigPID(),
+	} {
+		if invalid.Valid() {
+			t.Errorf("%v should not be valid", invalid)
+		}
 	}
 
 	// test valid
-	c = getValidTestConfig()
-	want = true
-	got = c.Valid()
-	if got != want {
-		t.Errorf("got %t, want %t", got, want)
+	for _, valid := range []*Config{
+		// empty
+		New(),
+		// full valid config
+		getValidTestConfig(),
+	} {
+		if !valid.Valid() {
+			t.Errorf("%v should be valid", valid)
+		}
 	}
 }
 
