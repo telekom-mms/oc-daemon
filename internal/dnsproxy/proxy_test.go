@@ -91,16 +91,47 @@ func TestProxyHandleRequest(t *testing.T) {
 
 	// with watches in proxy
 	p.SetWatches([]string{"test.example.com."})
+
+	// watches should contain test.example.com but not example.com
+	if !p.watches.Contains("test.example.com.") {
+		t.Error("watches should contain test.example.com")
+	}
+	if p.watches.Contains("example.com.") {
+		t.Error("watches should not contain example")
+	}
+
+	// handle request and save reports in separate goroutine
+	reports := []*Report{}
 	reportsDone := make(chan struct{})
 	go func() {
 		defer close(reportsDone)
 		for r := range p.Reports() {
+			reports = append(reports, r)
 			r.Done()
 		}
 	}()
 	p.handleRequest(&responseWriter{}, &dns.Msg{Question: []dns.Question{{Name: "test.example.com."}}})
 	close(p.reports)
 	<-reportsDone
+
+	// watches should now contain both test.example.com and example.com
+	if !p.watches.Contains("test.example.com.") {
+		t.Error("watches should contain test.example.com")
+	}
+	if !p.watches.Contains("example.com.") {
+		t.Error("watches should contain example")
+	}
+
+	// reports should contain the IPv4 and the IPv6 address of example.com
+	for _, r := range reports {
+		if r.Name != "example.com." {
+			t.Errorf("invalid domain name: %s", r.Name)
+		}
+		if !r.IP.Equal(net.IPv4(127, 0, 0, 1)) &&
+			!r.IP.Equal(net.ParseIP("::1")) {
+			t.Errorf("invalid IP: %s", r.IP)
+		}
+	}
 }
 
 // TestProxyHandleRequest tests handleRequest of Proxy, DNS records.
