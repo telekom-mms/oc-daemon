@@ -3,11 +3,22 @@ package vpncscript
 import (
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
+// setEnviron sets the environment in env.
+func setEnviron(env []string) {
+	for _, e := range env {
+		pair := strings.SplitN(e, "=", 2)
+		os.Setenv(pair[0], pair[1])
+	}
+}
+
 // TestParseEnvironmentSplit tests parseEnvironmentSplit.
 func TestParseEnvironmentSplit(t *testing.T) {
+	defer setEnviron(os.Environ())
+
 	// test empty environment
 	os.Clearenv()
 	for _, prefix := range []string{
@@ -329,6 +340,8 @@ func TestParseDisableAlwaysOnVPN(t *testing.T) {
 
 // TestParseEnvironment tests parseEnvironment.
 func TestParseEnvironment(t *testing.T) {
+	defer setEnviron(os.Environ())
+
 	// setup test environment
 	os.Clearenv()
 	for k, v := range map[string]string{
