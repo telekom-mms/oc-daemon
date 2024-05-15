@@ -24,6 +24,12 @@ func TestRun(t *testing.T) {
 		t.Errorf("help should return ErrHelp, got: %v", err)
 	}
 
+	// test with invalid token
+	t.Setenv("oc_daemon_token", "this is not a valid encoded token!")
+	if err := run([]string{"test"}); err == nil {
+		t.Errorf("invalid token should return error")
+	}
+
 	// prepare environment with not existing sockfile
 	os.Clearenv()
 	sockfile := filepath.Join(t.TempDir(), "sockfile")

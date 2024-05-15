@@ -8,6 +8,7 @@ import (
 	"os"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/api"
 	"github.com/telekom-mms/oc-daemon/internal/daemon"
 )
 
@@ -45,6 +46,11 @@ func run(args []string) error {
 	socketFile := socketFile
 	if e.socketFile != "" {
 		socketFile = e.socketFile
+	}
+
+	// set token from environemt
+	if err := api.SetToken(e.token); err != nil {
+		return fmt.Errorf("VPNCScript could not set token: %w", err)
 	}
 
 	printDebugEnvironment()
