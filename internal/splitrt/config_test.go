@@ -44,6 +44,24 @@ func TestConfigValid(t *testing.T) {
 			RulePriority1: "2111",
 			RulePriority2: "65537",
 		},
+		{
+			RoutingTable:  "0",
+			FirewallMark:  "42112",
+			RulePriority1: "2222",
+			RulePriority2: "2223",
+		},
+		{
+			RoutingTable:  "4294967295",
+			FirewallMark:  "42112",
+			RulePriority1: "2222",
+			RulePriority2: "2223",
+		},
+		{
+			RoutingTable:  "42112",
+			FirewallMark:  "4294967296",
+			RulePriority1: "2222",
+			RulePriority2: "2223",
+		},
 	} {
 		want := false
 		got := invalid.Valid()

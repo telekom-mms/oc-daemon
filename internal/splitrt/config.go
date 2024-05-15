@@ -39,6 +39,12 @@ func (c *Config) Valid() bool {
 		return false
 	}
 
+	// check routing table value: must be > 0, < 0xFFFFFFFF
+	rtTable, err := strconv.ParseUint(c.RoutingTable, 10, 32)
+	if err != nil || rtTable == 0 || rtTable >= 0xFFFFFFFF {
+		return false
+	}
+
 	// check rule priority values: must be > 0, < 32766, prio1 < prio2
 	prio1, err := strconv.ParseUint(c.RulePriority1, 10, 16)
 	if err != nil {
@@ -52,6 +58,11 @@ func (c *Config) Valid() bool {
 		prio1 >= 32766 || prio2 >= 32766 ||
 		prio1 >= prio2 {
 
+		return false
+	}
+
+	// check fwmark value: must be 32 bit unsigned int
+	if _, err := strconv.ParseUint(c.FirewallMark, 10, 32); err != nil {
 		return false
 	}
 
