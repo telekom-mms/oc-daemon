@@ -28,6 +28,14 @@ func (p *Proxy) sendReport(report *Report) {
 	}
 }
 
+// waitReport waits for report to finish.
+func (p *Proxy) waitReport(report *Report) {
+	select {
+	case <-report.Done():
+	case <-p.done:
+	}
+}
+
 // handleRequest handles a dns client request.
 func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 	// make sure the client request is valid
@@ -95,7 +103,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		report := NewReport(rr.Hdr.Name, rr.A, rr.Hdr.Ttl)
 		p.sendReport(report)
-		report.Wait()
+		p.waitReport(report)
 	}
 
 	// handler for AAAA answers
@@ -108,7 +116,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		report := NewReport(rr.Hdr.Name, rr.AAAA, rr.Hdr.Ttl)
 		p.sendReport(report)
-		report.Wait()
+		p.waitReport(report)
 	}
 
 	// handle DNAME and CNAME records before A and AAAA records to make

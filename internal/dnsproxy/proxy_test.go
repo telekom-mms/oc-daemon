@@ -107,7 +107,7 @@ func TestProxyHandleRequest(t *testing.T) {
 		defer close(reportsDone)
 		for r := range p.Reports() {
 			reports = append(reports, r)
-			r.Done()
+			r.Close()
 		}
 	}()
 	p.handleRequest(&responseWriter{}, &dns.Msg{Question: []dns.Question{{Name: "test.example.com."}}})
@@ -185,7 +185,7 @@ func TestProxyHandleRequestRecords(t *testing.T) {
 			defer close(reportsDone)
 			for r := range p.Reports() {
 				reports = append(reports, r)
-				r.Done()
+				r.Close()
 			}
 		}()
 

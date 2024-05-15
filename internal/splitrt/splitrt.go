@@ -202,7 +202,7 @@ func (s *SplitRouting) handleAddressUpdate(ctx context.Context, u *addrmon.Updat
 
 // handleDNSReport handles a DNS report.
 func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) {
-	defer r.Done()
+	defer r.Close()
 	log.WithField("report", r).Debug("SplitRouting handling DNS report")
 
 	if r.IP.To4() != nil {

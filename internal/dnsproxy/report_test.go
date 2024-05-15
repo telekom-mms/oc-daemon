@@ -26,8 +26,8 @@ func TestReportWaitDone(_ *testing.T) {
 	ttl := uint32(300)
 	r := NewReport(name, ip, ttl)
 
-	go r.Done()
-	r.Wait()
+	go r.Close()
+	<-r.Done()
 }
 
 // TestNewReport tests NewReport.

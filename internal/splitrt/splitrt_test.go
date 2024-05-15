@@ -168,12 +168,12 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	// test ipv4
 	report := dnsproxy.NewReport("example.com", net.ParseIP("192.168.1.1"), 300)
 	go s.handleDNSReport(ctx, report)
-	report.Wait()
+	<-report.Done()
 
 	// test ipv6
 	report = dnsproxy.NewReport("example.com", net.ParseIP("2001::1"), 300)
 	go s.handleDNSReport(ctx, report)
-	report.Wait()
+	<-report.Done()
 
 	want := []string{
 		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
@@ -259,7 +259,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	s.addrmon.Updates() <- getTestAddrMonUpdate(t, "192.168.1.1/32")
 	report := dnsproxy.NewReport("example.com", net.ParseIP("192.168.1.1"), 300)
 	s.dnsreps <- report
-	report.Wait()
+	<-report.Done()
 	s.Stop()
 
 	// test with nft errors

@@ -363,7 +363,6 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 
 	// send dns report while config is active
 	report := dnsproxy.NewReport("example.com", nil, 300)
-	go func() { report.Wait() }()
 	v.dnsProxy.Reports() <- report
 
 	// wait long enough for ensure timer

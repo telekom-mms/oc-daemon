@@ -471,6 +471,8 @@ func (v *VPNSetup) handleDNSReport(r *dnsproxy.Report) {
 	log.WithField("report", r).Debug("Daemon handling DNS report")
 
 	if v.splitrt == nil {
+		// split routing not active, close report and do not forward
+		r.Close()
 		return
 	}
 

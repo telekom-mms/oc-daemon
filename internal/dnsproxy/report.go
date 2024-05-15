@@ -13,7 +13,6 @@ type Report struct {
 
 	// done is used to signal that the report has been handled by
 	// its consumer
-	// TODO: check if this is OK for us
 	done chan struct{}
 }
 
@@ -22,14 +21,14 @@ func (r *Report) String() string {
 	return fmt.Sprintf("%s -> %s (ttl: %d)", r.Name, r.IP, r.TTL)
 }
 
-// Done signals that the report has been handled by its consumer.
-func (r *Report) Done() {
-	r.done <- struct{}{}
+// Close signals that the report has been handled by its consumer.
+func (r *Report) Close() {
+	close(r.done)
 }
 
-// Wait waits for the report to be handled by its consumer.
-func (r *Report) Wait() {
-	<-r.done
+// Done returns a channel that is closed when the report was handled by its consumer.
+func (r *Report) Done() <-chan struct{} {
+	return r.done
 }
 
 // NewReport returns a new report with domain name, IP and TTL.

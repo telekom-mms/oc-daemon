@@ -81,6 +81,6 @@ func main() {
 	go p.Start()
 	for r := range p.Reports() {
 		log.WithField("report", r).Debug("DNS-Proxy got watched domain report")
-		r.Done()
+		r.Close()
 	}
 }
