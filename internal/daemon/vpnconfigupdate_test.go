@@ -22,6 +22,7 @@ func TestVPNConfigUpdateValid(t *testing.T) {
 	// test invalid disconnect
 	u = NewVPNConfigUpdate()
 	u.Reason = "disconnect"
+	u.Config = vpnconfig.New()
 
 	got = u.Valid()
 	want = false
@@ -29,7 +30,7 @@ func TestVPNConfigUpdateValid(t *testing.T) {
 		t.Errorf("got %t, want %t", got, want)
 	}
 
-	// test invalid connect, no token and no config
+	// test invalid connect, no config
 	u = NewVPNConfigUpdate()
 	u.Reason = "connect"
 
@@ -42,7 +43,6 @@ func TestVPNConfigUpdateValid(t *testing.T) {
 	// test invalid connect, invalid config
 	u = NewVPNConfigUpdate()
 	u.Reason = "connect"
-	u.Token = "some test token"
 	u.Config = vpnconfig.New()
 	u.Config.Device.Name = "name is too long for a network device"
 
@@ -55,7 +55,6 @@ func TestVPNConfigUpdateValid(t *testing.T) {
 	// test valid disconnect
 	u = NewVPNConfigUpdate()
 	u.Reason = "disconnect"
-	u.Token = "some test token"
 
 	got = u.Valid()
 	want = true
@@ -66,7 +65,6 @@ func TestVPNConfigUpdateValid(t *testing.T) {
 	// test valid connect
 	u = NewVPNConfigUpdate()
 	u.Reason = "connect"
-	u.Token = "some test token"
 	u.Config = vpnconfig.New()
 
 	got = u.Valid()
@@ -87,13 +85,11 @@ func TestVPNConfigUpdateJSON(t *testing.T) {
 	// valid disconnect
 	u = NewVPNConfigUpdate()
 	u.Reason = "disconnect"
-	u.Token = "some test token"
 	updates = append(updates, u)
 
 	// valid connect
 	u = NewVPNConfigUpdate()
 	u.Reason = "connect"
-	u.Token = "some test token"
 	u.Config = vpnconfig.New()
 	updates = append(updates, u)
 

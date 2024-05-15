@@ -9,7 +9,6 @@ import (
 // VPNConfigUpdate is a VPN configuration update.
 type VPNConfigUpdate struct {
 	Reason string
-	Token  string
 	Config *vpnconfig.Config
 }
 
@@ -17,16 +16,13 @@ type VPNConfigUpdate struct {
 func (c *VPNConfigUpdate) Valid() bool {
 	switch c.Reason {
 	case "disconnect":
-		// token must be valid and config nil
-		if c.Token == "" || c.Config != nil {
+		// config must be nil
+		if c.Config != nil {
 			return false
 		}
 	case "connect":
-		// token and config must be valid
-		if c.Token == "" || c.Config == nil {
-			return false
-		}
-		if !c.Config.Valid() {
+		// config must be valid
+		if c.Config == nil || !c.Config.Valid() {
 			return false
 		}
 	default:

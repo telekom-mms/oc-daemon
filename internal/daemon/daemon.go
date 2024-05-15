@@ -342,13 +342,6 @@ func (d *Daemon) updateVPNConfig(request *api.Request) {
 		return
 	}
 
-	// check token
-	if configUpdate.Token != d.token {
-		log.Error("Daemon got invalid token in vpn config update")
-		request.Error("invalid token in config update message")
-		return
-	}
-
 	// handle config update for vpn (dis)connect
 	if configUpdate.Reason == "disconnect" {
 		d.updateVPNConfigDown()

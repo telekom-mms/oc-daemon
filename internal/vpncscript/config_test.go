@@ -87,7 +87,6 @@ func TestCreateConfigUpdate(t *testing.T) {
 
 	// create expected values based on test environment
 	reason := "connect"
-	token := "some token"
 	config := &vpnconfig.Config{
 		Gateway: net.IPv4(10, 1, 1, 1),
 		PID:     12345,
@@ -128,9 +127,6 @@ func TestCreateConfigUpdate(t *testing.T) {
 	// compare results
 	if got.Reason != reason {
 		t.Errorf("got %s, want %s", got.Reason, reason)
-	}
-	if got.Token != token {
-		t.Errorf("got %s, want %s", got.Token, token)
 	}
 	if !reflect.DeepEqual(got.Config, config) {
 		t.Errorf("got:\n%#v\nwant:\n%#v", got.Config, config)
