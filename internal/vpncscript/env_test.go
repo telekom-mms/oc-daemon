@@ -11,7 +11,7 @@ import (
 func setEnviron(env []string) {
 	for _, e := range env {
 		pair := strings.SplitN(e, "=", 2)
-		os.Setenv(pair[0], pair[1])
+		_ = os.Setenv(pair[0], pair[1])
 	}
 }
 
