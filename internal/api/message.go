@@ -9,9 +9,6 @@ import (
 )
 
 const (
-	// MaxPayloadLength is the maximum allowed length of a message payload.
-	MaxPayloadLength = 2097152
-
 	// TokenLength is the length of the message token in bytes.
 	TokenLength = 16
 )
@@ -45,9 +42,6 @@ type Message struct {
 
 // NewMessage returns a new message with type t and payload p.
 func NewMessage(t uint16, p []byte) *Message {
-	if len(p) > MaxPayloadLength {
-		return nil
-	}
 	return &Message{
 		Header: Header{
 			Type:   t,
@@ -80,9 +74,6 @@ func ReadMessage(r io.Reader) (*Message, error) {
 	// check if message is valid
 	if h.Type == TypeNone || h.Type >= TypeUndefined {
 		return nil, errors.New("invalid message type")
-	}
-	if h.Length > MaxPayloadLength {
-		return nil, errors.New("invalid message length")
 	}
 	if h.Token != token {
 		return nil, errors.New("invalid message token")

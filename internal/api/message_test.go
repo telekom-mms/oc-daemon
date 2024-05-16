@@ -25,12 +25,6 @@ func TestNewMessage(t *testing.T) {
 			t.Errorf("got %d, want %d", msg.Type, typ)
 		}
 	}
-
-	// invalid payload length
-	p := [MaxPayloadLength + 1]byte{}
-	if NewMessage(TypeOK, p[:]) != nil {
-		t.Error("should not create message with invalid payload length")
-	}
 }
 
 // TestNewOK tests NewOK.
@@ -63,11 +57,8 @@ func TestReadMessageErrors(t *testing.T) {
 		// invalid type
 		{Header: Header{Type: TypeUndefined}},
 
-		// invalid length
-		{Header: Header{Type: TypeOK, Length: MaxPayloadLength + 1}},
-
 		// short message
-		{Header: Header{Type: TypeOK, Length: MaxPayloadLength}},
+		{Header: Header{Type: TypeOK, Length: 4096}},
 
 		// invalid token
 		{Header: Header{Type: TypeOK, Token: [16]byte{1}}},

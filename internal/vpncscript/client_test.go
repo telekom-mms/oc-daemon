@@ -69,7 +69,7 @@ func TestRunClient(t *testing.T) {
 		return confUpdate
 	}
 
-	// test with maximum payload length
+	// test with varying payload lengths
 	server = api.NewServer(config)
 	go func() {
 		for r := range server.Requests() {
@@ -79,23 +79,12 @@ func TestRunClient(t *testing.T) {
 	if err := server.Start(); err != nil {
 		t.Fatal(err)
 	}
-	if err := runClient(sockfile, getConfUpdate(api.MaxPayloadLength)); err != nil {
-		t.Fatal(err)
-	}
-	server.Stop()
-
-	// test with more than maximum payload length
-	server = api.NewServer(config)
-	go func() {
-		for r := range server.Requests() {
-			r.Close()
+	for _, length := range []int{
+		2048, 4096, 8192, 65536, 2097152,
+	} {
+		if err := runClient(sockfile, getConfUpdate(length)); err != nil {
+			t.Errorf("length %d returned error: %v", length, err)
 		}
-	}()
-	if err := server.Start(); err != nil {
-		t.Fatal(err)
-	}
-	if err := runClient(sockfile, getConfUpdate(api.MaxPayloadLength+1)); err == nil {
-		t.Fatal("too long message should return error")
 	}
 	server.Stop()
 }
