@@ -30,6 +30,14 @@ func TestRun(t *testing.T) {
 		t.Errorf("invalid token should return error")
 	}
 
+	// test connect with config creation error, invalid VPN PID
+	os.Clearenv()
+	t.Setenv("reason", "connect")
+	t.Setenv("VPNPID", "not a valid vpn pid!")
+	if err := run([]string{"test"}); err == nil {
+		t.Errorf("invalid config should return error")
+	}
+
 	// prepare environment with not existing sockfile
 	os.Clearenv()
 	sockfile := filepath.Join(t.TempDir(), "sockfile")
