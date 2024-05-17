@@ -3,8 +3,6 @@ package daemon
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"net"
 	"reflect"
@@ -344,13 +342,6 @@ func (d *Daemon) updateVPNConfig(request *api.Request) {
 		return
 	}
 
-	// check token
-	if configUpdate.Token != d.token {
-		log.Error("Daemon got invalid token in vpn config update")
-		request.Error("invalid token in config update message")
-		return
-	}
-
 	// handle config update for vpn (dis)connect
 	if configUpdate.Reason == "disconnect" {
 		d.updateVPNConfigDown()
@@ -508,13 +499,11 @@ func (d *Daemon) cleanup(ctx context.Context) {
 
 // initToken creates the daemon token for client authentication.
 func (d *Daemon) initToken() error {
-	// TODO: is this good enough for us?
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
+	token, err := api.GetToken()
 	if err != nil {
 		return err
 	}
-	d.token = base64.RawURLEncoding.EncodeToString(b)
+	d.token = token
 	return nil
 }
 

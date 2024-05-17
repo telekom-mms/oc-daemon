@@ -221,7 +221,6 @@ func createConfig(env *env) (*vpnconfig.Config, error) {
 func createConfigUpdate(env *env) (*daemon.VPNConfigUpdate, error) {
 	update := daemon.NewVPNConfigUpdate()
 	update.Reason = env.reason
-	update.Token = env.token
 	if env.reason == "connect" {
 		c, err := createConfig(env)
 		if err != nil {

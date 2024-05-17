@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"log"
 	"reflect"
@@ -23,12 +24,6 @@ func TestNewMessage(t *testing.T) {
 		if msg.Type != typ {
 			t.Errorf("got %d, want %d", msg.Type, typ)
 		}
-	}
-
-	// invalid payload length
-	p := [MaxPayloadLength + 1]byte{}
-	if NewMessage(TypeOK, p[:]) != nil {
-		t.Error("should not create message with invalid payload length")
 	}
 }
 
@@ -62,11 +57,11 @@ func TestReadMessageErrors(t *testing.T) {
 		// invalid type
 		{Header: Header{Type: TypeUndefined}},
 
-		// invalid length
-		{Header: Header{Type: TypeOK, Length: MaxPayloadLength + 1}},
-
 		// short message
-		{Header: Header{Type: TypeOK, Length: MaxPayloadLength}},
+		{Header: Header{Type: TypeOK, Length: 4096}},
+
+		// invalid token
+		{Header: Header{Type: TypeOK, Token: [16]byte{1}}},
 	} {
 		if err := WriteMessage(buf, msg); err != nil {
 			t.Fatal(err)
@@ -130,5 +125,37 @@ func TestReadWriteMessage(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestGetSetToken tests GetToken and SetToken.
+func TestGetSetToken(t *testing.T) {
+	// reset token after tests
+	defer func() { token = [TokenLength]byte{} }()
+
+	// get new test token
+	testToken, err := GetToken()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := base64.RawURLEncoding.EncodeToString(token[:])
+	if testToken != s {
+		t.Fatal("encoded token should match internal token")
+	}
+
+	// set token
+	if err := SetToken(testToken); err != nil {
+		t.Fatal(err)
+	}
+
+	// check token
+	s = base64.RawURLEncoding.EncodeToString(token[:])
+	if s != testToken {
+		t.Fatal("internal token should match encoded token")
+	}
+
+	// setting invalid token
+	if err := SetToken("not a valid encoded token!"); err == nil {
+		t.Fatal("invalid token should return error")
 	}
 }

@@ -1,14 +1,21 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"io"
 )
 
 const (
-	// MaxPayloadLength is the maximum allowed length of a message payload.
-	MaxPayloadLength = 2097152
+	// TokenLength is the length of the message token in bytes.
+	TokenLength = 16
+)
+
+var (
+	// token is the message token.
+	token [TokenLength]byte
 )
 
 // Message types.
@@ -24,6 +31,7 @@ const (
 type Header struct {
 	Type   uint16
 	Length uint32
+	Token  [TokenLength]byte
 }
 
 // Message is an API message.
@@ -34,13 +42,11 @@ type Message struct {
 
 // NewMessage returns a new message with type t and payload p.
 func NewMessage(t uint16, p []byte) *Message {
-	if len(p) > MaxPayloadLength {
-		return nil
-	}
 	return &Message{
 		Header: Header{
 			Type:   t,
 			Length: uint32(len(p)),
+			Token:  token,
 		},
 		Value: p,
 	}
@@ -69,8 +75,8 @@ func ReadMessage(r io.Reader) (*Message, error) {
 	if h.Type == TypeNone || h.Type >= TypeUndefined {
 		return nil, errors.New("invalid message type")
 	}
-	if h.Length > MaxPayloadLength {
-		return nil, errors.New("invalid message length")
+	if h.Token != token {
+		return nil, errors.New("invalid message token")
 	}
 
 	// read payload
@@ -105,5 +111,28 @@ func WriteMessage(w io.Writer, m *Message) error {
 		return err
 	}
 
+	return nil
+}
+
+// GetToken generates and returns the message token as string. This should be
+// used once on the server side before the server is started. Token must be
+// passed to the client side.
+func GetToken() (string, error) {
+	_, err := rand.Read(token[:])
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(token[:]), nil
+}
+
+// SetToken sets the message token from string. This should be used on the
+// client side before sending requests to the server. Token must match token on
+// the server side.
+func SetToken(s string) error {
+	b, err := base64.RawURLEncoding.DecodeString(s)
+	if err != nil {
+		return err
+	}
+	copy(token[:], b)
 	return nil
 }
