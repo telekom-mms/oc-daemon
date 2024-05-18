@@ -4,18 +4,20 @@ import "os/exec"
 
 // default values.
 var (
-	IP         = "ip"
-	Nft        = "nft"
-	Resolvectl = "resolvectl"
-	Sysctl     = "sysctl"
+	IP          = "ip"
+	Nft         = "nft"
+	Resolvectl  = "resolvectl"
+	Sysctl      = "sysctl"
+	Openconnect = "openconnect"
 )
 
 // Config is executables configuration.
 type Config struct {
-	IP         string
-	Nft        string
-	Resolvectl string
-	Sysctl     string
+	IP          string
+	Nft         string
+	Resolvectl  string
+	Sysctl      string
+	Openconnect string
 }
 
 // Valid returns whether config is valid.
@@ -24,7 +26,8 @@ func (c *Config) Valid() bool {
 		c.IP == "" ||
 		c.Nft == "" ||
 		c.Resolvectl == "" ||
-		c.Sysctl == "" {
+		c.Sysctl == "" ||
+		c.Openconnect == "" {
 		// invalid
 		return false
 	}
@@ -47,9 +50,10 @@ func (c *Config) CheckExecutables() error {
 // NewConfig returns a new Config.
 func NewConfig() *Config {
 	return &Config{
-		IP:         IP,
-		Nft:        Nft,
-		Resolvectl: Resolvectl,
-		Sysctl:     Sysctl,
+		IP:          IP,
+		Nft:         Nft,
+		Resolvectl:  Resolvectl,
+		Sysctl:      Sysctl,
+		Openconnect: Openconnect,
 	}
 }
