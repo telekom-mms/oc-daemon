@@ -300,18 +300,20 @@ func NewOpenConnect() *OpenConnect {
 
 // Executables default values.
 var (
-	ExecutablesIP         = "ip"
-	ExecutablesNft        = "nft"
-	ExecutablesResolvectl = "resolvectl"
-	ExecutablesSysctl     = "sysctl"
+	ExecutablesIP          = "ip"
+	ExecutablesNft         = "nft"
+	ExecutablesResolvectl  = "resolvectl"
+	ExecutablesSysctl      = "sysctl"
+	ExecutablesOpenconnect = "openconnect"
 )
 
 // Executables is the executables configuration.
 type Executables struct {
-	IP         string
-	Nft        string
-	Resolvectl string
-	Sysctl     string
+	IP          string
+	Nft         string
+	Resolvectl  string
+	Sysctl      string
+	Openconnect string
 }
 
 // Copy returns a copy of the executables configuration.
@@ -326,7 +328,8 @@ func (c *Executables) Valid() bool {
 		c.IP == "" ||
 		c.Nft == "" ||
 		c.Resolvectl == "" ||
-		c.Sysctl == "" {
+		c.Sysctl == "" ||
+		c.Openconnect == "" {
 		// invalid
 		return false
 	}
@@ -337,7 +340,7 @@ func (c *Executables) Valid() bool {
 // file system and are executable.
 func (c *Executables) CheckExecutables() error {
 	for _, f := range []string{
-		c.IP, c.Nft, c.Resolvectl, c.Sysctl,
+		c.IP, c.Nft, c.Resolvectl, c.Sysctl, c.Openconnect,
 	} {
 		if _, err := exec.LookPath(f); err != nil {
 			return err
@@ -349,10 +352,11 @@ func (c *Executables) CheckExecutables() error {
 // NewExecutables returns a new Executables configuration.
 func NewExecutables() *Executables {
 	return &Executables{
-		IP:         ExecutablesIP,
-		Nft:        ExecutablesNft,
-		Resolvectl: ExecutablesResolvectl,
-		Sysctl:     ExecutablesSysctl,
+		IP:          ExecutablesIP,
+		Nft:         ExecutablesNft,
+		Resolvectl:  ExecutablesResolvectl,
+		Sysctl:      ExecutablesSysctl,
+		Openconnect: ExecutablesOpenconnect,
 	}
 }
 

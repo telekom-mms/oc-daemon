@@ -11,10 +11,11 @@ import (
 
 // executables.
 var (
-	ip         = daemoncfg.ExecutablesIP
-	sysctl     = daemoncfg.ExecutablesSysctl
-	nft        = daemoncfg.ExecutablesNft
-	resolvectl = daemoncfg.ExecutablesResolvectl
+	ip          = daemoncfg.ExecutablesIP
+	sysctl      = daemoncfg.ExecutablesSysctl
+	nft         = daemoncfg.ExecutablesNft
+	resolvectl  = daemoncfg.ExecutablesResolvectl
+	openconnect = daemoncfg.ExecutablesOpenconnect
 )
 
 // RunCmd runs the cmd with args and sets stdin to s, returns stdout and stderr.
@@ -94,4 +95,5 @@ func SetExecutables(config *daemoncfg.Executables) {
 	sysctl = config.Sysctl
 	nft = config.Nft
 	resolvectl = config.Resolvectl
+	openconnect = config.Openconnect
 }
