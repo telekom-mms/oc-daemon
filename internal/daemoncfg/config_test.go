@@ -225,7 +225,7 @@ func TestExecutablesValid(t *testing.T) {
 	// test valid
 	for _, valid := range []*Executables{
 		NewExecutables(),
-		{"/test/ip", "/test/nft", "/test/resolvectl", "/test/sysctl"},
+		{"/test/ip", "/test/nft", "/test/resolvectl", "/test/sysctl", "/test/openconnect"},
 	} {
 		if !valid.Valid() {
 			t.Errorf("config should be valid: %v", valid)
@@ -247,18 +247,20 @@ func TestExecutablesCheckExecutables(t *testing.T) {
 	nft := filepath.Join(dir, "nft")
 	resolvectl := filepath.Join(dir, "resolvectl")
 	sysctl := filepath.Join(dir, "sysctl")
+	openconnect := filepath.Join(dir, "openconnect")
 
 	// create config with executables
 	c := &Executables{
-		IP:         ip,
-		Nft:        nft,
-		Resolvectl: resolvectl,
-		Sysctl:     sysctl,
+		IP:          ip,
+		Nft:         nft,
+		Resolvectl:  resolvectl,
+		Sysctl:      sysctl,
+		Openconnect: openconnect,
 	}
 
 	// test with not all files existing, create files in the process
 	for _, f := range []string{
-		ip, nft, resolvectl, sysctl,
+		ip, nft, resolvectl, sysctl, openconnect,
 	} {
 		// test
 		if got := c.CheckExecutables(); got == nil {
@@ -280,7 +282,8 @@ func TestExecutablesCheckExecutables(t *testing.T) {
 // TestNewExecutables tests NewExecutables.
 func TestNewExecutables(t *testing.T) {
 	want := &Executables{ExecutablesIP, ExecutablesNft,
-		ExecutablesResolvectl, ExecutablesSysctl}
+		ExecutablesResolvectl, ExecutablesSysctl,
+		ExecutablesOpenconnect}
 	got := NewExecutables()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
