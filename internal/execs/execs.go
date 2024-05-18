@@ -9,10 +9,11 @@ import (
 
 // executables.
 var (
-	ip         = IP
-	sysctl     = Sysctl
-	nft        = Nft
-	resolvectl = Resolvectl
+	ip          = IP
+	sysctl      = Sysctl
+	nft         = Nft
+	resolvectl  = Resolvectl
+	openconnect = Openconnect
 )
 
 // RunCmd runs the cmd with args and sets stdin to s, returns stdout and stderr.
@@ -92,4 +93,5 @@ func SetExecutables(config *Config) {
 	sysctl = config.Sysctl
 	nft = config.Nft
 	resolvectl = config.Resolvectl
+	openconnect = config.Openconnect
 }
