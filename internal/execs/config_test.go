@@ -22,7 +22,7 @@ func TestConfigValid(t *testing.T) {
 	// test valid
 	for _, valid := range []*Config{
 		NewConfig(),
-		{"/test/ip", "/test/nft", "/test/resolvectl", "/test/sysctl"},
+		{"/test/ip", "/test/nft", "/test/resolvectl", "/test/sysctl", "/test/openconnect"},
 	} {
 		if !valid.Valid() {
 			t.Errorf("config should be valid: %v", valid)
@@ -76,7 +76,7 @@ func TestConfigCheckExecutables(t *testing.T) {
 
 // TestNewConfig tests NewConfig.
 func TestNewConfig(t *testing.T) {
-	want := &Config{IP, Nft, Resolvectl, Sysctl}
+	want := &Config{IP, Nft, Resolvectl, Sysctl, Openconnect}
 	got := NewConfig()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
