@@ -45,15 +45,19 @@ func (e *Excludes) setFilter(ctx context.Context) {
 	setExcludes(ctx, addresses)
 }
 
+// prefixFromIPNet returns ipnet as netip.Prefix.
+func prefixFromIPNet(ipnet *net.IPNet) netip.Prefix {
+	addr, _ := netip.AddrFromSlice(ipnet.IP)
+	bits, _ := ipnet.Mask.Size()
+	return netip.PrefixFrom(addr.Unmap(), bits)
+}
+
 // AddStatic adds a static entry to the split excludes.
 func (e *Excludes) AddStatic(ctx context.Context, address *net.IPNet) {
 	log.WithField("address", address).Debug("SplitRouting adding static exclude")
 
-	a, err := netip.ParsePrefix(address.String())
-	if err != nil {
-		log.WithError(err).Error("SplitRouting could not parse static exclude")
-		return
-	}
+	// convert address
+	a := prefixFromIPNet(address)
 
 	e.Lock()
 	defer e.Unlock()
@@ -98,11 +102,8 @@ func (e *Excludes) AddDynamic(ctx context.Context, address *net.IPNet, ttl uint3
 		"ttl":     ttl,
 	}).Debug("SplitRouting adding dynamic exclude")
 
-	prefix, err := netip.ParsePrefix(address.String())
-	if err != nil {
-		log.WithError(err).Error("SplitRouting could not parse dynamic exclude")
-		return
-	}
+	// convert address
+	prefix := prefixFromIPNet(address)
 	if !prefix.IsSingleIP() {
 		log.Error("SplitRouting error adding dynamic exclude with multiple IPs")
 		return
