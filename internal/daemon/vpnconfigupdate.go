@@ -15,7 +15,7 @@ type VPNConfigUpdate struct {
 // Valid returns whether the config update is valid.
 func (c *VPNConfigUpdate) Valid() bool {
 	switch c.Reason {
-	case "disconnect":
+	case "pre-init", "disconnect", "attempt-reconnect", "reconnect":
 		// config must be nil
 		if c.Config != nil {
 			return false

@@ -58,19 +58,13 @@ func run(args []string) error {
 
 	// handle reason environment variable
 	switch e.reason {
-	case "pre-init":
-		return nil
-	case "connect", "disconnect":
+	case "pre-init", "connect", "disconnect", "attempt-reconnect", "reconnect":
 		c, err := createConfigUpdate(e)
 		if err != nil {
 			return fmt.Errorf("VPNCScript could not create config update: %w", err)
 		}
 		log.WithField("update", c).Debug("VPNCScript created config update")
 		return runClient(socketFile, c)
-	case "attempt-reconnect":
-		return nil
-	case "reconnect":
-		return nil
 	default:
 		return errors.New("VPNCScript called with unknown reason")
 	}

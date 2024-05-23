@@ -46,25 +46,16 @@ func TestRun(t *testing.T) {
 
 	// test with errors
 	for _, v := range []string{
+		"pre-init",
 		"connect",
 		"disconnect",
+		"attempt-reconnect",
+		"reconnect",
 		"invalid",
 	} {
 		t.Setenv("reason", v)
 		if err := run([]string{"test"}); err == nil {
 			t.Errorf("%s: should return error", v)
-		}
-	}
-
-	// test without errors
-	for _, v := range []string{
-		"pre-init",
-		"attempt-reconnect",
-		"reconnect",
-	} {
-		t.Setenv("reason", v)
-		if err := run([]string{"test"}); err != nil {
-			t.Errorf("%s: should not return error, got: %v", v, err)
 		}
 	}
 }
