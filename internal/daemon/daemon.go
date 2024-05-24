@@ -342,12 +342,16 @@ func (d *Daemon) updateVPNConfig(request *api.Request) {
 		return
 	}
 
-	// handle config update for vpn (dis)connect
-	if configUpdate.Reason == "disconnect" {
+	// handle config update for vpn pre-init, connect, disconnect,
+	// attempt-reconnect, reconnect
+	log.WithField("reason", configUpdate.Reason).
+		Info("Daemon got OpenConnect event from VPNCScript")
+	switch configUpdate.Reason {
+	case "connect":
+		d.updateVPNConfigUp(configUpdate.Config)
+	case "disconnect":
 		d.updateVPNConfigDown()
-		return
 	}
-	d.updateVPNConfigUp(configUpdate.Config)
 }
 
 // handleClientRequest handles a client request.
