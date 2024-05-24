@@ -137,6 +137,7 @@ func (c *Connect) savePidFile() {
 	err = osWriteFile(c.config.PIDFile, []byte(pid), os.FileMode(perm))
 	if err != nil {
 		log.WithError(err).Error("OC-Runner writing pid error")
+		return
 	}
 
 	// set owner and group
