@@ -53,8 +53,11 @@ func (d *DevMon) handleLink(add bool, link netlink.Link) {
 		typ = "loopback"
 	}
 
-	// use special type for device that is actually virtual, e.g., vboxnet
-	if typ == "device" {
+	// use special type for device that is actually virtual, e.g., vboxnet.
+	// this check only works when device was added. when device was
+	// removed, the symlink does not exist anymore. thus, we cannot be sure
+	// device is really a "device" when it was removed.
+	if add && typ == "device" {
 		sysfs := filepath.Join("/sys/class/net", attrs.Name)
 		path, err := filepath.EvalSymlinks(sysfs)
 		if err != nil {

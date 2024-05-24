@@ -30,13 +30,11 @@ type TrafPol struct {
 
 // handleDeviceUpdate handles a device update.
 func (t *TrafPol) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
-	// skip physical devices and only allow virtual devices
-	if u.Type == "device" {
-		return
-	}
-
 	// add or remove virtual device to/from allowed devices
-	if u.Add {
+	// skip adding physical devices and only allow adding virtual devices.
+	// we cannot be sure about the type when removing devices, so do not
+	// skip when removing devices.
+	if u.Add && u.Type != "device" {
 		t.allowDevs.Add(ctx, u.Device)
 		return
 	}
