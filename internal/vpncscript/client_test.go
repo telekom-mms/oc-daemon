@@ -29,6 +29,7 @@ func TestRunClient(t *testing.T) {
 	if err := runClient(sockfile, &daemon.VPNConfigUpdate{}); err != nil {
 		t.Fatal(err)
 	}
+	server.Shutdown()
 	server.Stop()
 
 	// with error reply
@@ -42,6 +43,18 @@ func TestRunClient(t *testing.T) {
 	if err := server.Start(); err != nil {
 		t.Fatal(err)
 	}
+	if err := runClient(sockfile, &daemon.VPNConfigUpdate{}); err != nil {
+		t.Fatal(err)
+	}
+	server.Shutdown()
+	server.Stop()
+
+	// with "shutting down" error reply
+	server = api.NewServer(config)
+	if err := server.Start(); err != nil {
+		t.Fatal(err)
+	}
+	server.Shutdown()
 	if err := runClient(sockfile, &daemon.VPNConfigUpdate{}); err != nil {
 		t.Fatal(err)
 	}
@@ -86,5 +99,6 @@ func TestRunClient(t *testing.T) {
 			t.Errorf("length %d returned error: %v", length, err)
 		}
 	}
+	server.Shutdown()
 	server.Stop()
 }

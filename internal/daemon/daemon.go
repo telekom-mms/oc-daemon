@@ -671,11 +671,12 @@ func (d *Daemon) start() {
 	defer d.stopTrafPol()
 	defer d.stopTND()
 	defer d.vpnsetup.Stop()
+	defer d.server.Stop()
 	defer d.handleRunnerDisconnect() // clean up vpn config
 	defer d.runner.Stop()
-	defer d.server.Stop()
 	defer d.dbus.Stop()
 	defer d.profmon.Stop()
+	defer d.server.Shutdown()
 
 	// run main loop
 	for {
