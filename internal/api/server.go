@@ -12,11 +12,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	// ServerShuttingDown is the error reply to client requests when the
+	// API server is shutting down.
+	ServerShuttingDown = "server is shutting down"
+)
+
 // Server is a Daemon API server.
 type Server struct {
 	config   *Config
 	listen   net.Listener
 	requests chan *Request
+	shutdown chan struct{}
 	done     chan struct{}
 	closed   chan struct{}
 }
@@ -29,6 +36,17 @@ func (s *Server) isStopping() bool {
 	default:
 		return false
 	}
+}
+
+// sendShuttingDownError sends the "shutting down" error to the client and
+// closes the connection.
+func (s *Server) sendShuttingDownError(conn net.Conn) {
+	// tell client server is not accepting connections anymore
+	e := NewError([]byte(ServerShuttingDown))
+	if err := WriteMessage(conn, e); err != nil {
+		log.WithError(err).Error("Daemon message send error")
+	}
+	_ = conn.Close()
 }
 
 // handleRequest handles a request from the client.
@@ -68,7 +86,10 @@ func (s *Server) handleRequest(conn net.Conn) {
 		msg:  msg,
 		conn: conn,
 	}:
+	case <-s.shutdown:
+		s.sendShuttingDownError(conn)
 	case <-s.done:
+		s.sendShuttingDownError(conn)
 	}
 }
 
@@ -205,6 +226,13 @@ func (s *Server) Stop() {
 	<-s.closed
 }
 
+// Shutdown stops accepting client requests in the API server. This is called
+// before Stop to tell clients the server is shutting down. Client requests
+// should not be read from the requests channel after calling this.
+func (s *Server) Shutdown() {
+	close(s.shutdown)
+}
+
 // Requests returns the clients channel.
 func (s *Server) Requests() chan *Request {
 	return s.requests
@@ -215,6 +243,7 @@ func NewServer(config *Config) *Server {
 	return &Server{
 		config:   config,
 		requests: make(chan *Request),
+		shutdown: make(chan struct{}),
 		done:     make(chan struct{}),
 		closed:   make(chan struct{}),
 	}

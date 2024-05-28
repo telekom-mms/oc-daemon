@@ -54,6 +54,25 @@ func TestServerHandleRequest(t *testing.T) {
 	if req.conn != c1 {
 		t.Errorf("got %p, want %p", req.conn, c1)
 	}
+
+	// valid request during shutdown
+	server.Shutdown()
+	c1, c2 = net.Pipe()
+	go server.handleRequest(c1)
+
+	msg = &Message{Header: Header{Type: TypeVPNConfigUpdate}}
+	if err := WriteMessage(c2, msg); err != nil {
+		t.Fatal(err)
+	}
+
+	msg, err := ReadMessage(c2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if msg.Header.Type != TypeError || string(msg.Value) != ServerShuttingDown {
+		t.Error("unexpected reply")
+	}
 }
 
 // TestServerSetSocketOwner tests setSocketOwner of Server.
@@ -118,6 +137,7 @@ func TestServerStartStop(t *testing.T) {
 	if err := server.Start(); err != nil {
 		t.Error(err)
 	}
+	server.Shutdown()
 	server.Stop()
 }
 
@@ -138,6 +158,7 @@ func TestNewServer(t *testing.T) {
 
 	if server == nil ||
 		server.requests == nil ||
+		server.shutdown == nil ||
 		server.done == nil ||
 		server.closed == nil {
 		t.Errorf("got nil, want != nil")

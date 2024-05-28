@@ -44,8 +44,12 @@ func runClient(socketFile string, configUpdate *daemon.VPNConfigUpdate) error {
 		log.WithField("reply", reply.Value).
 			Debug("VPNCScript received OK reply from Daemon")
 	case api.TypeError:
-		log.WithField("error", string(reply.Value)).
-			Error("VPNCScript received error reply from Daemon")
+		e := string(reply.Value)
+		if e == api.ServerShuttingDown {
+			// skip logging error when server is shutting down
+			return nil
+		}
+		log.WithField("error", e).Error("VPNCScript received error reply from Daemon")
 	}
 	return nil
 }
