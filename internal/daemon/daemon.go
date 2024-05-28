@@ -668,6 +668,7 @@ func (d *Daemon) checkTrafPol() error {
 func (d *Daemon) start() {
 	defer close(d.closed)
 	defer d.sleepmon.Stop()
+	defer d.profmon.Stop()
 	defer d.stopTrafPol()
 	defer d.stopTND()
 	defer d.vpnsetup.Stop()
@@ -675,7 +676,6 @@ func (d *Daemon) start() {
 	defer d.handleRunnerDisconnect() // clean up vpn config
 	defer d.runner.Stop()
 	defer d.dbus.Stop()
-	defer d.profmon.Stop()
 	defer d.server.Shutdown()
 
 	// run main loop
@@ -737,14 +737,23 @@ func (d *Daemon) Start() error {
 		return fmt.Errorf("Daemon could not start sleep monitor: %w", err)
 	}
 
+	// start xml profile monitor
+	err := d.profmon.Start()
+	if err != nil {
+		err = fmt.Errorf("Daemon could not start ProfileMon: %w", err)
+		goto cleanup_profmon
+	}
+
 	// start traffic policing
-	if err := d.checkTrafPol(); err != nil {
-		return err
+	err = d.checkTrafPol()
+	if err != nil {
+		goto cleanup_trafpol
 	}
 
 	// start TND
-	if err := d.checkTND(); err != nil {
-		return err
+	err = d.checkTND()
+	if err != nil {
+		goto cleanup_tnd
 	}
 
 	// start VPN setup
@@ -754,7 +763,7 @@ func (d *Daemon) Start() error {
 	d.runner.Start()
 
 	// start unix server
-	err := d.server.Start()
+	err = d.server.Start()
 	if err != nil {
 		err = fmt.Errorf("Daemon could not start Socket API server: %w", err)
 		goto cleanup_unix
@@ -767,13 +776,6 @@ func (d *Daemon) Start() error {
 		goto cleanup_dbus
 	}
 
-	// start xml profile monitor
-	err = d.profmon.Start()
-	if err != nil {
-		err = fmt.Errorf("Daemon could not start ProfileMon: %w", err)
-		goto cleanup_profmon
-	}
-
 	// set initial status
 	d.setStatusTrustedNetwork(false)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
@@ -784,15 +786,17 @@ func (d *Daemon) Start() error {
 	return nil
 
 	// clean up after error
-cleanup_profmon:
-	d.dbus.Stop()
 cleanup_dbus:
 	d.server.Stop()
 cleanup_unix:
 	d.runner.Stop()
 	d.vpnsetup.Stop()
 	d.stopTND()
+cleanup_tnd:
 	d.stopTrafPol()
+cleanup_trafpol:
+	d.profmon.Stop()
+cleanup_profmon:
 	d.sleepmon.Stop()
 
 	return err
