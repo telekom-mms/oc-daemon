@@ -9,6 +9,7 @@ import (
 	"os/user"
 	"strconv"
 	"strings"
+	"syscall"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
@@ -186,6 +187,10 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 	}
 	parameters = append(parameters, c.config.ExtraArgs...)
 	c.command = execCommand(c.config.OpenConnect, parameters...)
+
+	// run command in own process group so it is not canceled by interrupt
+	// signal sent to daemon
+	c.command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	// run command, pass login info to stdin
 	b := bytes.NewBufferString(e.login.Cookie)

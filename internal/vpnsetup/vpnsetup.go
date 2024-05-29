@@ -25,17 +25,7 @@ const (
 type command struct {
 	cmd     uint8
 	vpnconf *vpnconfig.Config
-}
-
-// Event types.
-const (
-	EventSetupOK uint8 = iota
-	EventTeardownOK
-)
-
-// Event is a VPNSetup event.
-type Event struct {
-	Type uint8
+	done    chan struct{}
 }
 
 // VPNSetup sets up the configuration of the vpn tunnel that belongs to the
@@ -51,17 +41,8 @@ type VPNSetup struct {
 	ensureClosed chan struct{}
 
 	cmds   chan *command
-	events chan *Event
 	done   chan struct{}
 	closed chan struct{}
-}
-
-// sendEvents sends the event.
-func (v *VPNSetup) sendEvent(event *Event) {
-	select {
-	case v.events <- event:
-	case <-v.done:
-	}
 }
 
 // setupVPNDevice sets up the vpn device with config.
@@ -437,9 +418,6 @@ func (v *VPNSetup) setup(ctx context.Context, vpnconf *vpnconfig.Config) {
 
 	// ensure VPN config
 	v.startEnsure(ctx, vpnconf)
-
-	// signal setup complete
-	v.sendEvent(&Event{EventSetupOK})
 }
 
 // teardown tears down the vpn configuration.
@@ -451,13 +429,12 @@ func (v *VPNSetup) teardown(ctx context.Context, vpnconf *vpnconfig.Config) {
 	teardownVPNDevice(ctx, vpnconf)
 	v.teardownRouting()
 	v.teardownDNS(ctx, vpnconf)
-
-	// signal teardown complete
-	v.sendEvent(&Event{EventTeardownOK})
 }
 
 // handleCommand handles a command.
 func (v *VPNSetup) handleCommand(ctx context.Context, c *command) {
+	defer close(c.done)
+
 	switch c.cmd {
 	case commandSetup:
 		v.setup(ctx, c.vpnconf)
@@ -486,7 +463,6 @@ func (v *VPNSetup) handleDNSReport(r *dnsproxy.Report) {
 // start starts the VPN setup.
 func (v *VPNSetup) start() {
 	defer close(v.closed)
-	defer close(v.events)
 
 	// create context
 	ctx := context.Background()
@@ -520,23 +496,24 @@ func (v *VPNSetup) Stop() {
 
 // Setup sets the VPN config up.
 func (v *VPNSetup) Setup(vpnconfig *vpnconfig.Config) {
-	v.cmds <- &command{
+	c := &command{
 		cmd:     commandSetup,
 		vpnconf: vpnconfig,
+		done:    make(chan struct{}),
 	}
+	v.cmds <- c
+	<-c.done
 }
 
 // Teardown tears the VPN config down.
 func (v *VPNSetup) Teardown(vpnconfig *vpnconfig.Config) {
-	v.cmds <- &command{
+	c := &command{
 		cmd:     commandTeardown,
 		vpnconf: vpnconfig,
+		done:    make(chan struct{}),
 	}
-}
-
-// Events returns the events channel.
-func (v *VPNSetup) Events() chan *Event {
-	return v.events
+	v.cmds <- c
+	<-c.done
 }
 
 // NewVPNSetup returns a new VPNSetup.
@@ -550,7 +527,6 @@ func NewVPNSetup(
 		splitrtConf:  splitrtConfig,
 
 		cmds:   make(chan *command),
-		events: make(chan *Event),
 		done:   make(chan struct{}),
 		closed: make(chan struct{}),
 	}
