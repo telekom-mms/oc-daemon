@@ -8,6 +8,7 @@ Type=dbus
 BusName=com.telekom_mms.oc_daemon.Daemon
 Restart=on-failure
 ExecStart=/usr/bin/oc-daemon
+KillMode=mixed
 KillSignal=SIGINT
 
 [Install]
