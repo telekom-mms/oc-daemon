@@ -357,9 +357,8 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	v.Start()
 	vpnconf := vpnconfig.New()
 
-	// setup config and wait for setup event
+	// setup config
 	v.Setup(vpnconf)
-	<-v.Events()
 
 	// send dns report while config is active
 	report := dnsproxy.NewReport("example.com", nil, 300)
@@ -368,25 +367,14 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	// wait long enough for ensure timer
 	time.Sleep(time.Second * 2)
 
-	// teardown config, wait for teardown event
+	// teardown config
 	v.Teardown(vpnconf)
-	<-v.Events()
 
 	// send dns report while config is not active
 	v.dnsProxy.Reports() <- dnsproxy.NewReport("example.com", nil, 300)
 
 	// stop vpn setup
 	v.Stop()
-}
-
-// TestVPNSetupEvents tests Events of VPNSetup.
-func TestVPNSetupEvents(t *testing.T) {
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
-	want := v.events
-	got := v.Events()
-	if got != want {
-		t.Errorf("got %p, want %p", got, want)
-	}
 }
 
 // TestNewVPNSetup tests NewVPNSetup.
@@ -399,7 +387,6 @@ func TestNewVPNSetup(t *testing.T) {
 		v.dnsProxyConf != dnsConfig ||
 		v.splitrtConf != splitrtConfig ||
 		v.cmds == nil ||
-		v.events == nil ||
 		v.done == nil ||
 		v.closed == nil {
 		t.Errorf("invalid vpn setup")

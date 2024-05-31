@@ -289,6 +289,10 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	}
 	d.setStatusIP(ip)
 	d.setStatusDevice(config.Device.Name)
+
+	d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
+	d.setStatusConnectedAt(time.Now().Unix())
+	log.Info("Daemon configured VPN connection")
 }
 
 // updateVPNConfigDown updates the VPN config for VPN disconnect.
@@ -323,6 +327,8 @@ func (d *Daemon) updateVPNConfigDown() {
 	d.setStatusConnectedAt(0)
 	d.setStatusIP("")
 	d.setStatusDevice("")
+
+	log.Info("Daemon unconfigured VPN connection")
 }
 
 // updateVPNConfig updates the VPN config with config update in client request.
@@ -445,18 +451,6 @@ func (d *Daemon) handleRunnerEvent(e *ocrunner.ConnectEvent) {
 
 	// clean up after disconnect
 	d.handleRunnerDisconnect()
-}
-
-// handleVPNSetupEvent handles a VPN setup event.
-func (d *Daemon) handleVPNSetupEvent(event *vpnsetup.Event) {
-	switch event.Type {
-	case vpnsetup.EventSetupOK:
-		d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
-		d.setStatusConnectedAt(time.Now().Unix())
-		log.Info("Daemon configured VPN connection")
-	case vpnsetup.EventTeardownOK:
-		log.Info("Daemon unconfigured VPN connection")
-	}
 }
 
 // handleSleepMonEvent handles a suspend/resume event from SleepMon.
@@ -673,8 +667,8 @@ func (d *Daemon) start() {
 	defer d.stopTND()
 	defer d.vpnsetup.Stop()
 	defer d.server.Stop()
-	defer d.handleRunnerDisconnect() // clean up vpn config
 	defer d.runner.Stop()
+	defer d.handleRunnerDisconnect() // clean up vpn config
 	defer d.dbus.Stop()
 	defer d.server.Shutdown()
 
@@ -696,9 +690,6 @@ func (d *Daemon) start() {
 
 		case e := <-d.runner.Events():
 			d.handleRunnerEvent(e)
-
-		case e := <-d.vpnsetup.Events():
-			d.handleVPNSetupEvent(e)
 
 		case e := <-d.sleepmon.Events():
 			d.handleSleepMonEvent(e)
