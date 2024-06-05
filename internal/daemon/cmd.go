@@ -125,6 +125,7 @@ func run(args []string) error {
 	var err error
 	select {
 	case <-c:
+		log.Info("Daemon got interrupt signal")
 	case err = <-daemon.Errors():
 	}
 
