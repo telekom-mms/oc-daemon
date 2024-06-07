@@ -459,6 +459,7 @@ func (d *Daemon) handleSleepMonEvent(sleep bool) {
 
 	// disconnect vpn on resume
 	if !sleep && d.status.OCRunning.Running() {
+		log.Info("Daemon resuming after sleep, disconnecting")
 		d.disconnectVPN()
 	}
 }
@@ -476,7 +477,7 @@ func readXMLProfile(xmlProfile string) *xmlprofile.Profile {
 
 // handleProfileUpdate handles a xml profile update.
 func (d *Daemon) handleProfileUpdate() error {
-	log.Debug("Daemon handling XML profile update")
+	log.Info("Daemon got XML profile update")
 	d.profile = readXMLProfile(d.config.OpenConnect.XMLProfile)
 	d.stopTND()
 	d.stopTrafPol()
@@ -673,6 +674,7 @@ func (d *Daemon) start() {
 	defer d.server.Shutdown()
 
 	// run main loop
+	log.Info("Daemon started")
 	for {
 		select {
 		case req := <-d.server.Requests():
@@ -702,6 +704,7 @@ func (d *Daemon) start() {
 			}
 
 		case <-d.done:
+			log.Info("Daemon stopping")
 			return
 		}
 	}
