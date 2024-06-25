@@ -4,6 +4,7 @@ package trafpol
 import (
 	"context"
 	"fmt"
+	"net"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
@@ -21,8 +22,14 @@ type TrafPol struct {
 	// capPortal indicates if a captive portal is detected
 	capPortal bool
 
+	// allowed devices, addresses, names
 	allowDevs  *AllowDevs
-	allowHosts *AllowHosts
+	allowAddrs map[string]*net.IPNet
+	allowNames map[string][]net.IP
+
+	// resolver for allowed names, channel for resolver updates
+	resolver *Resolver
+	resolvUp chan *ResolvedName
 
 	loopDone chan struct{}
 	done     chan struct{}
@@ -43,8 +50,8 @@ func (t *TrafPol) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
 
 // handleDNSUpdate handles a dns config update.
 func (t *TrafPol) handleDNSUpdate() {
-	// update allowed hosts
-	t.allowHosts.Update()
+	// update allowed names
+	t.resolver.Resolve()
 
 	// triger captive portal detection
 	t.cpd.Probe()
@@ -58,7 +65,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 		if t.capPortal {
 			// refresh all IPs, maybe they pointed to a
 			// portal host in case of dns-based portals
-			t.allowHosts.Update()
+			t.resolver.Resolve()
 
 			// remove ports from allowed ports
 			removePortalPorts(ctx, t.config.PortalPorts)
@@ -76,11 +83,52 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 	}
 }
 
+// getAllowedHostsIPs returns the IPs of the allowed hosts,
+// used for filter rules
+func (t *TrafPol) getAllowedHostsIPs() []*net.IPNet {
+	// get a list of all unique ip addresses from
+	// - allowed names
+	// - allowed addrs
+	ipset := make(map[string]*net.IPNet)
+	for _, n := range t.allowNames {
+		for _, ip := range n {
+			ipnet := &net.IPNet{
+				IP:   ip,
+				Mask: net.CIDRMask(32, 32),
+			}
+			if ip.To4() == nil {
+				ipnet.Mask = net.CIDRMask(128, 128)
+			}
+			ipset[ipnet.String()] = ipnet
+		}
+	}
+	for _, a := range t.allowAddrs {
+		ipset[a.String()] = a
+	}
+
+	// get resulting list of IPs
+	ips := []*net.IPNet{}
+	for _, ip := range ipset {
+		ips = append(ips, ip)
+	}
+
+	return ips
+}
+
+// handleResolverUpdate handles a resolver update.
+func (t *TrafPol) handleResolverUpdate(ctx context.Context, update *ResolvedName) {
+	// update allowed names
+	t.allowNames[update.Name] = update.IPs
+
+	// set new filter rules
+	setAllowedIPs(ctx, t.getAllowedHostsIPs())
+}
+
 // start starts the traffic policing component.
 func (t *TrafPol) start(ctx context.Context) {
 	defer close(t.loopDone)
 	defer unsetFilterRules(ctx)
-	defer t.allowHosts.Stop()
+	defer t.resolver.Stop()
 	defer t.cpd.Stop()
 	defer t.devmon.Stop()
 	defer t.dnsmon.Stop()
@@ -103,6 +151,11 @@ func (t *TrafPol) start(ctx context.Context) {
 			log.WithField("result", r).Debug("TrafPol got CPD result")
 			t.handleCPDReport(ctx, r)
 
+		case u := <-t.resolvUp:
+			// Resolver Update
+			log.WithField("update", u).Debug("TrafPol got Resolver update")
+			t.handleResolverUpdate(ctx, u)
+
 		case <-t.done:
 			// shutdown
 			return
@@ -120,13 +173,11 @@ func (t *TrafPol) Start() error {
 	// set firewall config
 	setFilterRules(ctx, t.config.FirewallMark)
 
-	// add CPD hosts to allowed hosts
-	for _, h := range t.cpd.Hosts() {
-		t.allowHosts.Add(h)
-	}
+	// set filter rules
+	setAllowedIPs(ctx, t.getAllowedHostsIPs())
 
-	// start allowed hosts
-	t.allowHosts.Start()
+	// start resolver for allowed names
+	t.resolver.Start()
 
 	// start captive portal detection
 	t.cpd.Start()
@@ -153,7 +204,7 @@ cleanup_dnsmon:
 	t.devmon.Stop()
 cleanup_devmon:
 	t.cpd.Stop()
-	t.allowHosts.Stop()
+	t.resolver.Stop()
 	unsetFilterRules(ctx)
 
 	return err
@@ -168,20 +219,68 @@ func (t *TrafPol) Stop() {
 	log.Debug("TrafPol stopped")
 }
 
+// parseAllowedHosts parses the allowed hosts and returns IP addresses and DNS names
+func parseAllowedHosts(hosts []string) (addrs []*net.IPNet, names []string) {
+	for _, h := range hosts {
+		// check if it's an IP address
+		if ip := net.ParseIP(h); ip != nil {
+			ipnet := &net.IPNet{
+				IP:   ip,
+				Mask: net.CIDRMask(32, 32),
+			}
+			if ip.To4() == nil {
+				ipnet.Mask = net.CIDRMask(128, 128)
+			}
+			addrs = append(addrs, ipnet)
+			continue
+		}
+		// check if it's an IP network
+		if _, ipnet, err := net.ParseCIDR(h); err == nil {
+			addrs = append(addrs, ipnet)
+			continue
+		}
+
+		// assume dns name
+		names = append(names, h)
+	}
+	return
+}
+
 // NewTrafPol returns a new traffic policing component.
 func NewTrafPol(config *Config) *TrafPol {
-	allowHosts := NewAllowHosts(config)
-	for _, h := range config.AllowedHosts {
-		allowHosts.Add(h)
+	// create cpd
+	c := cpd.NewCPD(cpd.NewConfig())
+
+	// get allowed addrs and names
+	hosts := append(config.AllowedHosts, c.Hosts()...)
+	a, n := parseAllowedHosts(hosts)
+
+	// create allowed addrs and names
+	addrs := make(map[string]*net.IPNet)
+	names := make(map[string][]net.IP)
+	for _, addr := range a {
+		addrs[addr.String()] = addr
 	}
+	for _, name := range n {
+		names[name] = []net.IP{}
+	}
+
+	// create channel for resolver updates
+	resolvUp := make(chan *ResolvedName)
+
+	// return trafpol
 	return &TrafPol{
 		config: config,
 		devmon: devmon.NewDevMon(),
 		dnsmon: dnsmon.NewDNSMon(dnsmon.NewConfig()),
-		cpd:    cpd.NewCPD(cpd.NewConfig()),
+		cpd:    c,
 
-		allowDevs:  NewAllowDevs(),
-		allowHosts: allowHosts,
+		allowDevs: NewAllowDevs(),
+
+		allowAddrs: addrs,
+		allowNames: names,
+		resolver:   NewResolver(config, n, resolvUp),
+		resolvUp:   resolvUp,
 
 		loopDone: make(chan struct{}),
 		done:     make(chan struct{}),
