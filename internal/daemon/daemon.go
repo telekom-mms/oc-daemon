@@ -7,6 +7,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -62,6 +63,9 @@ type Daemon struct {
 	// disableTrafPol determines if traffic policing should be disabled,
 	// overrides other traffic policing settings
 	disableTrafPol bool
+
+	// serverIP is the IP address of the current VPN server
+	serverIP net.IP
 }
 
 // setStatusTrustedNetwork sets the trusted network status in status.
@@ -223,6 +227,16 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	d.setStatusOCRunning(true)
 	d.setStatusServer(login.Server)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
+
+	// add address to allowed addrs in trafpol
+	if d.trafpol != nil {
+		if ip := net.ParseIP(strings.Trim(login.Host, "[]")); ip != nil {
+			log.WithField("ip", ip).Info("adding server ip to allowed addrs in trafpol")
+			if ok := d.trafpol.AddAllowedAddr(ip); ok {
+				d.serverIP = ip
+			}
+		}
+	}
 
 	// connect using runner
 	env := []string{
@@ -437,6 +451,12 @@ func (d *Daemon) handleRunnerDisconnect() {
 
 	// make sure the vpn config is not active any more
 	d.updateVPNConfigDown()
+
+	// remove server ip from allowed addrs
+	if d.trafpol != nil && d.serverIP != nil {
+		log.WithField("ip", d.serverIP).Info("removing server ip from allowed addrs in trafpol")
+		d.trafpol.RemoveAllowedAddr(d.serverIP)
+	}
 }
 
 // handleRunnerEvent handles a connect event from the OC runner.
