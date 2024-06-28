@@ -12,6 +12,14 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/dnsmon"
 )
 
+// trafPolAddrCmd is a TrafPol address command.
+type trafPolAddrCmd struct {
+	add  bool
+	ip   net.IP
+	ok   bool
+	done chan struct{}
+}
+
 // TrafPol is a traffic policing component.
 type TrafPol struct {
 	config *Config
@@ -30,6 +38,9 @@ type TrafPol struct {
 	// resolver for allowed names, channel for resolver updates
 	resolver *Resolver
 	resolvUp chan *ResolvedName
+
+	// address commands channel
+	cmds chan *trafPolAddrCmd
 
 	loopDone chan struct{}
 	done     chan struct{}
@@ -124,6 +135,39 @@ func (t *TrafPol) handleResolverUpdate(ctx context.Context, update *ResolvedName
 	setAllowedIPs(ctx, t.getAllowedHostsIPs())
 }
 
+// handleAddressCommand handles an address command.
+func (t *TrafPol) handleAddressCommand(ctx context.Context, cmd *trafPolAddrCmd) {
+	defer close(cmd.done)
+
+	// convert to ipnet
+	ipnet := &net.IPNet{IP: cmd.ip, Mask: net.CIDRMask(32, 32)}
+	if cmd.ip.To4() == nil {
+		ipnet.Mask = net.CIDRMask(128, 128)
+	}
+
+	// update allowed addrs
+	s := ipnet.String()
+	if cmd.add {
+		if _, ok := t.allowAddrs[s]; ok {
+			// ip already in allowed addrs
+			return
+		}
+		t.allowAddrs[s] = ipnet
+	} else {
+		if _, ok := t.allowAddrs[s]; !ok {
+			// ip not in allowed addrs
+			return
+		}
+		delete(t.allowAddrs, s)
+	}
+
+	// set new filter rules
+	setAllowedIPs(ctx, t.getAllowedHostsIPs())
+
+	// added/removed successfully
+	cmd.ok = true
+}
+
 // start starts the traffic policing component.
 func (t *TrafPol) start(ctx context.Context) {
 	defer close(t.loopDone)
@@ -155,6 +199,11 @@ func (t *TrafPol) start(ctx context.Context) {
 			// Resolver Update
 			log.WithField("update", u).Debug("TrafPol got Resolver update")
 			t.handleResolverUpdate(ctx, u)
+
+		case c := <-t.cmds:
+			// Address Command
+			log.WithField("command", c).Debug("TrafPol got address command")
+			t.handleAddressCommand(ctx, c)
 
 		case <-t.done:
 			// shutdown
@@ -219,6 +268,37 @@ func (t *TrafPol) Stop() {
 	log.Debug("TrafPol stopped")
 }
 
+// AddAllowedAddr adds addr to the allowed addresses.
+func (t *TrafPol) AddAllowedAddr(addr net.IP) (ok bool) {
+	log.WithField("addr", addr).
+		Debug("TrafPol adding IP to allowed addresses")
+
+	c := &trafPolAddrCmd{
+		add:  true,
+		ip:   addr,
+		done: make(chan struct{}),
+	}
+	t.cmds <- c
+	<-c.done
+
+	return c.ok
+}
+
+// RemoveAllowedAddr removes addr from the allowed addresses.
+func (t *TrafPol) RemoveAllowedAddr(addr net.IP) (ok bool) {
+	log.WithField("addr", addr).
+		Debug("TrafPol removing IP from allowed addresses")
+
+	c := &trafPolAddrCmd{
+		ip:   addr,
+		done: make(chan struct{}),
+	}
+	t.cmds <- c
+	<-c.done
+
+	return c.ok
+}
+
 // parseAllowedHosts parses the allowed hosts and returns IP addresses and DNS names
 func parseAllowedHosts(hosts []string) (addrs []*net.IPNet, names []string) {
 	for _, h := range hosts {
@@ -281,6 +361,8 @@ func NewTrafPol(config *Config) *TrafPol {
 		allowNames: names,
 		resolver:   NewResolver(config, n, resolvUp),
 		resolvUp:   resolvUp,
+
+		cmds: make(chan *trafPolAddrCmd),
 
 		loopDone: make(chan struct{}),
 		done:     make(chan struct{}),
