@@ -307,6 +307,21 @@ func TestDBusClientAuthenticate(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
+
+	// test cookie with spaces
+	want = &logininfo.LoginInfo{
+		Cookie: "Test cookie with spaces!",
+	}
+	execCommand = func(string, ...string) *exec.Cmd {
+		return exec.Command("echo", "COOKIE='Test cookie with spaces!'")
+	}
+	if err := client.Authenticate(); err != nil {
+		t.Errorf("authenticate returned error: %v", err)
+	}
+	got = client.GetLogin()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
 }
 
 // TestDBusClientConnect tests Connect of DBusClient.
