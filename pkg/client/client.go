@@ -2,11 +2,11 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
 
 	"github.com/godbus/dbus/v5"
@@ -478,10 +478,11 @@ var authenticate = func(d *DBusClient) error {
 	// FINGERPRINT=469bb424ec8835944d30bc77c77e8fc1d8e23a42
 	// RESOLVE='vpnserver.example.com:10.0.0.1'
 	//
-	s := b.String()
 	login := &logininfo.LoginInfo{}
 	login.Server = config.VPNServer
-	for _, line := range strings.Fields(s) {
+	scanner := bufio.NewScanner(&b)
+	for scanner.Scan() {
+		line := scanner.Text()
 		login.ParseLine(line)
 	}
 	d.SetLogin(login)
