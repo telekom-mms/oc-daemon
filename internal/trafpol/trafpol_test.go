@@ -180,6 +180,65 @@ func TestTrafPolStartStop(t *testing.T) {
 	tp.Stop()
 }
 
+// TestTrafPolAddRemoveAllowedAddr tests AddAllowedAddr and RemoveAllowedAddr of Trafpol.
+func TestTrafPolAddRemoveAllowedAddr(t *testing.T) {
+	// set dummy low level function for devmon
+	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
+	}
+	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
+
+	tp := NewTrafPol(NewConfig())
+	if err := tp.Start(); err != nil {
+		t.Fatal(err)
+	}
+
+	// add ipv4 address
+	_, ipnet, _ := net.ParseCIDR("192.168.1.1/32")
+	if ok := tp.AddAllowedAddr(ipnet.IP); !ok {
+		t.Errorf("address not added")
+	}
+
+	want := ipnet.String()
+	got := tp.allowAddrs[ipnet.String()].String()
+	if got != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
+
+	// add ipv4 address again
+	if ok := tp.AddAllowedAddr(ipnet.IP); ok {
+		t.Errorf("existing address should not be added again")
+	}
+
+	// remove ipv4 address
+	if ok := tp.RemoveAllowedAddr(ipnet.IP); !ok {
+		t.Errorf("address not removed")
+	}
+
+	want = "<nil>"
+	got = tp.allowAddrs[ipnet.String()].String()
+	if got != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
+
+	// remove ipv4 address again
+	if ok := tp.RemoveAllowedAddr(ipnet.IP); ok {
+		t.Errorf("not existing address should not be removed")
+	}
+
+	// add/remove ipv6 address
+	ip := net.ParseIP("2001:DB8:1::1")
+	if ok := tp.AddAllowedAddr(ip); !ok {
+		t.Errorf("address not added")
+	}
+	if ok := tp.RemoveAllowedAddr(ip); !ok {
+		t.Errorf("address not removed")
+	}
+
+	tp.Stop()
+}
+
 // TestNewTrafPol tests NewTrafPol.
 func TestNewTrafPol(t *testing.T) {
 	c := NewConfig()
@@ -197,6 +256,7 @@ func TestNewTrafPol(t *testing.T) {
 		tp.allowNames == nil ||
 		tp.resolver == nil ||
 		tp.resolvUp == nil ||
+		tp.cmds == nil ||
 		tp.loopDone == nil ||
 		tp.done == nil {
 
