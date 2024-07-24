@@ -166,6 +166,7 @@ func printStatus(status *vpnstatus.Status) error {
 	fmt.Printf("IP:               %s\n", status.IP)
 	fmt.Printf("Device:           %s\n", status.Device)
 	fmt.Printf("Current Server:   %s\n", status.Server)
+	fmt.Printf("Server IP:        %s\n", status.ServerIP)
 
 	if status.ConnectedAt <= 0 {
 		fmt.Printf("Connected At:\n")

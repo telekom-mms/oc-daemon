@@ -27,6 +27,7 @@ const (
 	PropertyIP              = "IP"
 	PropertyDevice          = "Device"
 	PropertyServer          = "Server"
+	PropertyServerIP        = "ServerIP"
 	PropertyConnectedAt     = "ConnectedAt"
 	PropertyServers         = "Servers"
 	PropertyOCRunning       = "OCRunning"
@@ -62,6 +63,11 @@ const (
 // Property "Server" values.
 const (
 	ServerInvalid = ""
+)
+
+// Property "ServerIP" values.
+const (
+	ServerIPInvalid = ""
 )
 
 // Property "Connected At" values.
@@ -224,6 +230,7 @@ func (s *Service) start() {
 		s.props.SetMust(Interface, PropertyIP, IPInvalid)
 		s.props.SetMust(Interface, PropertyDevice, DeviceInvalid)
 		s.props.SetMust(Interface, PropertyServer, ServerInvalid)
+		s.props.SetMust(Interface, PropertyServerIP, ServerIPInvalid)
 		s.props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
 		s.props.SetMust(Interface, PropertyServers, ServersInvalid)
 		s.props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)
@@ -309,6 +316,12 @@ func (s *Service) Start() error {
 			},
 			PropertyServer: {
 				Value:    ServerInvalid,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
+			PropertyServerIP: {
+				Value:    ServerIPInvalid,
 				Writable: false,
 				Emit:     prop.EmitTrue,
 				Callback: nil,

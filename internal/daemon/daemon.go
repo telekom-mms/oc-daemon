@@ -144,6 +144,19 @@ func (d *Daemon) setStatusServer(server string) {
 	d.dbus.SetProperty(dbusapi.PropertyServer, server)
 }
 
+// setStatusServerIP sets the current server IP in status.
+func (d *Daemon) setStatusServerIP(serverIP string) {
+	if d.status.ServerIP == serverIP {
+		// connected server IP not changed
+		return
+	}
+
+	// connected server IP changed
+	log.WithField("ServerIP", serverIP).Info("Daemon changed Server IP status")
+	d.status.ServerIP = serverIP
+	d.dbus.SetProperty(dbusapi.PropertyServerIP, serverIP)
+}
+
 // setStatusConnectedAt sets the connection time in status.
 func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
 	if d.status.ConnectedAt == connectedAt {
@@ -227,13 +240,16 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 		return
 	}
 
+	// set server address
+	d.serverIP = net.ParseIP(strings.Trim(login.Host, "[]"))
+
 	// update status
 	d.setStatusOCRunning(true)
 	d.setStatusServer(login.Server)
+	d.setStatusServerIP(d.serverIP.String())
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
 
-	// set server address and add it to allowed addrs in trafpol
-	d.serverIP = net.ParseIP(strings.Trim(login.Host, "[]"))
+	// add server address to allowed addrs in trafpol
 	if d.trafpol != nil && d.serverIP != nil {
 		d.serverIPAllowed = d.trafpol.AddAllowedAddr(d.serverIP)
 	}
@@ -338,6 +354,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	d.setStatusVPNConfig(nil)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusServer("")
+	d.setStatusServerIP("")
 	d.setStatusConnectedAt(0)
 	d.setStatusIP("")
 	d.setStatusDevice("")
@@ -447,6 +464,7 @@ func (d *Daemon) handleRunnerDisconnect() {
 	d.setStatusOCRunning(false)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusServer("")
+	d.setStatusServerIP("")
 	d.setStatusConnectedAt(0)
 
 	// make sure the vpn config is not active any more

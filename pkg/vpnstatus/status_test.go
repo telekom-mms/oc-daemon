@@ -131,6 +131,7 @@ func TestStatusCopy(t *testing.T) {
 			ConnectionState: ConnectionStateConnected,
 			IP:              "192.168.1.1",
 			Server:          "test server 1",
+			ServerIP:        "10.0.0.1",
 			ConnectedAt:     1700000000,
 			Servers:         []string{"test server 1", "test server 2"},
 			OCRunning:       OCRunningRunning,

@@ -104,6 +104,7 @@ type Status struct {
 	IP              string
 	Device          string
 	Server          string
+	ServerIP        string
 	ConnectedAt     int64
 	Servers         []string
 	OCRunning       OCRunning
@@ -121,6 +122,7 @@ func (s *Status) Copy() *Status {
 		IP:              s.IP,
 		Device:          s.Device,
 		Server:          s.Server,
+		ServerIP:        s.ServerIP,
 		ConnectedAt:     s.ConnectedAt,
 		Servers:         append(s.Servers[:0:0], s.Servers...),
 		OCRunning:       s.OCRunning,
