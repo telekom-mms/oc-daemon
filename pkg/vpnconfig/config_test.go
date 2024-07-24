@@ -144,9 +144,17 @@ func TestConfigCopy(t *testing.T) {
 		t.Error("copy of nil should be nil")
 	}
 
-	// test with full example config
-	want := getValidTestConfig()
+	// test with new config
+	want := New()
 	got := want.Copy()
+
+	if !got.Equal(want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test with full example config
+	want = getValidTestConfig()
+	got = want.Copy()
 
 	if !got.Equal(want) {
 		t.Errorf("got %v, want %v", got, want)

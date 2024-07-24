@@ -175,7 +175,7 @@ func (c *Config) Copy() *Config {
 		return nil
 	}
 	return &Config{
-		Gateway: append([]byte{}, c.Gateway...),
+		Gateway: append(c.Gateway[:0:0], c.Gateway...),
 		PID:     c.PID,
 		Timeout: c.Timeout,
 		Device:  c.Device.Copy(),
