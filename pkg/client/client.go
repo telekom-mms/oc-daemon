@@ -258,6 +258,8 @@ func handlePropertiesChanged(s *dbus.Signal, status *vpnstatus.Status) *vpnstatu
 			status.IP = dbusapi.IPInvalid
 		case dbusapi.PropertyDevice:
 			status.Device = dbusapi.DeviceInvalid
+		case dbusapi.PropertyServer:
+			status.Server = dbusapi.ServerInvalid
 		case dbusapi.PropertyConnectedAt:
 			status.ConnectedAt = dbusapi.ConnectedAtInvalid
 		case dbusapi.PropertyServers:
