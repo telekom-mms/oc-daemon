@@ -120,6 +120,7 @@ func (s *Status) Copy() *Status {
 		ConnectionState: s.ConnectionState,
 		IP:              s.IP,
 		Device:          s.Device,
+		Server:          s.Server,
 		ConnectedAt:     s.ConnectedAt,
 		Servers:         append(s.Servers[:0:0], s.Servers...),
 		OCRunning:       s.OCRunning,
