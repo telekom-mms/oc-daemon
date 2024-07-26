@@ -146,6 +146,8 @@ func updateStatusFromProperties(status *vpnstatus.Status, props map[string]dbus.
 				err = v.Store(&dest.Device)
 			case dbusapi.PropertyServer:
 				err = v.Store(&dest.Server)
+			case dbusapi.PropertyServerIP:
+				err = v.Store(&dest.ServerIP)
 			case dbusapi.PropertyConnectedAt:
 				err = v.Store(&dest.ConnectedAt)
 			case dbusapi.PropertyServers:
@@ -260,6 +262,8 @@ func handlePropertiesChanged(s *dbus.Signal, status *vpnstatus.Status) *vpnstatu
 			status.Device = dbusapi.DeviceInvalid
 		case dbusapi.PropertyServer:
 			status.Server = dbusapi.ServerInvalid
+		case dbusapi.PropertyServerIP:
+			status.ServerIP = dbusapi.ServerIPInvalid
 		case dbusapi.PropertyConnectedAt:
 			status.ConnectedAt = dbusapi.ConnectedAtInvalid
 		case dbusapi.PropertyServers:

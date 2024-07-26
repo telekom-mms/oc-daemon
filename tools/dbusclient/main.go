@@ -35,6 +35,7 @@ func main() {
 	ip := dbusapi.IPInvalid
 	device := dbusapi.DeviceInvalid
 	server := dbusapi.ServerInvalid
+	serverIP := dbusapi.ServerInvalid
 	connectedAt := dbusapi.ConnectedAtInvalid
 	servers := dbusapi.ServersInvalid
 	ocRunning := dbusapi.OCRunningUnknown
@@ -52,6 +53,7 @@ func main() {
 	getProperty(dbusapi.PropertyIP, &ip)
 	getProperty(dbusapi.PropertyDevice, &device)
 	getProperty(dbusapi.PropertyServer, &server)
+	getProperty(dbusapi.PropertyServerIP, &serverIP)
 	getProperty(dbusapi.PropertyConnectedAt, &connectedAt)
 	getProperty(dbusapi.PropertyServers, &servers)
 	getProperty(dbusapi.PropertyOCRunning, &ocRunning)
@@ -62,6 +64,7 @@ func main() {
 	log.Println("IP:", ip)
 	log.Println("Device:", device)
 	log.Println("Server:", server)
+	log.Println("ServerIP:", serverIP)
 	log.Println("ConnectedAt:", connectedAt)
 	log.Println("Servers:", servers)
 	log.Println("OCRunning:", ocRunning)
@@ -118,6 +121,11 @@ func main() {
 					log.Fatal(err)
 				}
 				fmt.Println(server)
+			case dbusapi.PropertyServerIP:
+				if err := value.Store(&serverIP); err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println(serverIP)
 			case dbusapi.PropertyConnectedAt:
 				if err := value.Store(&connectedAt); err != nil {
 					log.Fatal(err)
@@ -160,6 +168,8 @@ func main() {
 				device = dbusapi.DeviceInvalid
 			case dbusapi.PropertyServer:
 				device = dbusapi.ServerInvalid
+			case dbusapi.PropertyServerIP:
+				device = dbusapi.ServerIPInvalid
 			case dbusapi.PropertyConnectedAt:
 				connectedAt = dbusapi.ConnectedAtInvalid
 			case dbusapi.PropertyServers:
