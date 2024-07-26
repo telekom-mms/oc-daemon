@@ -204,6 +204,7 @@ func TestDBusClientSubscribe(t *testing.T) {
 				dbusapi.PropertyConnectionState,
 				dbusapi.PropertyIP,
 				dbusapi.PropertyDevice,
+				dbusapi.PropertyServer,
 				dbusapi.PropertyConnectedAt,
 				dbusapi.PropertyServers,
 				dbusapi.PropertyOCRunning,
