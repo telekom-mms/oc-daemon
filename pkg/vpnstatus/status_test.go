@@ -130,6 +130,7 @@ func TestStatusCopy(t *testing.T) {
 			TrustedNetwork:  TrustedNetworkNotTrusted,
 			ConnectionState: ConnectionStateConnected,
 			IP:              "192.168.1.1",
+			Device:          "test-tun0",
 			Server:          "test server 1",
 			ServerIP:        "10.0.0.1",
 			ConnectedAt:     1700000000,

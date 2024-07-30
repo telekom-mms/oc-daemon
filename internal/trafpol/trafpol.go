@@ -64,7 +64,7 @@ func (t *TrafPol) handleDNSUpdate() {
 	// update allowed names
 	t.resolver.Resolve()
 
-	// triger captive portal detection
+	// trigger captive portal detection
 	t.cpd.Probe()
 }
 
