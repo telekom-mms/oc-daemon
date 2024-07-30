@@ -97,6 +97,29 @@ func (o OCRunning) String() string {
 	return ""
 }
 
+// TrafPolState is the current TrafPol state.
+type TrafPolState uint32
+
+// TrafPolState states.
+const (
+	TrafPolStateUnknown = iota
+	TrafPolStateInactive
+	TrafPolStateActive
+)
+
+// String resturns TrafPolState as string.
+func (t TrafPolState) String() string {
+	switch t {
+	case TrafPolStateUnknown:
+		return "unknown"
+	case TrafPolStateInactive:
+		return "inactive"
+	case TrafPolStateActive:
+		return "active"
+	}
+	return ""
+}
+
 // Status is a VPN status.
 type Status struct {
 	TrustedNetwork  TrustedNetwork
@@ -108,6 +131,8 @@ type Status struct {
 	ConnectedAt     int64
 	Servers         []string
 	OCRunning       OCRunning
+	TrafPolState    TrafPolState
+	AllowedHosts    []string
 	VPNConfig       *vpnconfig.Config
 }
 
@@ -126,6 +151,8 @@ func (s *Status) Copy() *Status {
 		ConnectedAt:     s.ConnectedAt,
 		Servers:         append(s.Servers[:0:0], s.Servers...),
 		OCRunning:       s.OCRunning,
+		TrafPolState:    s.TrafPolState,
+		AllowedHosts:    append(s.AllowedHosts[:0:0], s.AllowedHosts...),
 		VPNConfig:       s.VPNConfig.Copy(),
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -198,6 +199,32 @@ func (d *Daemon) setStatusOCRunning(running bool) {
 	log.WithField("OCRunning", ocrunning).Info("Daemon changed OCRunning status")
 	d.status.OCRunning = ocrunning
 	d.dbus.SetProperty(dbusapi.PropertyOCRunning, ocrunning)
+}
+
+// setStatusTrafPolState sets the TrafPol state in status.
+func (d *Daemon) setStatusTrafPolState(state vpnstatus.TrafPolState) {
+	if d.status.TrafPolState == state {
+		// TrafPol state not changed
+		return
+	}
+
+	// TrafPol state changed
+	log.WithField("TrafPolState", state).Info("Daemon changed TrafPolState status")
+	d.status.TrafPolState = state
+	d.dbus.SetProperty(dbusapi.PropertyTrafPolState, state)
+}
+
+// setStatusAllowedHosts sets the allowed hosts in status.
+func (d *Daemon) setStatusAllowedHosts(hosts []string) {
+	if slices.Equal(d.status.AllowedHosts, hosts) {
+		// allowed hosts not changed
+		return
+	}
+
+	// allowed hosts changed
+	log.WithField("AllowedHosts", hosts).Info("Daemon changed AllowedHosts status")
+	d.status.AllowedHosts = hosts
+	d.dbus.SetProperty(dbusapi.PropertyAllowedHosts, hosts)
 }
 
 // setStatusVPNConfig sets the VPN config in status.
@@ -662,6 +689,10 @@ func (d *Daemon) startTrafPol() error {
 		return fmt.Errorf("Daemon could not start TrafPol: %w", err)
 	}
 
+	// update trafpol status
+	d.setStatusTrafPolState(vpnstatus.TrafPolStateActive)
+	d.setStatusAllowedHosts(c.AllowedHosts)
+
 	if d.serverIP != nil {
 		// VPN connection active, allow server IP
 		d.serverIPAllowed = d.trafpol.AddAllowedAddr(d.serverIP)
@@ -679,6 +710,10 @@ func (d *Daemon) stopTrafPol() {
 	d.trafpol.Stop()
 	d.trafpol = nil
 	d.serverIPAllowed = false
+
+	// update trafpol status
+	d.setStatusTrafPolState(vpnstatus.TrafPolStateInactive)
+	d.setStatusAllowedHosts(nil)
 }
 
 // checkTrafPol checks if traffic policing should be running and
@@ -809,6 +844,7 @@ func (d *Daemon) Start() error {
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusServers(d.profile.GetVPNServerHostNames())
 	d.setStatusConnectedAt(0)
+	d.setStatusTrafPolState(vpnstatus.TrafPolStateInactive)
 
 	// start traffic policing
 	err = d.checkTrafPol()

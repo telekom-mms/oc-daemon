@@ -116,6 +116,23 @@ func TestOCRunningString(t *testing.T) {
 	}
 }
 
+// TestTrafPolStateString tests String of TrafPolState.
+func TestTrafPolStateString(t *testing.T) {
+	for v, s := range map[TrafPolState]string{
+		// valid
+		TrafPolStateUnknown:  "unknown",
+		TrafPolStateInactive: "inactive",
+		TrafPolStateActive:   "active",
+
+		// invalid
+		123456: "",
+	} {
+		if v.String() != s {
+			t.Errorf("got %s, want %s", v.String(), s)
+		}
+	}
+}
+
 // TestStatusCopy tests Copy of Status.
 func TestStatusCopy(t *testing.T) {
 	// test nil
@@ -136,6 +153,8 @@ func TestStatusCopy(t *testing.T) {
 			ConnectedAt:     1700000000,
 			Servers:         []string{"test server 1", "test server 2"},
 			OCRunning:       OCRunningRunning,
+			TrafPolState:    TrafPolStateActive,
+			AllowedHosts:    []string{"test.example.com"},
 			VPNConfig:       vpnconfig.New(),
 		},
 	} {
