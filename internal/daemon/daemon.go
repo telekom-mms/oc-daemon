@@ -784,18 +784,6 @@ func (d *Daemon) Start() error {
 		goto cleanup_profmon
 	}
 
-	// start traffic policing
-	err = d.checkTrafPol()
-	if err != nil {
-		goto cleanup_trafpol
-	}
-
-	// start TND
-	err = d.checkTND()
-	if err != nil {
-		goto cleanup_tnd
-	}
-
 	// start VPN setup
 	d.vpnsetup.Start()
 
@@ -822,19 +810,32 @@ func (d *Daemon) Start() error {
 	d.setStatusServers(d.profile.GetVPNServerHostNames())
 	d.setStatusConnectedAt(0)
 
+	// start traffic policing
+	err = d.checkTrafPol()
+	if err != nil {
+		goto cleanup_trafpol
+	}
+
+	// start TND
+	err = d.checkTND()
+	if err != nil {
+		goto cleanup_tnd
+	}
+
 	go d.start()
 	return nil
 
 	// clean up after error
+cleanup_tnd:
+	d.stopTrafPol()
+cleanup_trafpol:
+	d.dbus.Stop()
+	d.server.Stop()
 cleanup_dbus:
 	d.server.Stop()
 cleanup_unix:
 	d.runner.Stop()
 	d.vpnsetup.Stop()
-	d.stopTND()
-cleanup_tnd:
-	d.stopTrafPol()
-cleanup_trafpol:
 	d.profmon.Stop()
 cleanup_profmon:
 	d.sleepmon.Stop()
