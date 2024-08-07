@@ -99,6 +99,8 @@ func TestDBusClientQuery(t *testing.T) {
 			dbusapi.PropertyConnectedAt:     dbus.MakeVariant(dbusapi.ConnectedAtInvalid),
 			dbusapi.PropertyServers:         dbus.MakeVariant(dbusapi.ServersInvalid),
 			dbusapi.PropertyOCRunning:       dbus.MakeVariant(dbusapi.OCRunningUnknown),
+			dbusapi.PropertyTrafPolState:    dbus.MakeVariant(dbusapi.TrafPolStateUnknown),
+			dbusapi.PropertyAllowedHosts:    dbus.MakeVariant(dbusapi.AllowedHostsInvalid),
 			dbusapi.PropertyVPNConfig:       dbus.MakeVariant(dbusapi.VPNConfigInvalid),
 		},
 		{
@@ -210,6 +212,8 @@ func TestDBusClientSubscribe(t *testing.T) {
 				dbusapi.PropertyConnectedAt,
 				dbusapi.PropertyServers,
 				dbusapi.PropertyOCRunning,
+				dbusapi.PropertyTrafPolState,
+				dbusapi.PropertyAllowedHosts,
 				dbusapi.PropertyVPNConfig,
 			}},
 		},

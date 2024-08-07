@@ -31,6 +31,8 @@ const (
 	PropertyConnectedAt     = "ConnectedAt"
 	PropertyServers         = "Servers"
 	PropertyOCRunning       = "OCRunning"
+	PropertyTrafPolState    = "TrafPolState"
+	PropertyAllowedHosts    = "AllowedHosts"
 	PropertyVPNConfig       = "VPNConfig"
 )
 
@@ -85,6 +87,18 @@ const (
 	OCRunningUnknown uint32 = iota
 	OCRunningNotRunning
 	OCRunningRunning
+)
+
+// Property "TrafPol State" states.
+const (
+	TrafPolStateUnknown uint32 = iota
+	TrafPolStateInactive
+	TrafPolStateActive
+)
+
+// Property "Allowed Hosts" values.
+var (
+	AllowedHostsInvalid []string
 )
 
 // Property "VPNConfig" values.
@@ -234,6 +248,8 @@ func (s *Service) start() {
 		s.props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
 		s.props.SetMust(Interface, PropertyServers, ServersInvalid)
 		s.props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)
+		s.props.SetMust(Interface, PropertyTrafPolState, TrafPolStateUnknown)
+		s.props.SetMust(Interface, PropertyAllowedHosts, AllowedHostsInvalid)
 		s.props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
 	}
 
@@ -340,6 +356,18 @@ func (s *Service) Start() error {
 			},
 			PropertyOCRunning: {
 				Value:    OCRunningUnknown,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
+			PropertyTrafPolState: {
+				Value:    TrafPolStateUnknown,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
+			PropertyAllowedHosts: {
+				Value:    AllowedHostsInvalid,
 				Writable: false,
 				Emit:     prop.EmitTrue,
 				Callback: nil,
