@@ -11,6 +11,8 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
+// TODO: add variables to log entries here as well?
+
 // setRoutingRules sets the basic nftables rules for routing.
 func setRoutingRules(ctx context.Context, fwMark string) {
 	const routeRules = `
