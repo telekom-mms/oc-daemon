@@ -133,6 +133,23 @@ func TestTrafPolStateString(t *testing.T) {
 	}
 }
 
+// TestTNDStateString tests String of TNDState.
+func TestTNDStateString(t *testing.T) {
+	for v, s := range map[TNDState]string{
+		// valid
+		TNDStateUnknown:  "unknown",
+		TNDStateInactive: "inactive",
+		TNDStateActive:   "active",
+
+		// invalid
+		123456: "",
+	} {
+		if v.String() != s {
+			t.Errorf("got %s, want %s", v.String(), s)
+		}
+	}
+}
+
 // TestStatusCopy tests Copy of Status.
 func TestStatusCopy(t *testing.T) {
 	// test nil
@@ -155,6 +172,7 @@ func TestStatusCopy(t *testing.T) {
 			OCRunning:       OCRunningRunning,
 			TrafPolState:    TrafPolStateActive,
 			AllowedHosts:    []string{"test.example.com"},
+			TNDState:        TNDStateActive,
 			VPNConfig:       vpnconfig.New(),
 		},
 	} {
