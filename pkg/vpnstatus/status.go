@@ -120,6 +120,29 @@ func (t TrafPolState) String() string {
 	return ""
 }
 
+// TNDState is the current TND state.
+type TNDState uint32
+
+// TNDState states.
+const (
+	TNDStateUnknown = iota
+	TNDStateInactive
+	TNDStateActive
+)
+
+// String resturns TNDState as string.
+func (t TNDState) String() string {
+	switch t {
+	case TNDStateUnknown:
+		return "unknown"
+	case TNDStateInactive:
+		return "inactive"
+	case TNDStateActive:
+		return "active"
+	}
+	return ""
+}
+
 // Status is a VPN status.
 type Status struct {
 	TrustedNetwork  TrustedNetwork
@@ -133,6 +156,7 @@ type Status struct {
 	OCRunning       OCRunning
 	TrafPolState    TrafPolState
 	AllowedHosts    []string
+	TNDState        TNDState
 	VPNConfig       *vpnconfig.Config
 }
 
@@ -153,6 +177,7 @@ func (s *Status) Copy() *Status {
 		OCRunning:       s.OCRunning,
 		TrafPolState:    s.TrafPolState,
 		AllowedHosts:    append(s.AllowedHosts[:0:0], s.AllowedHosts...),
+		TNDState:        s.TNDState,
 		VPNConfig:       s.VPNConfig.Copy(),
 	}
 }

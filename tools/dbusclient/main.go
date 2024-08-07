@@ -41,6 +41,7 @@ func main() {
 	ocRunning := dbusapi.OCRunningUnknown
 	trafPolState := dbusapi.TrafPolStateUnknown
 	allowedHosts := dbusapi.AllowedHostsInvalid
+	tndState := dbusapi.TNDStateUnknown
 	vpnConfig := dbusapi.VPNConfigInvalid
 
 	getProperty := func(name string, val any) {
@@ -61,6 +62,7 @@ func main() {
 	getProperty(dbusapi.PropertyOCRunning, &ocRunning)
 	getProperty(dbusapi.PropertyTrafPolState, &trafPolState)
 	getProperty(dbusapi.PropertyAllowedHosts, &allowedHosts)
+	getProperty(dbusapi.PropertyTNDState, &tndState)
 	getProperty(dbusapi.PropertyVPNConfig, &vpnConfig)
 
 	log.Println("TrustedNetwork:", trustedNetwork)
@@ -74,6 +76,7 @@ func main() {
 	log.Println("OCRunning:", ocRunning)
 	log.Println("TrafPolState:", trafPolState)
 	log.Println("AllowedHosts:", allowedHosts)
+	log.Println("TNDState:", tndState)
 	log.Println("VPNConfig:", vpnConfig)
 
 	// handle signals
@@ -157,6 +160,11 @@ func main() {
 					log.Fatal(err)
 				}
 				fmt.Println(allowedHosts)
+			case dbusapi.PropertyTNDState:
+				if err := value.Store(&tndState); err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println(tndState)
 			case dbusapi.PropertyVPNConfig:
 				if err := value.Store(&vpnConfig); err != nil {
 					log.Fatal(err)
@@ -196,6 +204,8 @@ func main() {
 				trafPolState = dbusapi.TrafPolStateUnknown
 			case dbusapi.PropertyAllowedHosts:
 				allowedHosts = dbusapi.AllowedHostsInvalid
+			case dbusapi.PropertyTNDState:
+				tndState = dbusapi.TNDStateUnknown
 			case dbusapi.PropertyVPNConfig:
 				vpnConfig = dbusapi.VPNConfigInvalid
 			}

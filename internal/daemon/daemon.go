@@ -227,6 +227,19 @@ func (d *Daemon) setStatusAllowedHosts(hosts []string) {
 	d.dbus.SetProperty(dbusapi.PropertyAllowedHosts, hosts)
 }
 
+// setStatusTNDState sets the TND state in status.
+func (d *Daemon) setStatusTNDState(state vpnstatus.TNDState) {
+	if d.status.TNDState == state {
+		// TND state not changed
+		return
+	}
+
+	// TND state changed
+	log.WithField("TNDState", state).Info("Daemon changed TNDState status")
+	d.status.TNDState = state
+	d.dbus.SetProperty(dbusapi.PropertyTNDState, state)
+}
+
 // setStatusVPNConfig sets the VPN config in status.
 func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 	if d.status.VPNConfig.Equal(config) {
@@ -644,6 +657,10 @@ func (d *Daemon) startTND() error {
 	if err := d.tnd.Start(); err != nil {
 		return fmt.Errorf("Daemon could not start TND: %w", err)
 	}
+
+	// update tnd status
+	d.setStatusTNDState(vpnstatus.TNDStateActive)
+
 	return nil
 }
 
@@ -655,6 +672,9 @@ func (d *Daemon) stopTND() {
 	log.Info("Daemon stopping TND")
 	d.tnd.Stop()
 	d.tnd = nil
+
+	// update tnd status
+	d.setStatusTNDState(vpnstatus.TNDStateInactive)
 }
 
 // checkTND checks if TND should be running and starts or stops it.
@@ -846,6 +866,7 @@ func (d *Daemon) Start() error {
 	d.setStatusConnectedAt(0)
 	d.setStatusOCRunning(false)
 	d.setStatusTrafPolState(vpnstatus.TrafPolStateInactive)
+	d.setStatusTNDState(vpnstatus.TNDStateInactive)
 
 	// start traffic policing
 	err = d.checkTrafPol()
