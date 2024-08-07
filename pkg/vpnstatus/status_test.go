@@ -173,6 +173,7 @@ func TestStatusCopy(t *testing.T) {
 			TrafPolState:    TrafPolStateActive,
 			AllowedHosts:    []string{"test.example.com"},
 			TNDState:        TNDStateActive,
+			TNDServers:      []string{"tnd1.local:abcdef..."},
 			VPNConfig:       vpnconfig.New(),
 		},
 	} {
