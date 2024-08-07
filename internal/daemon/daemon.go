@@ -844,6 +844,7 @@ func (d *Daemon) Start() error {
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusServers(d.profile.GetVPNServerHostNames())
 	d.setStatusConnectedAt(0)
+	d.setStatusOCRunning(false)
 	d.setStatusTrafPolState(vpnstatus.TrafPolStateInactive)
 
 	// start traffic policing
