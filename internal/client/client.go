@@ -190,6 +190,7 @@ func printStatus(status *vpnstatus.Status) error {
 	fmt.Printf("TrafPol State:    %s\n", status.TrafPolState)
 	fmt.Printf("Allowed Hosts:    %s\n", status.AllowedHosts)
 	fmt.Printf("TND State:        %s\n", status.TNDState)
+	fmt.Printf("TND Servers:      %s\n", status.TNDServers)
 
 	if status.VPNConfig == nil {
 		fmt.Printf("VPN Config:\n")

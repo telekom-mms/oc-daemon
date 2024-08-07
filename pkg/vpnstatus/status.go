@@ -157,6 +157,7 @@ type Status struct {
 	TrafPolState    TrafPolState
 	AllowedHosts    []string
 	TNDState        TNDState
+	TNDServers      map[string]string
 	VPNConfig       *vpnconfig.Config
 }
 
@@ -165,6 +166,15 @@ func (s *Status) Copy() *Status {
 	if s == nil {
 		return nil
 	}
+
+	var tndServers map[string]string
+	if s.TNDServers != nil {
+		tndServers = make(map[string]string)
+		for k, v := range s.TNDServers {
+			tndServers[k] = v
+		}
+	}
+
 	return &Status{
 		TrustedNetwork:  s.TrustedNetwork,
 		ConnectionState: s.ConnectionState,
@@ -178,6 +188,7 @@ func (s *Status) Copy() *Status {
 		TrafPolState:    s.TrafPolState,
 		AllowedHosts:    append(s.AllowedHosts[:0:0], s.AllowedHosts...),
 		TNDState:        s.TNDState,
+		TNDServers:      tndServers,
 		VPNConfig:       s.VPNConfig.Copy(),
 	}
 }
