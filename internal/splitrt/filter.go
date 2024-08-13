@@ -106,6 +106,7 @@ table inet oc-daemon-routing {
 	rules := r.Replace(routeRules)
 	if stdout, stderr, err := execs.RunNft(ctx, rules); err != nil {
 		log.WithError(err).WithFields(log.Fields{
+			"fwMark": fwMark,
 			"stdout": string(stdout),
 			"stderr": string(stderr),
 		}).Error("SplitRouting error setting routing rules")
@@ -138,8 +139,11 @@ func addLocalAddresses(ctx context.Context, device, family string, addresses []*
 
 	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
 		log.WithError(err).WithFields(log.Fields{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
+			"device":    device,
+			"family":    family,
+			"addresses": addresses,
+			"stdout":    string(stdout),
+			"stderr":    string(stderr),
 		}).Error("SplitRouting error adding local addresses")
 	}
 }
@@ -172,8 +176,10 @@ func rejectIPVersion(ctx context.Context, device, version string) {
 
 	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
 		log.WithError(err).WithFields(log.Fields{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
+			"device":  device,
+			"version": version,
+			"stdout":  string(stdout),
+			"stderr":  string(stderr),
 		}).Error("SplitRouting error setting ip version reject rules")
 	}
 }
@@ -203,8 +209,9 @@ func addExclude(ctx context.Context, address *netip.Prefix) {
 		set, address)
 	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
 		log.WithError(err).WithFields(log.Fields{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
+			"address": address,
+			"stdout":  string(stdout),
+			"stderr":  string(stderr),
 		}).Error("SplitRouting error adding exclude")
 	}
 }
@@ -230,8 +237,9 @@ func setExcludes(ctx context.Context, addresses []*netip.Prefix) {
 	// run command
 	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
 		log.WithError(err).WithFields(log.Fields{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
+			"addresses": addresses,
+			"stdout":    string(stdout),
+			"stderr":    string(stderr),
 		}).Error("SplitRouting error setting excludes")
 	}
 }
