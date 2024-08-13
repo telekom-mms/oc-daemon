@@ -240,6 +240,19 @@ func (d *Daemon) setStatusTNDState(state vpnstatus.TNDState) {
 	d.dbus.SetProperty(dbusapi.PropertyTNDState, state)
 }
 
+// setStatusTNDServers sets the TND servers in status.
+func (d *Daemon) setStatusTNDServers(servers []string) {
+	if slices.Equal(d.status.TNDServers, servers) {
+		// TND servers not changed
+		return
+	}
+
+	// TND servers changed
+	log.WithField("TNDServers", servers).Info("Daemon changed TNDServers status")
+	d.status.TNDServers = servers
+	d.dbus.SetProperty(dbusapi.PropertyTNDServers, servers)
+}
+
 // setStatusVPNConfig sets the VPN config in status.
 func (d *Daemon) setStatusVPNConfig(config *vpnconfig.Config) {
 	if d.status.VPNConfig.Equal(config) {
@@ -601,12 +614,6 @@ func (d *Daemon) getProfileAllowedHosts() (hosts []string) {
 	return
 }
 
-// initTNDServers sets the TND servers from the xml profile.
-func (d *Daemon) initTNDServers() {
-	servers := d.profile.GetTNDHTTPSServers()
-	d.tnd.SetServers(servers)
-}
-
 // setTNDDialer sets a custom dialer for TND.
 func (d *Daemon) setTNDDialer() {
 	// get mark to be set on socket
@@ -652,14 +659,20 @@ func (d *Daemon) startTND() error {
 	}
 	log.Info("Daemon starting TND")
 	d.tnd = tnd.NewDetector(d.config.TND)
-	d.initTNDServers()
+	servers := d.profile.GetTNDHTTPSServers()
+	d.tnd.SetServers(servers)
 	d.setTNDDialer()
 	if err := d.tnd.Start(); err != nil {
 		return fmt.Errorf("Daemon could not start TND: %w", err)
 	}
 
 	// update tnd status
+	var s []string
+	for k, v := range servers {
+		s = append(s, fmt.Sprintf("%s:%s", k, v))
+	}
 	d.setStatusTNDState(vpnstatus.TNDStateActive)
+	d.setStatusTNDServers(s)
 
 	return nil
 }
@@ -675,6 +688,7 @@ func (d *Daemon) stopTND() {
 
 	// update tnd status
 	d.setStatusTNDState(vpnstatus.TNDStateInactive)
+	d.setStatusTNDServers(nil)
 }
 
 // checkTND checks if TND should be running and starts or stops it.
