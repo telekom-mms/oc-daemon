@@ -187,6 +187,7 @@ func printStatus(status *vpnstatus.Status) error {
 		return nil
 	}
 
+	fmt.Printf("OC PID:           %d\n", status.OCPID)
 	fmt.Printf("TrafPol State:    %s\n", status.TrafPolState)
 	fmt.Printf("Allowed Hosts:    %s\n", status.AllowedHosts)
 	fmt.Printf("TND State:        %s\n", status.TNDState)

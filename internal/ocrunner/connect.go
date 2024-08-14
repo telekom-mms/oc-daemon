@@ -21,6 +21,9 @@ type ConnectEvent struct {
 	// TODO: use a Type with more values?
 	Connect bool
 
+	// PID is the process ID of the running openconnect process
+	PID uint32
+
 	// login info for connect
 	login *logininfo.LoginInfo
 
@@ -146,6 +149,14 @@ func (c *Connect) savePidFile() {
 	c.setPIDGroup()
 }
 
+// getPID returns the PID of the running command.
+func (c *Connect) getPID() uint32 {
+	if c.command == nil || c.command.Process == nil || c.command.Process.Pid < 0 {
+		return 0
+	}
+	return uint32(c.command.Process.Pid)
+}
+
 // handleConnect establishes the connection by starting openconnect.
 func (c *Connect) handleConnect(e *ConnectEvent) {
 	if c.command != nil {
@@ -213,6 +224,7 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 	// signal connect to user
 	c.sendEvent(&ConnectEvent{
 		Connect: true,
+		PID:     c.getPID(),
 	})
 
 	// wait for program termination and signal disconnect

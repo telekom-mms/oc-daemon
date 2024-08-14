@@ -31,6 +31,7 @@ const (
 	PropertyConnectedAt     = "ConnectedAt"
 	PropertyServers         = "Servers"
 	PropertyOCRunning       = "OCRunning"
+	PropertyOCPID           = "OCPID"
 	PropertyTrafPolState    = "TrafPolState"
 	PropertyAllowedHosts    = "AllowedHosts"
 	PropertyTNDState        = "TNDState"
@@ -89,6 +90,11 @@ const (
 	OCRunningUnknown uint32 = iota
 	OCRunningNotRunning
 	OCRunningRunning
+)
+
+// Property "OCPID" values.
+const (
+	OCPIDInvalid uint32 = 0
 )
 
 // Property "TrafPol State" states.
@@ -262,6 +268,7 @@ func (s *Service) start() {
 		s.props.SetMust(Interface, PropertyConnectedAt, ConnectedAtInvalid)
 		s.props.SetMust(Interface, PropertyServers, ServersInvalid)
 		s.props.SetMust(Interface, PropertyOCRunning, OCRunningUnknown)
+		s.props.SetMust(Interface, PropertyOCPID, OCPIDInvalid)
 		s.props.SetMust(Interface, PropertyTrafPolState, TrafPolStateUnknown)
 		s.props.SetMust(Interface, PropertyAllowedHosts, AllowedHostsInvalid)
 		s.props.SetMust(Interface, PropertyTNDState, TNDStateUnknown)
@@ -372,6 +379,12 @@ func (s *Service) Start() error {
 			},
 			PropertyOCRunning: {
 				Value:    OCRunningUnknown,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
+			PropertyOCPID: {
+				Value:    OCPIDInvalid,
 				Writable: false,
 				Emit:     prop.EmitTrue,
 				Callback: nil,
