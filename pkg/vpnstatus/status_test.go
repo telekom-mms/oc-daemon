@@ -123,6 +123,7 @@ func TestTrafPolStateString(t *testing.T) {
 		TrafPolStateUnknown:  "unknown",
 		TrafPolStateInactive: "inactive",
 		TrafPolStateActive:   "active",
+		TrafPolStateDisabled: "disabled",
 
 		// invalid
 		123456: "",

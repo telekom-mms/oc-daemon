@@ -762,7 +762,11 @@ func (d *Daemon) stopTrafPol() {
 	d.serverIPAllowed = false
 
 	// update trafpol status
-	d.setStatusTrafPolState(vpnstatus.TrafPolStateInactive)
+	if d.disableTrafPol {
+		d.setStatusTrafPolState(vpnstatus.TrafPolStateDisabled)
+	} else {
+		d.setStatusTrafPolState(vpnstatus.TrafPolStateInactive)
+	}
 	d.setStatusAllowedHosts(nil)
 }
 
