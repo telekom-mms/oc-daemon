@@ -2,6 +2,7 @@ package addrmon
 
 import (
 	"log"
+	"net"
 	"testing"
 
 	"github.com/vishvananda/netlink"
@@ -44,7 +45,12 @@ func TestAddrMonStartStop(t *testing.T) {
 	// helper function for AddrUpdates
 	addrUpdates := func(updates chan netlink.AddrUpdate, done chan struct{}) {
 		for {
-			up := netlink.AddrUpdate{}
+			up := netlink.AddrUpdate{
+				LinkAddress: net.IPNet{
+					IP:   net.IPv4(192, 168, 1, 1),
+					Mask: net.CIDRMask(24, 32),
+				},
+			}
 			select {
 			case updates <- up:
 			case <-done:

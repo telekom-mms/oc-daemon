@@ -3,7 +3,7 @@ package splitrt
 import (
 	"context"
 	"errors"
-	"net"
+	"net/netip"
 	"reflect"
 	"testing"
 
@@ -11,10 +11,10 @@ import (
 )
 
 // getTestExcludes returns excludes for testing.
-func getTestExcludes(t *testing.T, es []string) []*net.IPNet {
-	excludes := []*net.IPNet{}
+func getTestExcludes(t *testing.T, es []string) []netip.Prefix {
+	excludes := []netip.Prefix{}
 	for _, s := range es {
-		_, exclude, err := net.ParseCIDR(s)
+		exclude, err := netip.ParsePrefix(s)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -24,7 +24,7 @@ func getTestExcludes(t *testing.T, es []string) []*net.IPNet {
 }
 
 // getTestStaticExcludes returns static excludes for testing.
-func getTestStaticExcludes(t *testing.T) []*net.IPNet {
+func getTestStaticExcludes(t *testing.T) []netip.Prefix {
 	return getTestExcludes(t, []string{
 		"192.168.1.0/24",
 		"2001::/64",
@@ -32,7 +32,7 @@ func getTestStaticExcludes(t *testing.T) []*net.IPNet {
 }
 
 // getTestStaticExcludesOverlap returns static excludes that overlap for testing.
-func getTestStaticExcludesOverlap(t *testing.T) []*net.IPNet {
+func getTestStaticExcludesOverlap(t *testing.T) []netip.Prefix {
 	return getTestExcludes(t, []string{
 		"192.168.1.0/26",
 		"192.168.1.64/26",
@@ -52,7 +52,7 @@ func getTestStaticExcludesOverlap(t *testing.T) []*net.IPNet {
 }
 
 // getTestDynamicExcludes returns dynamic excludes for testing.
-func getTestDynamicExcludes(t *testing.T) []*net.IPNet {
+func getTestDynamicExcludes(t *testing.T) []netip.Prefix {
 	return getTestExcludes(t, []string{
 		"192.168.1.1/32",
 		"2001::1/128",

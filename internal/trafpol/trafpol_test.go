@@ -2,7 +2,7 @@ package trafpol
 
 import (
 	"context"
-	"net"
+	"net/netip"
 	"reflect"
 	"sort"
 	"sync"
@@ -132,19 +132,21 @@ func TestTrafPolGetAllowedHostsIPs(t *testing.T) {
 	tp := NewTrafPol(c)
 
 	// add allowed names
-	tp.allowNames["example.com"] = []net.IP{net.ParseIP("192.168.1.1"),
-		net.ParseIP("2001:DB8:1::1")}
+	tp.allowNames["example.com"] = []netip.Addr{
+		netip.MustParseAddr("192.168.1.1"),
+		netip.MustParseAddr("2001:DB8:1::1"),
+	}
 
 	// wanted IPs
-	want := []*net.IPNet{}
+	want := []netip.Prefix{}
 	for _, addr := range []string{
 		"192.168.1.1/32",
 		"192.168.2.0/24",
 		"2001:db8:1::1/128",
 		"2001:db8:2::/64",
 	} {
-		_, ipnet, _ := net.ParseCIDR(addr)
-		want = append(want, ipnet)
+		prefix := netip.MustParsePrefix(addr)
+		want = append(want, prefix)
 	}
 
 	// get IPs
@@ -195,40 +197,40 @@ func TestTrafPolAddRemoveAllowedAddr(t *testing.T) {
 	}
 
 	// add ipv4 address
-	_, ipnet, _ := net.ParseCIDR("192.168.1.1/32")
-	if ok := tp.AddAllowedAddr(ipnet.IP); !ok {
+	prefix := netip.MustParsePrefix("192.168.1.1/32")
+	if ok := tp.AddAllowedAddr(prefix.Addr()); !ok {
 		t.Errorf("address not added")
 	}
 
-	want := ipnet.String()
-	got := tp.allowAddrs[ipnet.String()].String()
+	want := prefix.String()
+	got := tp.allowAddrs[prefix.String()].String()
 	if got != want {
 		t.Errorf("got %s, want %s", got, want)
 	}
 
 	// add ipv4 address again
-	if ok := tp.AddAllowedAddr(ipnet.IP); ok {
+	if ok := tp.AddAllowedAddr(prefix.Addr()); ok {
 		t.Errorf("existing address should not be added again")
 	}
 
 	// remove ipv4 address
-	if ok := tp.RemoveAllowedAddr(ipnet.IP); !ok {
+	if ok := tp.RemoveAllowedAddr(prefix.Addr()); !ok {
 		t.Errorf("address not removed")
 	}
 
-	want = "<nil>"
-	got = tp.allowAddrs[ipnet.String()].String()
+	want = netip.Prefix{}.String()
+	got = tp.allowAddrs[prefix.String()].String()
 	if got != want {
 		t.Errorf("got %s, want %s", got, want)
 	}
 
 	// remove ipv4 address again
-	if ok := tp.RemoveAllowedAddr(ipnet.IP); ok {
+	if ok := tp.RemoveAllowedAddr(prefix.Addr()); ok {
 		t.Errorf("not existing address should not be removed")
 	}
 
 	// add/remove ipv6 address
-	ip := net.ParseIP("2001:DB8:1::1")
+	ip := netip.MustParseAddr("2001:DB8:1::1")
 	if ok := tp.AddAllowedAddr(ip); !ok {
 		t.Errorf("address not added")
 	}

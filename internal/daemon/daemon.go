@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"reflect"
 	"slices"
 	"strconv"
@@ -66,7 +67,7 @@ type Daemon struct {
 	disableTrafPol bool
 
 	// serverIP is the IP address of the current VPN server
-	serverIP net.IP
+	serverIP netip.Addr
 
 	// serverIPAllowed indicates whether server IP was added to
 	// the allowed addresses
@@ -307,7 +308,9 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	}
 
 	// set server address
-	d.serverIP = net.ParseIP(strings.Trim(login.Host, "[]"))
+	if serverIP, err := netip.ParseAddr(strings.Trim(login.Host, "[]")); err == nil {
+		d.serverIP = serverIP
+	}
 
 	// update status
 	d.setStatusOCRunning(true)
@@ -316,7 +319,7 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
 
 	// add server address to allowed addrs in trafpol
-	if d.trafpol != nil && d.serverIP != nil {
+	if d.trafpol != nil && d.serverIP.IsValid() {
 		d.serverIPAllowed = d.trafpol.AddAllowedAddr(d.serverIP)
 	}
 
@@ -542,7 +545,7 @@ func (d *Daemon) handleRunnerDisconnect() {
 	if d.trafpol != nil && d.serverIPAllowed {
 		d.trafpol.RemoveAllowedAddr(d.serverIP)
 	}
-	d.serverIP = nil
+	d.serverIP = netip.Addr{}
 	d.serverIPAllowed = false
 }
 
@@ -743,7 +746,7 @@ func (d *Daemon) startTrafPol() error {
 	d.setStatusTrafPolState(vpnstatus.TrafPolStateActive)
 	d.setStatusAllowedHosts(c.AllowedHosts)
 
-	if d.serverIP != nil {
+	if d.serverIP.IsValid() {
 		// VPN connection active, allow server IP
 		d.serverIPAllowed = d.trafpol.AddAllowedAddr(d.serverIP)
 	}

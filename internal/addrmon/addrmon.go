@@ -3,7 +3,7 @@ package addrmon
 
 import (
 	"fmt"
-	"net"
+	"net/netip"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -12,7 +12,7 @@ import (
 // Update is an address update.
 type Update struct {
 	Add     bool
-	Address net.IPNet
+	Address netip.Prefix
 	Index   int
 }
 
@@ -72,8 +72,16 @@ func (a *AddrMon) start() {
 			}
 
 			// forward event as address update
+			ip, ok := netip.AddrFromSlice(e.LinkAddress.IP)
+			if !ok || !ip.IsValid() {
+				log.WithField("LinkAddress", e.LinkAddress).
+					Error("AddrMon got invalid IP in addr event")
+				continue
+			}
+			ones, _ := e.LinkAddress.Mask.Size()
+			addr := netip.PrefixFrom(ip, ones)
 			u := &Update{
-				Address: e.LinkAddress,
+				Address: addr,
 				Index:   e.LinkIndex,
 				Add:     e.NewAddr,
 			}

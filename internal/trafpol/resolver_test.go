@@ -1,7 +1,7 @@
 package trafpol
 
 import (
-	"net"
+	"net/netip"
 	"testing"
 	"time"
 )
@@ -45,7 +45,7 @@ func TestResolverResolve(_ *testing.T) {
 		names = []string{"example.com"}
 		r = NewResolver(config, names, updates)
 		r.names["example.com"] = u
-		r.names["example.com"].IPs[0] = net.ParseIP("127.0.0.1")
+		r.names["example.com"].IPs[0] = netip.MustParseAddr("127.0.0.1")
 
 		r.Start()
 
