@@ -55,6 +55,11 @@ func setConfig(args []string) error {
 	statusCmd.BoolVar(&verbose, "verbose", verbose, "set verbose output")
 	statusCmd.BoolVar(&json, "json", json, "set json output")
 
+	// monitor subcommand
+	monitorCmd := flag.NewFlagSet("monitor", flag.ContinueOnError)
+	monitorCmd.BoolVar(&verbose, "verbose", verbose, "set verbose output")
+	monitorCmd.BoolVar(&json, "json", json, "set json output")
+
 	// define command line arguments
 	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	cfgFile := flags.String("config", "", "set config `file`")
@@ -128,6 +133,10 @@ func setConfig(args []string) error {
 	switch command {
 	case "status":
 		if err := statusCmd.Parse(args[2:]); err != nil {
+			return err
+		}
+	case "monitor":
+		if err := monitorCmd.Parse(args[2:]); err != nil {
 			return err
 		}
 	}
