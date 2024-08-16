@@ -154,6 +154,8 @@ func updateStatusFromProperties(status *vpnstatus.Status, props map[string]dbus.
 				err = v.Store(&dest.Servers)
 			case dbusapi.PropertyOCRunning:
 				err = v.Store(&dest.OCRunning)
+			case dbusapi.PropertyOCPID:
+				err = v.Store(&dest.OCPID)
 			case dbusapi.PropertyTrafPolState:
 				err = v.Store(&dest.TrafPolState)
 			case dbusapi.PropertyAllowedHosts:
@@ -278,6 +280,8 @@ func handlePropertiesChanged(s *dbus.Signal, status *vpnstatus.Status) *vpnstatu
 			status.Servers = dbusapi.ServersInvalid
 		case dbusapi.PropertyOCRunning:
 			status.OCRunning = vpnstatus.OCRunningUnknown
+		case dbusapi.PropertyOCPID:
+			status.OCPID = dbusapi.OCPIDInvalid
 		case dbusapi.PropertyTrafPolState:
 			status.TrafPolState = vpnstatus.TrafPolStateUnknown
 		case dbusapi.PropertyAllowedHosts:

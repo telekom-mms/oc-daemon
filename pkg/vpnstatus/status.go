@@ -154,6 +154,7 @@ type Status struct {
 	ConnectedAt     int64
 	Servers         []string
 	OCRunning       OCRunning
+	OCPID           uint32
 	TrafPolState    TrafPolState
 	AllowedHosts    []string
 	TNDState        TNDState
@@ -177,6 +178,7 @@ func (s *Status) Copy() *Status {
 		ConnectedAt:     s.ConnectedAt,
 		Servers:         append(s.Servers[:0:0], s.Servers...),
 		OCRunning:       s.OCRunning,
+		OCPID:           s.OCPID,
 		TrafPolState:    s.TrafPolState,
 		AllowedHosts:    append(s.AllowedHosts[:0:0], s.AllowedHosts...),
 		TNDState:        s.TNDState,

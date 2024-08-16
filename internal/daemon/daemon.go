@@ -201,6 +201,19 @@ func (d *Daemon) setStatusOCRunning(running bool) {
 	d.dbus.SetProperty(dbusapi.PropertyOCRunning, ocrunning)
 }
 
+// setStatusOCPID sets the openconnect PID in status.
+func (d *Daemon) setStatusOCPID(pid uint32) {
+	if d.status.OCPID == pid {
+		// OC PID not changed
+		return
+	}
+
+	// OC PID changed
+	log.WithField("OCPID", pid).Info("Daemon changed OCPID status")
+	d.status.OCPID = pid
+	d.dbus.SetProperty(dbusapi.PropertyOCPID, pid)
+}
+
 // setStatusTrafPolState sets the TrafPol state in status.
 func (d *Daemon) setStatusTrafPolState(state vpnstatus.TrafPolState) {
 	if d.status.TrafPolState == state {
@@ -321,6 +334,7 @@ func (d *Daemon) disconnectVPN() {
 	// update status
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnecting)
 	d.setStatusOCRunning(false)
+	d.setStatusOCPID(0)
 
 	// stop runner
 	if d.runner == nil {
@@ -515,6 +529,7 @@ func (d *Daemon) handleTNDResult(trusted bool) error {
 func (d *Daemon) handleRunnerDisconnect() {
 	// make sure running and connected are not set
 	d.setStatusOCRunning(false)
+	d.setStatusOCPID(0)
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusServer("")
 	d.setStatusServerIP("")
@@ -538,6 +553,7 @@ func (d *Daemon) handleRunnerEvent(e *ocrunner.ConnectEvent) {
 	if e.Connect {
 		// make sure running is set
 		d.setStatusOCRunning(true)
+		d.setStatusOCPID(e.PID)
 		return
 	}
 

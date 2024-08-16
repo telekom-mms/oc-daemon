@@ -170,6 +170,7 @@ func TestStatusCopy(t *testing.T) {
 			ConnectedAt:     1700000000,
 			Servers:         []string{"test server 1", "test server 2"},
 			OCRunning:       OCRunningRunning,
+			OCPID:           12345,
 			TrafPolState:    TrafPolStateActive,
 			AllowedHosts:    []string{"test.example.com"},
 			TNDState:        TNDStateActive,

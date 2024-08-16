@@ -39,6 +39,7 @@ func main() {
 	connectedAt := dbusapi.ConnectedAtInvalid
 	servers := dbusapi.ServersInvalid
 	ocRunning := dbusapi.OCRunningUnknown
+	ocPID := dbusapi.OCPIDInvalid
 	trafPolState := dbusapi.TrafPolStateUnknown
 	allowedHosts := dbusapi.AllowedHostsInvalid
 	tndState := dbusapi.TNDStateUnknown
@@ -61,6 +62,7 @@ func main() {
 	getProperty(dbusapi.PropertyConnectedAt, &connectedAt)
 	getProperty(dbusapi.PropertyServers, &servers)
 	getProperty(dbusapi.PropertyOCRunning, &ocRunning)
+	getProperty(dbusapi.PropertyOCPID, &ocPID)
 	getProperty(dbusapi.PropertyTrafPolState, &trafPolState)
 	getProperty(dbusapi.PropertyAllowedHosts, &allowedHosts)
 	getProperty(dbusapi.PropertyTNDState, &tndState)
@@ -76,6 +78,7 @@ func main() {
 	log.Println("ConnectedAt:", connectedAt)
 	log.Println("Servers:", servers)
 	log.Println("OCRunning:", ocRunning)
+	log.Println("OCPID:", ocPID)
 	log.Println("TrafPolState:", trafPolState)
 	log.Println("AllowedHosts:", allowedHosts)
 	log.Println("TNDState:", tndState)
@@ -153,6 +156,11 @@ func main() {
 					log.Fatal(err)
 				}
 				fmt.Println(ocRunning)
+			case dbusapi.PropertyOCPID:
+				if err := value.Store(&ocPID); err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println(ocPID)
 			case dbusapi.PropertyTrafPolState:
 				if err := value.Store(&trafPolState); err != nil {
 					log.Fatal(err)
@@ -208,6 +216,8 @@ func main() {
 				servers = dbusapi.ServersInvalid
 			case dbusapi.PropertyOCRunning:
 				ocRunning = dbusapi.OCRunningUnknown
+			case dbusapi.PropertyOCPID:
+				ocPID = dbusapi.OCPIDInvalid
 			case dbusapi.PropertyTrafPolState:
 				trafPolState = dbusapi.TrafPolStateUnknown
 			case dbusapi.PropertyAllowedHosts:
