@@ -2,7 +2,7 @@ package vpncscript
 
 import (
 	"fmt"
-	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 
@@ -14,7 +14,10 @@ import (
 func createConfigGeneral(env *env, config *vpnconfig.Config) error {
 	// set gateway address
 	if env.vpnGateway != "" {
-		gateway := net.ParseIP(env.vpnGateway)
+		gateway, err := netip.ParseAddr(env.vpnGateway)
+		if err != nil {
+			return fmt.Errorf("could not parse gateway address: %w", err)
+		}
 		config.Gateway = gateway
 	}
 
@@ -60,21 +63,25 @@ func createConfigDevice(env *env, config *vpnconfig.Config) error {
 
 // createConfigIPv4 creates the IPv4 configuration in config from env.
 func createConfigIPv4(env *env, config *vpnconfig.Config) error {
-	// set ip
-	if env.internalIP4Address != "" {
-		ip := net.ParseIP(env.internalIP4Address)
-		config.IPv4.Address = ip
+	if env.internalIP4Address == "" || env.internalIP4NetmaskLen == "" {
+		return nil
 	}
 
-	// set netmask
-	if env.internalIP4NetmaskLen != "" {
-		maskLen, err := strconv.Atoi(env.internalIP4NetmaskLen)
-		if err != nil {
-			return fmt.Errorf("could not convert IPv4 netmask length: %w", err)
-		}
-		mask := net.CIDRMask(maskLen, 32)
-		config.IPv4.Netmask = mask
+	// get ip
+	ip, err := netip.ParseAddr(env.internalIP4Address)
+	if err != nil {
+		return fmt.Errorf("could not parse IPv4 address: %w", err)
 	}
+
+	// get netmask length
+	maskLen, err := strconv.Atoi(env.internalIP4NetmaskLen)
+	if err != nil {
+		return fmt.Errorf("could not convert IPv4 netmask length: %w", err)
+	}
+
+	// set prefix
+	config.IPv4 = netip.PrefixFrom(ip, maskLen)
+
 	// TODO: parse dotted decimal representation in internalIP4Netmask?
 
 	return nil
@@ -82,16 +89,17 @@ func createConfigIPv4(env *env, config *vpnconfig.Config) error {
 
 // createConfigIPv6 creates the IPv6 configuration in config from env.
 func createConfigIPv6(env *env, config *vpnconfig.Config) error {
+	if env.internalIP6Netmask == "" {
+		return nil
+	}
+
 	// set ip and netmask
 	// internalIP6Netmask should contain IP in CIDR representation
-	if env.internalIP6Netmask != "" {
-		ip, ipnet, err := net.ParseCIDR(env.internalIP6Netmask)
-		if err != nil {
-			return fmt.Errorf("could not parse IPv6 netmask: %w", err)
-		}
-		config.IPv6.Address = ip
-		config.IPv6.Netmask = ipnet.Mask
+	prefix, err := netip.ParsePrefix(env.internalIP6Netmask)
+	if err != nil {
+		return fmt.Errorf("could not parse IPv6 netmask: %w", err)
 	}
+	config.IPv6 = prefix
 
 	return nil
 }
@@ -104,12 +112,12 @@ func createConfigDNS(env *env, config *vpnconfig.Config) error {
 	}
 
 	// set ipv4 and ipv6 servers
-	parse := func(list string) ([]net.IP, error) {
-		ips := []net.IP{}
+	parse := func(list string) ([]netip.Addr, error) {
+		ips := []netip.Addr{}
 		for _, d := range strings.Split(list, " ") {
-			ip := net.ParseIP(d)
-			if ip == nil {
-				return nil, fmt.Errorf("could not parse DNS server IP address %s", d)
+			ip, err := netip.ParseAddr(d)
+			if err != nil {
+				return nil, fmt.Errorf("could not parse DNS server IP address %s: %w", d, err)
 			}
 			ips = append(ips, ip)
 		}
@@ -136,10 +144,10 @@ func createConfigDNS(env *env, config *vpnconfig.Config) error {
 // createConfigSplit creates the split routing configuration in config from env.
 func createConfigSplit(env *env, config *vpnconfig.Config) error {
 	// set ipv4 and ipv6 excludes
-	parse := func(list []string) ([]*net.IPNet, error) {
-		ipnets := []*net.IPNet{}
+	parse := func(list []string) ([]netip.Prefix, error) {
+		ipnets := []netip.Prefix{}
 		for _, e := range list {
-			_, ipnet, err := net.ParseCIDR(e)
+			ipnet, err := netip.ParsePrefix(e)
 			if err != nil {
 				return nil, fmt.Errorf("could not parse exclude IP address: %w", err)
 			}

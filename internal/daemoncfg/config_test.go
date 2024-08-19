@@ -1,9 +1,6 @@
 package daemoncfg
 
 import (
-	"log"
-	"net"
-	"net/netip"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -416,232 +413,6 @@ func TestNewTrafficPolicing(t *testing.T) {
 	}
 }
 
-// TestVPNDNSRemotes tests Remotes of VPNDNS.
-func TestVPNDNSRemotes(t *testing.T) {
-	// test empty
-	c := &VPNConfig{}
-	if len(c.DNS.Remotes()) != 0 {
-		t.Errorf("got %d, want 0", len(c.DNS.Remotes()))
-	}
-
-	// test ipv4
-	for _, want := range [][]string{
-		{"127.0.0.1:53"},
-		{"127.0.0.1:53", "192.168.1.1:53"},
-		{"127.0.0.1:53", "192.168.1.1:53", "10.0.0.1:53"},
-	} {
-		c := &VPNConfig{}
-		for _, ip := range want {
-			ip = ip[:len(ip)-3] // remove port
-			c.DNS.ServersIPv4 = append(c.DNS.ServersIPv4, netip.MustParseAddr(ip))
-		}
-		got := c.DNS.Remotes()["."]
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v, want %v", got, want)
-		}
-	}
-
-	// test ipv6
-	for _, want := range [][]string{
-		{"[::1]:53"},
-		{"[::1]:53", "[2000::1]:53"},
-		{"[::1]:53", "[2000::1]:53", "[2002::1]:53"},
-	} {
-		c := &VPNConfig{}
-		for _, ip := range want {
-			ip = ip[1 : len(ip)-4] // remove port and brackets
-			c.DNS.ServersIPv6 = append(c.DNS.ServersIPv6, netip.MustParseAddr(ip))
-		}
-		got := c.DNS.Remotes()["."]
-		log.Println(got)
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v, want %v", got, want)
-		}
-	}
-
-	// test both ipv4 and ipv6
-	c = &VPNConfig{}
-	dns4 := "127.0.0.1"
-	dns6 := "::1"
-	c.DNS.ServersIPv4 = append(c.DNS.ServersIPv4, netip.MustParseAddr(dns4))
-	c.DNS.ServersIPv6 = append(c.DNS.ServersIPv6, netip.MustParseAddr(dns6))
-
-	want := map[string][]string{
-		".": {dns4 + ":53", "[" + dns6 + "]:53"},
-	}
-	got := c.DNS.Remotes()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
-}
-
-// TestVPNSplitDNSExcludes tests DNSExcludes of VPNSplit.
-func TestVPNSplitDNSExcludes(t *testing.T) {
-	// test empty
-	c := &VPNConfig{}
-	if len(c.Split.DNSExcludes()) != 0 {
-		t.Errorf("got %d, want 0", len(c.Split.DNSExcludes()))
-	}
-
-	// test filled
-	c = &VPNConfig{}
-	want := []string{"example.com", "test.com"}
-	c.Split.ExcludeDNS = want
-	for i, got := range c.Split.DNSExcludes() {
-		want := want[i] + "."
-		if got != want {
-			t.Errorf("got %s, want %s", got, want)
-		}
-	}
-}
-
-// TestVPNConfigCopy tests Copy of VPNConfig.
-func TestVPNConfigCopy(t *testing.T) {
-	// test nil
-	if (*VPNConfig)(nil).Copy() != nil {
-		t.Error("copy of nil should be nil")
-	}
-
-	// test with new config
-	want := &VPNConfig{}
-	got := want.Copy()
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
-
-	// test modification after copy
-	c1 := &VPNConfig{}
-	c2 := c1.Copy()
-	c1.PID = 12345
-	c1.Split.ExcludeIPv4 = append(c1.Split.ExcludeIPv4, netip.MustParsePrefix("192.168.1.0/24"))
-
-	if reflect.DeepEqual(c1, c2) {
-		t.Error("copies should not be equal after modification")
-	}
-}
-
-// getValidTestVPNConfig returns a valid VPNConfig for testing.
-func getValidTestVPNConfig() *VPNConfig {
-	c := &VPNConfig{}
-
-	c.Gateway = netip.MustParseAddr("192.168.0.1")
-	c.PID = 123456
-	c.Timeout = 300
-	c.Device.Name = "tun0"
-	c.Device.MTU = 1300
-	c.IPv4 = netip.MustParsePrefix("192.168.0.123/24")
-	c.IPv6 = netip.MustParsePrefix("2001:42:42:42::1/64")
-	c.DNS.DefaultDomain = "mycompany.com"
-	c.DNS.ServersIPv4 = []netip.Addr{netip.MustParseAddr("192.168.0.53")}
-	c.DNS.ServersIPv6 = []netip.Addr{netip.MustParseAddr("2001:53:53:53::53")}
-	c.Split.ExcludeIPv4 = []netip.Prefix{
-		netip.MustParsePrefix("0.0.0.0/32"),
-		netip.MustParsePrefix("10.0.0.0/24"),
-	}
-	c.Split.ExcludeIPv6 = []netip.Prefix{
-		netip.MustParsePrefix("2001:2:3:4::1/128"),
-		netip.MustParsePrefix("2001:2:3:5::1/64"),
-	}
-	c.Split.ExcludeDNS = []string{"this.other.com", "that.other.com"}
-	c.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
-	c.Flags.DisableAlwaysOnVPN = true
-
-	return c
-}
-
-// TestVPNConfigValid tests Valid of VPNConfig.
-func TestVPNConfigValid(t *testing.T) {
-	// test invalid
-	for _, invalid := range []*VPNConfig{
-		// only device name set, invalid device name
-		{Device: VPNDevice{Name: "this is too long for a device name"}},
-		// only PID set
-		{PID: 123},
-	} {
-		if invalid.Valid() {
-			t.Errorf("%v should not be valid", invalid)
-		}
-	}
-
-	// test valid
-	for _, valid := range []*VPNConfig{
-		// empty
-		{},
-		// full valid config
-		getValidTestVPNConfig(),
-	} {
-		if !valid.Valid() {
-			t.Errorf("%v should be valid", valid)
-		}
-	}
-}
-
-// TestGetVPNConfig tests GetVPNConfig.
-func TestGetVPNConfig(t *testing.T) {
-	// create vpnconfig.Config
-	c := vpnconfig.New()
-
-	c.Gateway = net.IPv4(192, 168, 0, 1)
-	c.PID = 123456
-	c.Timeout = 300
-	c.Device.Name = "tun0"
-	c.Device.MTU = 1300
-	c.IPv4.Address = net.IPv4(192, 168, 0, 123)
-	c.IPv4.Netmask = net.IPv4Mask(255, 255, 255, 0)
-	c.IPv6.Address = net.ParseIP("2001:42:42:42::1")
-	c.IPv6.Netmask = net.CIDRMask(64, 128)
-	c.DNS.DefaultDomain = "mycompany.com"
-	c.DNS.ServersIPv4 = []net.IP{net.IPv4(192, 168, 0, 53)}
-	c.DNS.ServersIPv6 = []net.IP{net.ParseIP("2001:53:53:53::53")}
-	c.Split.ExcludeIPv4 = []*net.IPNet{
-		{
-			IP:   net.IPv4(0, 0, 0, 0),
-			Mask: net.IPv4Mask(255, 255, 255, 255),
-		},
-		{
-			IP:   net.IPv4(10, 0, 0, 0),
-			Mask: net.IPv4Mask(255, 255, 255, 0),
-		},
-	}
-	c.Split.ExcludeIPv6 = []*net.IPNet{
-		{
-			IP:   net.ParseIP("2001:2:3:4::1"),
-			Mask: net.CIDRMask(128, 128),
-		},
-		{
-			IP:   net.ParseIP("2001:2:3:5::1"),
-			Mask: net.CIDRMask(64, 128),
-		},
-	}
-	c.Split.ExcludeDNS = []string{"this.other.com", "that.other.com"}
-	c.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
-	c.Flags.DisableAlwaysOnVPN = true
-
-	// convert and check
-	got := GetVPNConfig(c)
-	if got.Gateway.String() != "192.168.0.1" ||
-		got.PID != c.PID ||
-		got.Timeout != c.Timeout ||
-		got.Device.Name != c.Device.Name ||
-		got.Device.MTU != c.Device.MTU ||
-		got.IPv4.String() != "192.168.0.123/24" ||
-		got.IPv6.String() != "2001:42:42:42::1/64" ||
-		got.DNS.DefaultDomain != c.DNS.DefaultDomain ||
-		got.DNS.ServersIPv4[0].String() != "192.168.0.53" ||
-		got.DNS.ServersIPv6[0].String() != "2001:53:53:53::53" ||
-		got.Split.ExcludeIPv4[0].String() != "0.0.0.0/32" ||
-		got.Split.ExcludeIPv4[1].String() != "10.0.0.0/24" ||
-		got.Split.ExcludeIPv6[0].String() != "2001:2:3:4::1/128" ||
-		got.Split.ExcludeIPv6[1].String() != "2001:2:3:5::1/64" ||
-		got.Split.ExcludeDNS[0] != "this.other.com" ||
-		got.Split.ExcludeDNS[1] != "that.other.com" ||
-		got.Split.ExcludeVirtualSubnetsOnlyIPv4 != c.Split.ExcludeVirtualSubnetsOnlyIPv4 ||
-		got.Flags.DisableAlwaysOnVPN != c.Flags.DisableAlwaysOnVPN {
-		t.Errorf("invalid conversion: %+v", got)
-	}
-}
-
 // TestConfigCopy tests Copy of Config.
 func TestConfigCopy(t *testing.T) {
 	// test with new config
@@ -885,7 +656,7 @@ func TestConfigLoad(t *testing.T) {
 			TND:             tnd.NewConfig(),
 			CommandLists:    NewCommandLists(),
 			LoginInfo:       &logininfo.LoginInfo{},
-			VPNConfig:       &VPNConfig{},
+			VPNConfig:       &vpnconfig.Config{},
 		}
 		if !reflect.DeepEqual(want.DNSProxy, conf.DNSProxy) {
 			t.Errorf("got %v, want %v", conf.DNSProxy, want.DNSProxy)
@@ -926,7 +697,7 @@ func TestNewConfig(t *testing.T) {
 		TND:             tnd.NewConfig(),
 		CommandLists:    NewCommandLists(),
 		LoginInfo:       &logininfo.LoginInfo{},
-		VPNConfig:       &VPNConfig{},
+		VPNConfig:       &vpnconfig.Config{},
 	}
 	got := NewConfig()
 	if !reflect.DeepEqual(got, want) {

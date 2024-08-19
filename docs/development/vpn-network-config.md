@@ -13,23 +13,17 @@ type Device struct {
 	MTU  int
 }
 
-// Address is a IPv4/IPv6 address configuration in Config
-type Address struct {
-	Address net.IP
-	Netmask net.IPMask
-}
-
 // DNS is a DNS configuration in Config
 type DNS struct {
 	DefaultDomain string
-	ServersIPv4   []net.IP
-	ServersIPv6   []net.IP
+	ServersIPv4   []netip.Addr
+	ServersIPv6   []netip.Addr
 }
 
 // Split is a split routing configuration in Config
 type Split struct {
-	ExcludeIPv4 []*net.IPNet
-	ExcludeIPv6 []*net.IPNet
+	ExcludeIPv4 []netip.Prefix
+	ExcludeIPv6 []netip.Prefix
 	ExcludeDNS  []string
 
 	ExcludeVirtualSubnetsOnlyIPv4 bool
@@ -42,12 +36,12 @@ type Flags struct {
 
 // Config is a VPN configuration
 type Config struct {
-	Gateway net.IP
+	Gateway netip.Addr
 	PID     int
 	Timeout int
 	Device  Device
-	IPv4    Address
-	IPv6    Address
+	IPv4    netip.Prefix
+	IPv6    netip.Prefix
 	DNS     DNS
 	Split   Split
 	Flags   Flags

@@ -1,7 +1,7 @@
 package vpncscript
 
 import (
-	"net"
+	"net/netip"
 	"reflect"
 	"testing"
 
@@ -21,11 +21,8 @@ func TestCreateConfigSplit(t *testing.T) {
 	}
 
 	// create expected values
-	ipv4 := []*net.IPNet{
-		{
-			IP:   net.IPv4(172, 16, 0, 0),
-			Mask: net.IPv4Mask(255, 255, 0, 0),
-		},
+	ipv4 := []netip.Prefix{
+		netip.MustParsePrefix("172.16.0.0/16"),
 	}
 	dns := []string{"some.example.com", "other.example.com", "www.example.com"}
 	vnet := true
@@ -88,25 +85,19 @@ func TestCreateConfigUpdate(t *testing.T) {
 	// create expected values based on test environment
 	reason := "connect"
 	config := &vpnconfig.Config{
-		Gateway: net.IPv4(10, 1, 1, 1),
+		Gateway: netip.MustParseAddr("10.1.1.1"),
 		PID:     12345,
 		Timeout: 300,
 		Device: vpnconfig.Device{
 			Name: "tun0",
 			MTU:  1300,
 		},
-		IPv4: vpnconfig.Address{
-			Address: net.IPv4(192, 168, 1, 123),
-			Netmask: net.IPv4Mask(255, 255, 255, 0),
-		},
-		IPv6: vpnconfig.Address{
-			Address: net.ParseIP("2001:3:2:1::1"),
-			Netmask: net.CIDRMask(64, 128),
-		},
+		IPv4: netip.MustParsePrefix("192.168.1.123/24"),
+		IPv6: netip.MustParsePrefix("2001:3:2:1::1/64"),
 		DNS: vpnconfig.DNS{
 			DefaultDomain: "example.com",
-			ServersIPv4:   []net.IP{net.IPv4(192, 168, 1, 1)},
-			ServersIPv6:   []net.IP{net.ParseIP("2001:53:53:53::53")},
+			ServersIPv4:   []netip.Addr{netip.MustParseAddr("192.168.1.1")},
+			ServersIPv6:   []netip.Addr{netip.MustParseAddr("2001:53:53:53::53")},
 		},
 		Split: vpnconfig.Split{
 			ExcludeDNS: []string{"some.example.com", "other.example.com", "www.example.com"},

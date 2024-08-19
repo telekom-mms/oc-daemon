@@ -3,7 +3,7 @@ package vpnconfig
 import (
 	"encoding/json"
 	"log"
-	"net"
+	"net/netip"
 	"reflect"
 	"testing"
 )
@@ -25,7 +25,7 @@ func TestDNSRemotes(t *testing.T) {
 		c := New()
 		for _, ip := range want {
 			ip = ip[:len(ip)-3] // remove port
-			c.DNS.ServersIPv4 = append(c.DNS.ServersIPv4, net.ParseIP(ip))
+			c.DNS.ServersIPv4 = append(c.DNS.ServersIPv4, netip.MustParseAddr(ip))
 		}
 		got := c.DNS.Remotes()["."]
 		if !reflect.DeepEqual(got, want) {
@@ -42,7 +42,7 @@ func TestDNSRemotes(t *testing.T) {
 		c := New()
 		for _, ip := range want {
 			ip = ip[1 : len(ip)-4] // remove port and brackets
-			c.DNS.ServersIPv6 = append(c.DNS.ServersIPv6, net.ParseIP(ip))
+			c.DNS.ServersIPv6 = append(c.DNS.ServersIPv6, netip.MustParseAddr(ip))
 		}
 		got := c.DNS.Remotes()["."]
 		log.Println(got)
@@ -55,8 +55,8 @@ func TestDNSRemotes(t *testing.T) {
 	c = New()
 	dns4 := "127.0.0.1"
 	dns6 := "::1"
-	c.DNS.ServersIPv4 = append(c.DNS.ServersIPv4, net.ParseIP(dns4))
-	c.DNS.ServersIPv6 = append(c.DNS.ServersIPv6, net.ParseIP(dns6))
+	c.DNS.ServersIPv4 = append(c.DNS.ServersIPv4, netip.MustParseAddr(dns4))
+	c.DNS.ServersIPv6 = append(c.DNS.ServersIPv6, netip.MustParseAddr(dns6))
 
 	want := map[string][]string{
 		".": {dns4 + ":53", "[" + dns6 + "]:53"},
@@ -91,37 +91,23 @@ func TestSplitDNSExcludes(t *testing.T) {
 func getValidTestConfig() *Config {
 	c := New()
 
-	c.Gateway = net.IPv4(192, 168, 0, 1)
+	c.Gateway = netip.MustParseAddr("192.168.0.1")
 	c.PID = 123456
 	c.Timeout = 300
 	c.Device.Name = "tun0"
 	c.Device.MTU = 1300
-	c.IPv4.Address = net.IPv4(192, 168, 0, 123)
-	c.IPv4.Netmask = net.IPv4Mask(255, 255, 255, 0)
-	c.IPv6.Address = net.ParseIP("2001:42:42:42::1")
-	c.IPv6.Netmask = net.CIDRMask(64, 128)
+	c.IPv4 = netip.MustParsePrefix("192.168.0.123/24")
+	c.IPv6 = netip.MustParsePrefix("2001:42:42:42::1/64")
 	c.DNS.DefaultDomain = "mycompany.com"
-	c.DNS.ServersIPv4 = []net.IP{net.IPv4(192, 168, 0, 53)}
-	c.DNS.ServersIPv6 = []net.IP{net.ParseIP("2001:53:53:53::53")}
-	c.Split.ExcludeIPv4 = []*net.IPNet{
-		{
-			IP:   net.IPv4(0, 0, 0, 0),
-			Mask: net.IPv4Mask(255, 255, 255, 255),
-		},
-		{
-			IP:   net.IPv4(10, 0, 0, 0),
-			Mask: net.IPv4Mask(255, 255, 255, 0),
-		},
+	c.DNS.ServersIPv4 = []netip.Addr{netip.MustParseAddr("192.168.0.53")}
+	c.DNS.ServersIPv6 = []netip.Addr{netip.MustParseAddr("2001:53:53:53::53")}
+	c.Split.ExcludeIPv4 = []netip.Prefix{
+		netip.MustParsePrefix("0.0.0.0/32"),
+		netip.MustParsePrefix("10.0.0.0/24"),
 	}
-	c.Split.ExcludeIPv6 = []*net.IPNet{
-		{
-			IP:   net.ParseIP("2001:2:3:4::1"),
-			Mask: net.CIDRMask(128, 128),
-		},
-		{
-			IP:   net.ParseIP("2001:2:3:5::1"),
-			Mask: net.CIDRMask(64, 128),
-		},
+	c.Split.ExcludeIPv6 = []netip.Prefix{
+		netip.MustParsePrefix("2001:2:3:4::1/128"),
+		netip.MustParsePrefix("2001:2:3:5::1/64"),
 	}
 	c.Split.ExcludeDNS = []string{"this.other.com", "that.other.com"}
 	c.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
