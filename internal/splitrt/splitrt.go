@@ -67,27 +67,15 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 	// prepare netfilter and excludes
 	setRoutingRules(ctx, s.config.FirewallMark)
 
-	// convert to netip
-	pre4 := netip.Prefix{}
-	if ipv4, ok := netip.AddrFromSlice(s.vpnconfig.IPv4.Address.To4()); ok {
-		one4, _ := s.vpnconfig.IPv4.Netmask.Size()
-		pre4 = netip.PrefixFrom(ipv4, one4)
-	}
-	pre6 := netip.Prefix{}
-	if ipv6, ok := netip.AddrFromSlice(s.vpnconfig.IPv6.Address); ok {
-		one6, _ := s.vpnconfig.IPv6.Netmask.Size()
-		pre6 = netip.PrefixFrom(ipv6, one6)
-	}
-
 	// filter non-local traffic to vpn addresses
-	addLocalAddressesIPv4(ctx, s.vpnconfig.Device.Name, []netip.Prefix{pre4})
-	addLocalAddressesIPv6(ctx, s.vpnconfig.Device.Name, []netip.Prefix{pre6})
+	addLocalAddressesIPv4(ctx, s.vpnconfig.Device.Name, []netip.Prefix{s.vpnconfig.IPv4})
+	addLocalAddressesIPv6(ctx, s.vpnconfig.Device.Name, []netip.Prefix{s.vpnconfig.IPv6})
 
 	// reject unsupported ip versions on vpn
-	if !pre6.IsValid() {
+	if !s.vpnconfig.IPv6.IsValid() {
 		rejectIPv6(ctx, s.vpnconfig.Device.Name)
 	}
-	if !pre4.IsValid() {
+	if !s.vpnconfig.IPv4.IsValid() {
 		rejectIPv4(ctx, s.vpnconfig.Device.Name)
 	}
 
@@ -95,19 +83,15 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 	s.excludes.Start()
 
 	// add gateway to static excludes
-	if s.vpnconfig.Gateway != nil {
-		g := netip.MustParseAddr(s.vpnconfig.Gateway.String())
-		gateway := netip.PrefixFrom(g, g.BitLen())
-		s.excludes.AddStatic(ctx, gateway)
-	}
+	gateway := netip.PrefixFrom(s.vpnconfig.Gateway, s.vpnconfig.Gateway.BitLen())
+	s.excludes.AddStatic(ctx, gateway)
 
 	// add static IPv4 excludes
 	for _, e := range s.vpnconfig.Split.ExcludeIPv4 {
 		if e.String() == "0.0.0.0/32" {
 			continue
 		}
-		p := netip.MustParsePrefix(e.String())
-		s.excludes.AddStatic(ctx, p)
+		s.excludes.AddStatic(ctx, e)
 	}
 
 	// add static IPv6 excludes
@@ -116,8 +100,7 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 		if e.String() == "::/128" {
 			continue
 		}
-		p := netip.MustParsePrefix(e.String())
-		s.excludes.AddStatic(ctx, p)
+		s.excludes.AddStatic(ctx, e)
 	}
 
 	// setup routing

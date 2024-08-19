@@ -3,7 +3,6 @@ package vpnsetup
 import (
 	"context"
 	"errors"
-	"net"
 	"net/netip"
 	"reflect"
 	"strings"
@@ -28,10 +27,8 @@ func TestSetupVPNDevice(t *testing.T) {
 	c := vpnconfig.New()
 	c.Device.Name = "tun0"
 	c.Device.MTU = 1300
-	c.IPv4.Address = net.IPv4(192, 168, 0, 123)
-	c.IPv4.Netmask = net.IPv4Mask(255, 255, 255, 0)
-	c.IPv6.Address = net.ParseIP("2001::1")
-	c.IPv6.Netmask = net.CIDRMask(64, 128)
+	c.IPv4 = netip.MustParsePrefix("192.168.0.123/24")
+	c.IPv6 = netip.MustParsePrefix("2001::1/64")
 
 	// overwrite RunCmd
 	want := []string{

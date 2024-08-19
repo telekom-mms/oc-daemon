@@ -92,18 +92,11 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 		}
 
 	}
-
-	if ipv4, ok := netip.AddrFromSlice(c.IPv4.Address.To4()); ok {
-		one4, _ := c.IPv4.Netmask.Size()
-		pre4 := netip.PrefixFrom(ipv4, one4)
-
-		setupIP(pre4)
+	if c.IPv4.IsValid() {
+		setupIP(c.IPv4)
 	}
-	if ipv6, ok := netip.AddrFromSlice(c.IPv6.Address); ok {
-		one6, _ := c.IPv6.Netmask.Size()
-		pre6 := netip.PrefixFrom(ipv6, one6)
-
-		setupIP(pre6)
+	if c.IPv6.IsValid() {
+		setupIP(c.IPv6)
 	}
 }
 

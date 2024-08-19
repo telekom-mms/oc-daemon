@@ -3,7 +3,6 @@ package splitrt
 import (
 	"context"
 	"errors"
-	"net"
 	"net/netip"
 	"reflect"
 	"strings"
@@ -69,11 +68,8 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 
 	// test with exclude
 	vpnconf := vpnconfig.New()
-	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
-		{
-			IP:   net.IPv4(0, 0, 0, 0),
-			Mask: net.CIDRMask(32, 32),
-		},
+	vpnconf.Split.ExcludeIPv4 = []netip.Prefix{
+		netip.MustParsePrefix("0.0.0.0/32"),
 	}
 	s := NewSplitRouting(NewConfig(), vpnconf)
 	s.devices.Add(getTestDevMonUpdate())
@@ -110,11 +106,8 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 
 	// test with exclude and virtual
 	vpnconf = vpnconfig.New()
-	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
-		{
-			IP:   net.IPv4(0, 0, 0, 0),
-			Mask: net.CIDRMask(32, 32),
-		},
+	vpnconf.Split.ExcludeIPv4 = []netip.Prefix{
+		netip.MustParsePrefix("0.0.0.0/32"),
 	}
 	vpnconf.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
 	s = NewSplitRouting(NewConfig(), vpnconf)
@@ -215,25 +208,13 @@ func TestSplitRoutingStartStop(t *testing.T) {
 
 	// test with excludes
 	vpnconf := vpnconfig.New()
-	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
-		{
-			IP:   net.IPv4(0, 0, 0, 0),
-			Mask: net.CIDRMask(32, 32),
-		},
-		{
-			IP:   net.IPv4(192, 168, 1, 1),
-			Mask: net.CIDRMask(32, 32),
-		},
+	vpnconf.Split.ExcludeIPv4 = []netip.Prefix{
+		netip.MustParsePrefix("0.0.0.0/32"),
+		netip.MustParsePrefix("192.168.1.1/32"),
 	}
-	vpnconf.Split.ExcludeIPv6 = []*net.IPNet{
-		{
-			IP:   net.ParseIP("::"),
-			Mask: net.CIDRMask(128, 128),
-		},
-		{
-			IP:   net.ParseIP("2000::1"),
-			Mask: net.CIDRMask(128, 128),
-		},
+	vpnconf.Split.ExcludeIPv6 = []netip.Prefix{
+		netip.MustParsePrefix("::/128"),
+		netip.MustParsePrefix("2000::1/128"),
 	}
 	s = NewSplitRouting(NewConfig(), vpnconf)
 	if err := s.Start(); err != nil {
@@ -243,8 +224,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 
 	// test with vpn address
 	vpnconf = vpnconfig.New()
-	vpnconf.IPv4.Address = net.IPv4(192, 168, 1, 1)
-	vpnconf.IPv4.Netmask = net.CIDRMask(24, 32)
+	vpnconf.IPv4 = netip.MustParsePrefix("192.168.1.1/24")
 	s = NewSplitRouting(NewConfig(), vpnconf)
 	if err := s.Start(); err != nil {
 		t.Error(err)

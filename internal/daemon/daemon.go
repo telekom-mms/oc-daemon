@@ -380,13 +380,14 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	// save config
 	d.setStatusVPNConfig(config)
 	ip := ""
-	for _, addr := range []net.IP{config.IPv4.Address, config.IPv6.Address} {
+	for _, addr := range []netip.Prefix{config.IPv4, config.IPv6} {
 		// this assumes either a single IPv4 or a single IPv6 address
 		// is configured on a vpn device
-		if addr != nil {
+		if addr.IsValid() {
 			ip = addr.String()
 		}
 	}
+	// TODO: this will set prefix and not only the ip, ok?
 	d.setStatusIP(ip)
 	d.setStatusDevice(config.Device.Name)
 
