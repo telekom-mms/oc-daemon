@@ -392,7 +392,7 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 
 	// connecting, set up configuration
 	log.Info("Daemon setting up vpn configuration")
-	d.config.VPNConfig = daemoncfg.GetVPNConfig(config)
+	d.config.VPNConfig = config
 	d.vpnsetup.Setup(d.config.Copy())
 
 	// set traffic policing setting from Disable Always On VPN setting
@@ -437,7 +437,7 @@ func (d *Daemon) updateVPNConfigDown() {
 
 	// remove login and VPN config
 	d.config.LoginInfo = &logininfo.LoginInfo{}
-	d.config.VPNConfig = &daemoncfg.VPNConfig{}
+	d.config.VPNConfig = &vpnconfig.Config{}
 
 	// save config
 	d.setStatusVPNConfig(nil)

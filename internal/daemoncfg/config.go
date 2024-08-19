@@ -3,7 +3,6 @@ package daemoncfg
 
 import (
 	"encoding/json"
-	"net/netip"
 	"os"
 	"os/exec"
 	"reflect"
@@ -570,246 +569,6 @@ func NewCommandLists() *CommandLists {
 	}
 }
 
-// VPNDevice is a VPN device configuration in VPNConfig.
-type VPNDevice struct {
-	Name string
-	MTU  int
-}
-
-// Copy returns a copy of the VPN device.
-func (d *VPNDevice) Copy() VPNDevice {
-	return VPNDevice{
-		Name: d.Name,
-		MTU:  d.MTU,
-	}
-}
-
-// VPNDNS is a DNS configuration in VPNConfig.
-type VPNDNS struct {
-	DefaultDomain string
-	ServersIPv4   []netip.Addr
-	ServersIPv6   []netip.Addr
-}
-
-// Copy returns a copy of VPNDNS.
-func (d *VPNDNS) Copy() VPNDNS {
-	return VPNDNS{
-		DefaultDomain: d.DefaultDomain,
-		ServersIPv4:   append(d.ServersIPv4[:0:0], d.ServersIPv4...),
-		ServersIPv6:   append(d.ServersIPv6[:0:0], d.ServersIPv6...),
-	}
-}
-
-// Remotes returns a map of DNS remotes from the DNS configuration that maps
-// domain "." to the IPv4 and IPv6 DNS servers in the configuration including
-// port number 53.
-func (d *VPNDNS) Remotes() map[string][]string {
-	remotes := map[string][]string{}
-	for _, s := range d.ServersIPv4 {
-		server := s.String() + ":53"
-		remotes["."] = append(remotes["."], server)
-	}
-	for _, s := range d.ServersIPv6 {
-		server := "[" + s.String() + "]:53"
-		remotes["."] = append(remotes["."], server)
-	}
-
-	return remotes
-}
-
-// VPNSplit is a split routing configuration in VPNConfig.
-type VPNSplit struct {
-	ExcludeIPv4 []netip.Prefix
-	ExcludeIPv6 []netip.Prefix
-	ExcludeDNS  []string
-
-	ExcludeVirtualSubnetsOnlyIPv4 bool
-}
-
-// Copy returns a copy of VPN split.
-func (s *VPNSplit) Copy() VPNSplit {
-	return VPNSplit{
-		ExcludeIPv4: append(s.ExcludeIPv4[:0:0], s.ExcludeIPv4...),
-		ExcludeIPv6: append(s.ExcludeIPv6[:0:0], s.ExcludeIPv6...),
-		ExcludeDNS:  append(s.ExcludeDNS[:0:0], s.ExcludeDNS...),
-
-		ExcludeVirtualSubnetsOnlyIPv4: s.ExcludeVirtualSubnetsOnlyIPv4,
-	}
-}
-
-// DNSExcludes returns a list of DNS-based split excludes from the
-// split routing configuration. The list contains domain names including the
-// trailing ".".
-func (s *VPNSplit) DNSExcludes() []string {
-	excludes := make([]string, len(s.ExcludeDNS))
-	for i, e := range s.ExcludeDNS {
-		excludes[i] = e + "."
-	}
-
-	return excludes
-}
-
-// VPNFlags are other configuration settings in VPNConfig.
-type VPNFlags struct {
-	DisableAlwaysOnVPN bool
-}
-
-// Copy returns a copy of VPN flags.
-func (f *VPNFlags) Copy() VPNFlags {
-	return VPNFlags{
-		DisableAlwaysOnVPN: f.DisableAlwaysOnVPN,
-	}
-}
-
-// VPNConfig is a VPN configuration.
-type VPNConfig struct {
-	Gateway netip.Addr
-	PID     int
-	Timeout int
-	Device  VPNDevice
-	IPv4    netip.Prefix
-	IPv6    netip.Prefix
-	DNS     VPNDNS
-	Split   VPNSplit
-	Flags   VPNFlags
-}
-
-// Copy returns a copy of the VPN configuration.
-func (c *VPNConfig) Copy() *VPNConfig {
-	if c == nil {
-		return nil
-	}
-	return &VPNConfig{
-		Gateway: c.Gateway,
-		PID:     c.PID,
-		Timeout: c.Timeout,
-		Device:  c.Device.Copy(),
-		IPv4:    c.IPv4,
-		IPv6:    c.IPv6,
-		DNS:     c.DNS.Copy(),
-		Split:   c.Split.Copy(),
-		Flags:   c.Flags.Copy(),
-	}
-}
-
-// Empty returns whether the VPN configuration is empty.
-func (c *VPNConfig) Empty() bool {
-	empty := &VPNConfig{}
-	return reflect.DeepEqual(c, empty)
-}
-
-// Valid returns whether the VPN configuration is valid.
-func (c *VPNConfig) Valid() bool {
-	// an empty config is valid
-	if c.Empty() {
-		return true
-	}
-
-	// check config entries
-	for _, invalid := range []bool{
-		!c.Gateway.IsValid(),
-		c.Device.Name == "",
-		len(c.Device.Name) > 15,
-		c.Device.MTU < 68,
-		c.Device.MTU > 16384,
-		!c.IPv4.IsValid() && !c.IPv6.IsValid(),
-		len(c.DNS.ServersIPv4) == 0 && len(c.DNS.ServersIPv6) == 0,
-	} {
-		if invalid {
-			return false
-		}
-	}
-
-	return true
-}
-
-// GetVPNConfig converts vpnconf to VPNConfig.
-func GetVPNConfig(vpnconf *vpnconfig.Config) *VPNConfig {
-	// convert gateway
-	gateway := netip.Addr{}
-	if g, ok := netip.AddrFromSlice(vpnconf.Gateway); ok {
-		// unmap to make sure we don't get an IPv4-mapped IPv6 address
-		gateway = g.Unmap()
-	}
-
-	// convert ipv4 address
-	pre4 := netip.Prefix{}
-	if ipv4, ok := netip.AddrFromSlice(vpnconf.IPv4.Address.To4()); ok {
-		pre4len, _ := vpnconf.IPv4.Netmask.Size()
-		pre4 = netip.PrefixFrom(ipv4, pre4len)
-	}
-
-	// convert ipv6 address
-	pre6 := netip.Prefix{}
-	if ipv6, ok := netip.AddrFromSlice(vpnconf.IPv6.Address); ok {
-		pre6len, _ := vpnconf.IPv6.Netmask.Size()
-		pre6 = netip.PrefixFrom(ipv6, pre6len)
-	}
-
-	// convert ipv4 dns servers
-	var dns4 []netip.Addr
-	for _, a := range vpnconf.DNS.ServersIPv4 {
-		if d, ok := netip.AddrFromSlice(a.To4()); ok {
-			dns4 = append(dns4, d)
-		}
-	}
-
-	// convert ipv6 dns servers
-	var dns6 []netip.Addr
-	for _, a := range vpnconf.DNS.ServersIPv6 {
-		if d, ok := netip.AddrFromSlice(a); ok {
-			dns6 = append(dns6, d)
-		}
-	}
-
-	// convert ipv4 excludes
-	var excludes4 []netip.Prefix
-	for _, a := range vpnconf.Split.ExcludeIPv4 {
-		if ipv4, ok := netip.AddrFromSlice(a.IP.To4()); ok {
-			pre4len, _ := a.Mask.Size()
-			pre4 := netip.PrefixFrom(ipv4, pre4len)
-			excludes4 = append(excludes4, pre4)
-		}
-	}
-
-	// convert ipv6 excludes
-	var excludes6 []netip.Prefix
-	for _, a := range vpnconf.Split.ExcludeIPv6 {
-		if ipv6, ok := netip.AddrFromSlice(a.IP); ok {
-			pre6len, _ := a.Mask.Size()
-			pre6 := netip.PrefixFrom(ipv6, pre6len)
-			excludes6 = append(excludes6, pre6)
-		}
-	}
-
-	return &VPNConfig{
-		Gateway: gateway,
-		PID:     vpnconf.PID,
-		Timeout: vpnconf.Timeout,
-		Device: VPNDevice{
-			Name: vpnconf.Device.Name,
-			MTU:  vpnconf.Device.MTU,
-		},
-		IPv4: pre4,
-		IPv6: pre6,
-		DNS: VPNDNS{
-			DefaultDomain: vpnconf.DNS.DefaultDomain,
-			ServersIPv4:   dns4,
-			ServersIPv6:   dns6,
-		},
-		Split: VPNSplit{
-			ExcludeIPv4: excludes4,
-			ExcludeIPv6: excludes6,
-			ExcludeDNS:  vpnconf.Split.ExcludeDNS,
-
-			ExcludeVirtualSubnetsOnlyIPv4: vpnconf.Split.ExcludeVirtualSubnetsOnlyIPv4,
-		},
-		Flags: VPNFlags{
-			DisableAlwaysOnVPN: vpnconf.Flags.DisableAlwaysOnVPN,
-		},
-	}
-}
-
 // Config default values.
 var (
 	// configDir is the directory for the configuration.
@@ -836,7 +595,7 @@ type Config struct {
 	CommandLists *CommandLists
 
 	LoginInfo *logininfo.LoginInfo `json:"-"`
-	VPNConfig *VPNConfig           `json:"-"`
+	VPNConfig *vpnconfig.Config    `json:"-"`
 }
 
 // Copy returns a copy of the configuration.
@@ -923,6 +682,6 @@ func NewConfig() *Config {
 		CommandLists: NewCommandLists(),
 
 		LoginInfo: &logininfo.LoginInfo{},
-		VPNConfig: &VPNConfig{},
+		VPNConfig: &vpnconfig.Config{},
 	}
 }

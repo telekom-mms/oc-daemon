@@ -3,7 +3,7 @@ package vpnconfig
 
 import (
 	"encoding/json"
-	"net"
+	"net/netip"
 	"reflect"
 
 	log "github.com/sirupsen/logrus"
@@ -23,45 +23,29 @@ func (d *Device) Copy() Device {
 	}
 }
 
-// Address is a IPv4/IPv6 address configuration in Config.
-type Address struct {
-	Address net.IP
-	Netmask net.IPMask
-}
-
-// Copy returns a copy of address.
-func (a *Address) Copy() Address {
-	return Address{
-		Address: append(a.Address[:0:0], a.Address...),
-		Netmask: append(a.Netmask[:0:0], a.Netmask...),
-	}
-}
-
 // DNS is a DNS configuration in Config.
 type DNS struct {
 	DefaultDomain string
-	ServersIPv4   []net.IP
-	ServersIPv6   []net.IP
+	ServersIPv4   []netip.Addr
+	ServersIPv6   []netip.Addr
 }
 
 // Copy returns a copy of DNS.
 func (d *DNS) Copy() DNS {
-	serversIPv4 := []net.IP{}
+	serversIPv4 := []netip.Addr{}
 	if d.ServersIPv4 == nil {
 		serversIPv4 = nil
 	}
 	for _, s := range d.ServersIPv4 {
-		ip := append(s[:0:0], s...)
-		serversIPv4 = append(serversIPv4, ip)
+		serversIPv4 = append(serversIPv4, s)
 	}
 
-	serversIPv6 := []net.IP{}
+	serversIPv6 := []netip.Addr{}
 	if d.ServersIPv6 == nil {
 		serversIPv6 = nil
 	}
 	for _, s := range d.ServersIPv6 {
-		ip := append(s[:0:0], s...)
-		serversIPv6 = append(serversIPv6, ip)
+		serversIPv6 = append(serversIPv6, s)
 	}
 
 	return DNS{
@@ -90,8 +74,8 @@ func (d *DNS) Remotes() map[string][]string {
 
 // Split is a split routing configuration in Config.
 type Split struct {
-	ExcludeIPv4 []*net.IPNet
-	ExcludeIPv6 []*net.IPNet
+	ExcludeIPv4 []netip.Prefix
+	ExcludeIPv6 []netip.Prefix
 	ExcludeDNS  []string
 
 	ExcludeVirtualSubnetsOnlyIPv4 bool
@@ -99,28 +83,20 @@ type Split struct {
 
 // Copy returns a copy of split.
 func (s *Split) Copy() Split {
-	excludeIPv4 := []*net.IPNet{}
+	excludeIPv4 := []netip.Prefix{}
 	if s.ExcludeIPv4 == nil {
 		excludeIPv4 = nil
 	}
 	for _, e := range s.ExcludeIPv4 {
-		ipnet := &net.IPNet{
-			IP:   append(e.IP[:0:0], e.IP...),
-			Mask: append(e.Mask[:0:0], e.Mask...),
-		}
-		excludeIPv4 = append(excludeIPv4, ipnet)
+		excludeIPv4 = append(excludeIPv4, e)
 	}
 
-	excludeIPv6 := []*net.IPNet{}
+	excludeIPv6 := []netip.Prefix{}
 	if s.ExcludeIPv6 == nil {
 		excludeIPv6 = nil
 	}
 	for _, e := range s.ExcludeIPv6 {
-		ipnet := &net.IPNet{
-			IP:   append(e.IP[:0:0], e.IP...),
-			Mask: append(e.Mask[:0:0], e.Mask...),
-		}
-		excludeIPv6 = append(excludeIPv6, ipnet)
+		excludeIPv6 = append(excludeIPv6, e)
 	}
 
 	return Split{
@@ -158,12 +134,12 @@ func (f *Flags) Copy() Flags {
 
 // Config is a VPN configuration.
 type Config struct {
-	Gateway net.IP
+	Gateway netip.Addr
 	PID     int
 	Timeout int
 	Device  Device
-	IPv4    Address
-	IPv6    Address
+	IPv4    netip.Prefix
+	IPv6    netip.Prefix
 	DNS     DNS
 	Split   Split
 	Flags   Flags
@@ -175,12 +151,12 @@ func (c *Config) Copy() *Config {
 		return nil
 	}
 	return &Config{
-		Gateway: append(c.Gateway[:0:0], c.Gateway...),
+		Gateway: c.Gateway,
 		PID:     c.PID,
 		Timeout: c.Timeout,
 		Device:  c.Device.Copy(),
-		IPv4:    c.IPv4.Copy(),
-		IPv6:    c.IPv6.Copy(),
+		IPv4:    c.IPv4,
+		IPv6:    c.IPv6,
 		DNS:     c.DNS.Copy(),
 		Split:   c.Split.Copy(),
 		Flags:   c.Flags.Copy(),
@@ -207,13 +183,12 @@ func (c *Config) Valid() bool {
 
 	// check config entries
 	for i, invalid := range []bool{
-		c.Gateway == nil,
+		!c.Gateway.IsValid(),
 		c.Device.Name == "",
 		len(c.Device.Name) > 15,
 		c.Device.MTU < 68,
 		c.Device.MTU > 16384,
-		len(c.IPv4.Address) == 0 && len(c.IPv6.Address) == 0,
-		len(c.IPv4.Netmask) == 0 && len(c.IPv6.Netmask) == 0,
+		!c.IPv4.IsValid() && !c.IPv6.IsValid(),
 		len(c.DNS.ServersIPv4) == 0 && len(c.DNS.ServersIPv6) == 0,
 	} {
 		if invalid {
