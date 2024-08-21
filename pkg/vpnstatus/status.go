@@ -105,6 +105,7 @@ const (
 	TrafPolStateUnknown = iota
 	TrafPolStateInactive
 	TrafPolStateActive
+	TrafPolStateDisabled
 )
 
 // String resturns TrafPolState as string.
@@ -116,6 +117,8 @@ func (t TrafPolState) String() string {
 		return "inactive"
 	case TrafPolStateActive:
 		return "active"
+	case TrafPolStateDisabled:
+		return "disabled"
 	}
 	return ""
 }
