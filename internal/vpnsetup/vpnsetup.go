@@ -19,12 +19,20 @@ import (
 const (
 	commandSetup uint8 = iota
 	commandTeardown
+	commandGetState
 )
+
+// State is the internal state of the VPN Setup.
+type State struct {
+	SplitRouting *splitrt.State
+	DNSProxy     *dnsproxy.State
+}
 
 // command is a VPNSetup command.
 type command struct {
 	cmd     uint8
 	vpnconf *vpnconfig.Config
+	state   *State
 	done    chan struct{}
 }
 
@@ -434,6 +442,18 @@ func (v *VPNSetup) teardown(ctx context.Context, vpnconf *vpnconfig.Config) {
 	v.teardownDNS(ctx, vpnconf)
 }
 
+// getState gets the internal state.
+func (v *VPNSetup) getState(c *command) {
+	state := &State{}
+	if v.splitrt != nil {
+		state.SplitRouting = v.splitrt.GetState()
+	}
+	if v.dnsProxy != nil {
+		state.DNSProxy = v.dnsProxy.GetState()
+	}
+	c.state = state
+}
+
 // handleCommand handles a command.
 func (v *VPNSetup) handleCommand(ctx context.Context, c *command) {
 	defer close(c.done)
@@ -443,6 +463,8 @@ func (v *VPNSetup) handleCommand(ctx context.Context, c *command) {
 		v.setup(ctx, c.vpnconf)
 	case commandTeardown:
 		v.teardown(ctx, c.vpnconf)
+	case commandGetState:
+		v.getState(c)
 	}
 }
 
@@ -517,6 +539,17 @@ func (v *VPNSetup) Teardown(vpnconfig *vpnconfig.Config) {
 	}
 	v.cmds <- c
 	<-c.done
+}
+
+// GetState returns the internal state of the VPN config.
+func (v *VPNSetup) GetState() *State {
+	c := &command{
+		cmd:  commandGetState,
+		done: make(chan struct{}),
+	}
+	v.cmds <- c
+	<-c.done
+	return c.state
 }
 
 // NewVPNSetup returns a new VPNSetup.

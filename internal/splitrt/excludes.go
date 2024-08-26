@@ -197,6 +197,21 @@ func (e *Excludes) Stop() {
 	log.Debug("SplitRouting stopped periodic cleanup of excludes")
 }
 
+// List returns the list of static and dynamic excludes.
+func (e *Excludes) List() (static, dynamic []string) {
+	e.Lock()
+	defer e.Unlock()
+
+	for k := range e.s {
+		static = append(static, k)
+	}
+	for k := range e.d {
+		dynamic = append(dynamic, k.String())
+	}
+
+	return
+}
+
 // NewExcludes returns new split excludes.
 func NewExcludes() *Excludes {
 	return &Excludes{

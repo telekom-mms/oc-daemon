@@ -167,6 +167,73 @@ func TestDaemonDisconnect(t *testing.T) {
 	}
 }
 
+// TestDaemonDumpStateErrors tests DumpState of daemon, errors.
+func TestDaemonDumpStateErrors(t *testing.T) {
+	// create daemon
+	requests := make(chan *Request)
+	done := make(chan struct{})
+	daemon := daemon{
+		requests: requests,
+		done:     done,
+	}
+
+	// error when handling request
+	go func() {
+		r := <-requests
+		r.Error = errors.New("test error")
+		r.Close()
+	}()
+	if _, err := daemon.DumpState(""); err == nil {
+		t.Error("should return error")
+	}
+
+	// closed daemon
+	close(done)
+	if _, err := daemon.DumpState(""); err == nil {
+		t.Error("should return error")
+	}
+}
+
+// TestDaemonDumpState tests DumpState of daemon.
+func TestDaemonDumpState(t *testing.T) {
+	// create daemon
+	requests := make(chan *Request)
+	done := make(chan struct{})
+	daemon := daemon{
+		requests: requests,
+		done:     done,
+	}
+
+	// run disconnect and get results
+	want := &Request{
+		Name:    RequestDumpState,
+		Results: []any{"test state"},
+		done:    done,
+	}
+	got := &Request{}
+	go func() {
+		r := <-requests
+		r.Results = append(r.Results, "test state")
+		got = r
+		r.Close()
+	}()
+	state, err := daemon.DumpState("sender")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// check results
+	if got.Name != want.Name ||
+		!reflect.DeepEqual(got.Parameters, want.Parameters) ||
+		!reflect.DeepEqual(got.Results, want.Results) ||
+		got.Error != want.Error ||
+		got.done != want.done ||
+		state != "test state" {
+		// not equal
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 // testConn implements the dbusConn interface for testing.
 type testConn struct {
 	reqNameReply dbus.RequestNameReply

@@ -284,6 +284,55 @@ func TestSplitRoutingDNSReports(t *testing.T) {
 	}
 }
 
+// TestSplitRoutingGetState tests GetState of SplitRouting.
+func TestSplitRoutingGetState(t *testing.T) {
+	s := NewSplitRouting(NewConfig(), vpnconfig.New())
+
+	// set devices
+	dev := &devmon.Update{
+		Add:    true,
+		Device: "test",
+		Type:   "test",
+		Index:  1,
+	}
+	s.devices.Add(dev)
+
+	// set addresses
+	addr := &addrmon.Update{
+		Add:     true,
+		Address: netip.MustParsePrefix("192.168.1.0/24"),
+		Index:   1,
+	}
+	s.addrs.Add(addr)
+
+	// set local excludes
+	locals := []netip.Prefix{netip.MustParsePrefix("10.0.0.0/24")}
+	s.locals.set(locals)
+
+	// set static excludes
+	static := netip.MustParsePrefix("10.1.0.0/24")
+	s.excludes.s[static.String()] = static
+
+	// set dynamic excludes
+	dynamic := netip.MustParseAddr("10.2.0.1")
+	s.excludes.d[dynamic] = &dynExclude{}
+
+	// get and check state
+	want := &State{
+		Config:          NewConfig(),
+		VPNConfig:       vpnconfig.New(),
+		Devices:         []*devmon.Update{dev},
+		Addresses:       []*addrmon.Update{addr},
+		LocalExcludes:   []string{"10.0.0.0/24"},
+		StaticExcludes:  []string{"10.1.0.0/24"},
+		DynamicExcludes: []string{"10.2.0.1"},
+	}
+	got := s.GetState()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 // TestNewSplitRouting tests NewSplitRouting.
 func TestNewSplitRouting(t *testing.T) {
 	config := NewConfig()

@@ -2,12 +2,14 @@ package splitrt
 
 import (
 	"net/netip"
+	"sync"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 )
 
 // Addresses is a set of addresses.
 type Addresses struct {
+	sync.Mutex
 	m map[int][]*addrmon.Update
 }
 
@@ -26,6 +28,9 @@ func (a *Addresses) contains(addr *addrmon.Update) bool {
 
 // Add adds address info in addr to addresses.
 func (a *Addresses) Add(addr *addrmon.Update) {
+	a.Lock()
+	defer a.Unlock()
+
 	if a.contains(addr) {
 		return
 	}
@@ -34,6 +39,9 @@ func (a *Addresses) Add(addr *addrmon.Update) {
 
 // Remove removes address info in addr from addresses.
 func (a *Addresses) Remove(addr *addrmon.Update) {
+	a.Lock()
+	defer a.Unlock()
+
 	if !a.contains(addr) {
 		return
 	}
@@ -52,10 +60,28 @@ func (a *Addresses) Remove(addr *addrmon.Update) {
 
 // Get returns the addresses of the device identified by index.
 func (a *Addresses) Get(index int) (addrs []netip.Prefix) {
+	a.Lock()
+	defer a.Unlock()
+
 	for _, x := range a.m[index] {
 		addrs = append(addrs, x.Address)
 	}
 	return
+}
+
+// List returns all addresses.
+func (a *Addresses) List() []*addrmon.Update {
+	a.Lock()
+	defer a.Unlock()
+
+	var addresses []*addrmon.Update
+	for _, v := range a.m {
+		for _, addr := range v {
+			address := *addr
+			addresses = append(addresses, &address)
+		}
+	}
+	return addresses
 }
 
 // NewAddresses returns new Addresses.

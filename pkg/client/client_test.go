@@ -423,6 +423,24 @@ func TestDBusClientDisconnect(t *testing.T) {
 	}
 }
 
+// TestDBusClientDumpState tests DumpState of DBusClient.
+func TestDBusClientDumpState(t *testing.T) {
+	// clean up after tests
+	oldDumpState := dumpState
+	defer func() { dumpState = oldDumpState }()
+
+	// create test client
+	client := &DBusClient{}
+
+	dumpState = func(_ *DBusClient) (string, error) {
+		return "test state", nil
+	}
+	state, err := client.DumpState()
+	if err != nil || state != "test state" {
+		t.Error(err, state)
+	}
+}
+
 // testRWC is a reader writer closer for testing.
 type testRWC struct{}
 

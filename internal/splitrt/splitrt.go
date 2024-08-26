@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/netip"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
@@ -12,6 +13,39 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
+
+// State is the internal state.
+type State struct {
+	Config          *Config
+	VPNConfig       *vpnconfig.Config
+	Devices         []*devmon.Update
+	Addresses       []*addrmon.Update
+	LocalExcludes   []string
+	StaticExcludes  []string
+	DynamicExcludes []string
+}
+
+// locals are local excludes.
+type locals struct {
+	sync.Mutex
+	l []netip.Prefix
+}
+
+// get returns the local excludes, returned slice should not be modified.
+func (l *locals) get() []netip.Prefix {
+	l.Lock()
+	defer l.Unlock()
+
+	return l.l
+}
+
+// set sets the local excludes.
+func (l *locals) set(locals []netip.Prefix) {
+	l.Lock()
+	defer l.Unlock()
+
+	l.l = locals
+}
 
 // SplitRouting is a split routing configuration.
 type SplitRouting struct {
@@ -21,7 +55,7 @@ type SplitRouting struct {
 	addrmon   *addrmon.AddrMon
 	devices   *Devices
 	addrs     *Addresses
-	locals    []netip.Prefix
+	locals    locals
 	excludes  *Excludes
 	dnsreps   chan *dnsproxy.Report
 	done      chan struct{}
@@ -151,21 +185,21 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 
 	// add new excludes
 	for _, e := range excludes {
-		if !isIn(e, s.locals) {
+		if !isIn(e, s.locals.get()) {
 			s.excludes.AddStatic(ctx, e)
 		}
 	}
 
 	// remove old excludes
-	for _, l := range s.locals {
+	for _, l := range s.locals.get() {
 		if !isIn(l, excludes) {
 			s.excludes.RemoveStatic(ctx, l)
 		}
 	}
 
 	// save local excludes
-	s.locals = excludes
-	log.WithField("locals", s.locals).Debug("SplitRouting updated exclude local networks")
+	s.locals.set(excludes)
+	log.WithField("locals", s.locals.get()).Debug("SplitRouting updated exclude local networks")
 }
 
 // handleDeviceUpdate handles a device update from the device monitor.
@@ -268,6 +302,24 @@ func (s *SplitRouting) Stop() {
 // DNSReports returns the channel for dns reports.
 func (s *SplitRouting) DNSReports() chan *dnsproxy.Report {
 	return s.dnsreps
+}
+
+// GetState returns the internal state.
+func (s *SplitRouting) GetState() *State {
+	var locals []string
+	for _, l := range s.locals.get() {
+		locals = append(locals, l.String())
+	}
+	static, dynamic := s.excludes.List()
+	return &State{
+		Config:          s.config,
+		VPNConfig:       s.vpnconfig,
+		Devices:         s.devices.List(),
+		Addresses:       s.addrs.List(),
+		LocalExcludes:   locals,
+		StaticExcludes:  static,
+		DynamicExcludes: dynamic,
+	}
 }
 
 // NewSplitRouting returns a new SplitRouting.

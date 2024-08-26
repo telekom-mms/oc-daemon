@@ -35,6 +35,8 @@ type Client interface {
 	Connect() error
 	Disconnect() error
 
+	DumpState() (string, error)
+
 	Close() error
 }
 
@@ -574,6 +576,20 @@ func (d *DBusClient) Disconnect() error {
 
 	// disconnect
 	return disconnect(d)
+}
+
+// dumpState sends a dump state request to the daemon.
+var dumpState = func(d *DBusClient) (string, error) {
+	// call dump state
+	state := ""
+	err := d.conn.Object(dbusapi.Interface, dbusapi.Path).
+		Call(dbusapi.MethodDumpState, 0).Store(&state)
+	return state, err
+}
+
+// DumpState returns the internal state of the OC-Daemon as string.
+func (d *DBusClient) DumpState() (string, error) {
+	return dumpState(d)
 }
 
 // Close closes the DBusClient.

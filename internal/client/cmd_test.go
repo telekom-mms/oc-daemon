@@ -126,6 +126,7 @@ func TestRun(t *testing.T) {
 		"reconnect",
 		"status",
 		"monitor",
+		"dumpstate",
 	} {
 		if err := run([]string{"test",
 			"-cert", "cert-file",

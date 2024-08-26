@@ -3,6 +3,7 @@ package daemon
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/netip"
@@ -473,6 +474,33 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 	}
 }
 
+// dumpState returns the internal daemon state as json string.
+func (d *Daemon) dumpState() string {
+	// define state type
+	type State struct {
+		TrafficPolicing *trafpol.State
+		VPNSetup        *vpnsetup.State
+	}
+
+	// collect internal state
+	state := State{}
+	if d.trafpol != nil {
+		state.TrafficPolicing = d.trafpol.GetState()
+	}
+	if d.vpnsetup != nil {
+		state.VPNSetup = d.vpnsetup.GetState()
+	}
+
+	// convert to json
+	b, err := json.Marshal(state)
+	if err != nil {
+		log.WithError(err).Error("Daemon could not convert internal state to JSON")
+		return ""
+	}
+
+	return string(b)
+}
+
 // handleDBusRequest handles a D-Bus API client request.
 func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 	defer request.Close()
@@ -505,6 +533,12 @@ func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 		// diconnect VPN
 		log.Info("Daemon got disconnect request from client")
 		d.disconnectVPN()
+
+	case dbusapi.RequestDumpState:
+		// dump state
+		state := d.dumpState()
+		log.WithField("state", state).Info("Daemon got dump state request from client")
+		request.Results = []any{state}
 	}
 }
 

@@ -9,6 +9,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// State is the internal state of the DNS Proxy.
+type State struct {
+	Config      *Config
+	Remotes     map[string][]string
+	Watches     []string
+	TempWatches []string
+}
+
 // Proxy is a DNS proxy.
 type Proxy struct {
 	config  *Config
@@ -244,6 +252,17 @@ func (p *Proxy) SetWatches(watches []string) {
 	p.watches.Flush()
 	for _, d := range watches {
 		p.watches.Add(d)
+	}
+}
+
+// GetState returns the internal state of the DNS Proxy.
+func (p *Proxy) GetState() *State {
+	watches, tempWatches := p.watches.List()
+	return &State{
+		Config:      p.config,
+		Remotes:     p.remotes.List(),
+		Watches:     watches,
+		TempWatches: tempWatches,
 	}
 }
 
