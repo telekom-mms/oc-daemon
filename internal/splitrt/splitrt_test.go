@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"net/netip"
 	"reflect"
 	"strings"
 	"testing"
@@ -166,12 +167,12 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test ipv4
-	report := dnsproxy.NewReport("example.com", net.ParseIP("192.168.1.1"), 300)
+	report := dnsproxy.NewReport("example.com", netip.MustParseAddr("192.168.1.1"), 300)
 	go s.handleDNSReport(ctx, report)
 	<-report.Done()
 
 	// test ipv6
-	report = dnsproxy.NewReport("example.com", net.ParseIP("2001::1"), 300)
+	report = dnsproxy.NewReport("example.com", netip.MustParseAddr("2001::1"), 300)
 	go s.handleDNSReport(ctx, report)
 	<-report.Done()
 
@@ -257,7 +258,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	}
 	s.devmon.Updates() <- getTestDevMonUpdate()
 	s.addrmon.Updates() <- getTestAddrMonUpdate(t, "192.168.1.1/32")
-	report := dnsproxy.NewReport("example.com", net.ParseIP("192.168.1.1"), 300)
+	report := dnsproxy.NewReport("example.com", netip.MustParseAddr("192.168.1.1"), 300)
 	s.dnsreps <- report
 	<-report.Done()
 	s.Stop()

@@ -3,7 +3,7 @@ package trafpol
 import (
 	"context"
 	"errors"
-	"net"
+	"net/netip"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/execs"
@@ -28,9 +28,9 @@ func TestFilterFunctionsErrors(_ *testing.T) {
 	removeAllowedDevice(ctx, "eth0")
 
 	// allowed IPs
-	setAllowedIPs(ctx, []*net.IPNet{
-		{IP: net.ParseIP("192.168.1.1"), Mask: net.CIDRMask(32, 32)},
-		{IP: net.ParseIP("2000::1"), Mask: net.CIDRMask(128, 128)},
+	setAllowedIPs(ctx, []netip.Prefix{
+		netip.MustParsePrefix("192.168.1.1/32"),
+		netip.MustParsePrefix("2000::1/128"),
 	})
 
 	// portal ports

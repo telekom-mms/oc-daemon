@@ -1,7 +1,7 @@
 package splitrt
 
 import (
-	"net"
+	"net/netip"
 	"reflect"
 	"testing"
 
@@ -10,14 +10,14 @@ import (
 
 // getTestAddrMonUpdate returns an AddrMon update for testing.
 func getTestAddrMonUpdate(t *testing.T, addr string) *addrmon.Update {
-	_, ipnet, err := net.ParseCIDR(addr)
+	prefix, err := netip.ParsePrefix(addr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	return &addrmon.Update{
 		Add:     true,
-		Address: *ipnet,
+		Address: prefix,
 		Index:   1,
 	}
 }
@@ -72,7 +72,7 @@ func TestAddressesGet(t *testing.T) {
 	update2 := getTestAddrMonUpdate(t, "192.168.2.0/24")
 
 	// get empty
-	var want []*net.IPNet
+	var want []netip.Prefix
 	got := a.Get(1)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -80,8 +80,8 @@ func TestAddressesGet(t *testing.T) {
 
 	// get with one address
 	a.Add(update1)
-	want = []*net.IPNet{
-		&update1.Address,
+	want = []netip.Prefix{
+		update1.Address,
 	}
 	got = a.Get(1)
 	if !reflect.DeepEqual(got, want) {
@@ -97,9 +97,9 @@ func TestAddressesGet(t *testing.T) {
 
 	// get with multiple addresses
 	a.Add(update2)
-	want = []*net.IPNet{
-		&update1.Address,
-		&update2.Address,
+	want = []netip.Prefix{
+		update1.Address,
+		update2.Address,
 	}
 	got = a.Get(1)
 	if !reflect.DeepEqual(got, want) {

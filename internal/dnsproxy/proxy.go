@@ -3,6 +3,7 @@ package dnsproxy
 
 import (
 	"math/rand"
+	"net/netip"
 
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
@@ -101,7 +102,13 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			log.Error("DNS-Proxy received invalid A record in reply")
 			return
 		}
-		report := NewReport(rr.Hdr.Name, rr.A, rr.Hdr.Ttl)
+		addr, ok := netip.AddrFromSlice(rr.A)
+		if !ok {
+			log.WithField("A", rr.A).
+				Error("DNS-Proxy received invalid IP in A record in reply")
+			return
+		}
+		report := NewReport(rr.Hdr.Name, addr, rr.Hdr.Ttl)
 		p.sendReport(report)
 		p.waitReport(report)
 	}
@@ -114,7 +121,13 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			log.Error("DNS-Proxy received invalid AAAA record in reply")
 			return
 		}
-		report := NewReport(rr.Hdr.Name, rr.AAAA, rr.Hdr.Ttl)
+		addr, ok := netip.AddrFromSlice(rr.AAAA)
+		if !ok {
+			log.WithField("AAAA", rr.AAAA).
+				Error("DNS-Proxy received invalid IP in AAAA record in reply")
+			return
+		}
+		report := NewReport(rr.Hdr.Name, addr, rr.Hdr.Ttl)
 		p.sendReport(report)
 		p.waitReport(report)
 	}

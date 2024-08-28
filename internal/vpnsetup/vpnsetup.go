@@ -3,7 +3,7 @@ package vpnsetup
 
 import (
 	"context"
-	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
@@ -70,13 +70,9 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	}
 
 	// set ipv4 and ipv6 addresses on device
-	setupIP := func(ip net.IP, mask net.IPMask) {
-		ipnet := &net.IPNet{
-			IP:   ip,
-			Mask: mask,
-		}
+	setupIP := func(a netip.Prefix) {
 		dev := c.Device.Name
-		addr := ipnet.String()
+		addr := a.String()
 		if stdout, stderr, err := execs.RunIPAddress(ctx, "add", addr, "dev", dev); err != nil {
 			log.WithError(err).WithFields(log.Fields{
 				"device": dev,
@@ -88,11 +84,18 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 		}
 
 	}
-	if len(c.IPv4.Address) > 0 {
-		setupIP(c.IPv4.Address, c.IPv4.Netmask)
+
+	if ipv4, ok := netip.AddrFromSlice(c.IPv4.Address.To4()); ok {
+		one4, _ := c.IPv4.Netmask.Size()
+		pre4 := netip.PrefixFrom(ipv4, one4)
+
+		setupIP(pre4)
 	}
-	if len(c.IPv6.Address) > 0 {
-		setupIP(c.IPv6.Address, c.IPv6.Netmask)
+	if ipv6, ok := netip.AddrFromSlice(c.IPv6.Address); ok {
+		one6, _ := c.IPv6.Netmask.Size()
+		pre6 := netip.PrefixFrom(ipv6, one6)
+
+		setupIP(pre6)
 	}
 }
 

@@ -3,7 +3,6 @@ package splitrt
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/netip"
 	"strings"
 
@@ -126,10 +125,10 @@ func unsetRoutingRules(ctx context.Context) {
 // addLocalAddresses adds rules for device and its family (ip, ip6) addresses,
 // that drop non-local traffic from other devices to device's network
 // addresses; used to filter non-local traffic to vpn addresses.
-func addLocalAddresses(ctx context.Context, device, family string, addresses []*net.IPNet) {
+func addLocalAddresses(ctx context.Context, device, family string, addresses []netip.Prefix) {
 	nftconf := ""
 	for _, addr := range addresses {
-		if addr == nil || len(addr.IP) == 0 || len(addr.Mask) == 0 {
+		if !addr.IsValid() {
 			continue
 		}
 		nftconf += "add rule inet oc-daemon-routing preraw iifname != "
@@ -151,14 +150,14 @@ func addLocalAddresses(ctx context.Context, device, family string, addresses []*
 // addLocalAddressesIPv4 adds rules for device and its addresses, that drop
 // non-local traffic from other devices to device's network addresses; used to
 // filter non-local traffic to vpn addresses.
-func addLocalAddressesIPv4(ctx context.Context, device string, addresses []*net.IPNet) {
+func addLocalAddressesIPv4(ctx context.Context, device string, addresses []netip.Prefix) {
 	addLocalAddresses(ctx, device, "ip", addresses)
 }
 
 // addLocalAddressesIPv6 adds rules for device and its addresses, that drop
 // non-local traffic from other devices to device's network addresses; used to
 // filter non-local traffic to vpn addresses.
-func addLocalAddressesIPv6(ctx context.Context, device string, addresses []*net.IPNet) {
+func addLocalAddressesIPv6(ctx context.Context, device string, addresses []netip.Prefix) {
 	addLocalAddresses(ctx, device, "ip6", addresses)
 }
 
@@ -197,7 +196,7 @@ func rejectIPv4(ctx context.Context, device string) {
 }
 
 // addExclude adds exclude address to netfilter.
-func addExclude(ctx context.Context, address *netip.Prefix) {
+func addExclude(ctx context.Context, address netip.Prefix) {
 	log.WithField("address", address).Debug("SplitRouting adding exclude to netfilter")
 
 	set := "excludes4"
@@ -217,7 +216,7 @@ func addExclude(ctx context.Context, address *netip.Prefix) {
 }
 
 // setExcludes resets the excludes to addresses in netfilter.
-func setExcludes(ctx context.Context, addresses []*netip.Prefix) {
+func setExcludes(ctx context.Context, addresses []netip.Prefix) {
 	// flush existing entries
 	nftconf := ""
 	nftconf += "flush set inet oc-daemon-routing excludes4\n"

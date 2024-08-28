@@ -2,13 +2,13 @@ package dnsproxy
 
 import (
 	"fmt"
-	"net"
+	"net/netip"
 )
 
 // Report is a report for a watched domain.
 type Report struct {
 	Name string
-	IP   net.IP
+	IP   netip.Addr
 	TTL  uint32
 
 	// done is used to signal that the report has been handled by
@@ -32,7 +32,7 @@ func (r *Report) Done() <-chan struct{} {
 }
 
 // NewReport returns a new report with domain name, IP and TTL.
-func NewReport(name string, ip net.IP, ttl uint32) *Report {
+func NewReport(name string, ip netip.Addr, ttl uint32) *Report {
 	return &Report{
 		Name: name,
 		IP:   ip,

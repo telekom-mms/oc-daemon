@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"net/netip"
 	"reflect"
 	"strings"
 	"testing"
@@ -361,7 +362,7 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	v.Setup(vpnconf)
 
 	// send dns report while config is active
-	report := dnsproxy.NewReport("example.com", nil, 300)
+	report := dnsproxy.NewReport("example.com", netip.Addr{}, 300)
 	v.dnsProxy.Reports() <- report
 
 	// wait long enough for ensure timer
@@ -371,7 +372,7 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	v.Teardown(vpnconf)
 
 	// send dns report while config is not active
-	v.dnsProxy.Reports() <- dnsproxy.NewReport("example.com", nil, 300)
+	v.dnsProxy.Reports() <- dnsproxy.NewReport("example.com", netip.Addr{}, 300)
 
 	// stop vpn setup
 	v.Stop()

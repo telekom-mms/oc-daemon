@@ -4,7 +4,7 @@ package splitrt
 import (
 	"context"
 	"fmt"
-	"net"
+	"net/netip"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
@@ -21,7 +21,7 @@ type SplitRouting struct {
 	addrmon   *addrmon.AddrMon
 	devices   *Devices
 	addrs     *Addresses
-	locals    []*net.IPNet
+	locals    []netip.Prefix
 	excludes  *Excludes
 	dnsreps   chan *dnsproxy.Report
 	done      chan struct{}
@@ -30,28 +30,30 @@ type SplitRouting struct {
 
 // setupRouting sets up routing using config.
 func (s *SplitRouting) setupRouting(ctx context.Context) {
-	// get vpn network addresses
-	ipnet4 := &net.IPNet{
-		IP:   s.vpnconfig.IPv4.Address,
-		Mask: s.vpnconfig.IPv4.Netmask,
-	}
-	ipnet6 := &net.IPNet{
-		IP:   s.vpnconfig.IPv6.Address,
-		Mask: s.vpnconfig.IPv6.Netmask,
-	}
-
 	// prepare netfilter and excludes
 	setRoutingRules(ctx, s.config.FirewallMark)
 
+	// convert to netip
+	pre4 := netip.Prefix{}
+	if ipv4, ok := netip.AddrFromSlice(s.vpnconfig.IPv4.Address.To4()); ok {
+		one4, _ := s.vpnconfig.IPv4.Netmask.Size()
+		pre4 = netip.PrefixFrom(ipv4, one4)
+	}
+	pre6 := netip.Prefix{}
+	if ipv6, ok := netip.AddrFromSlice(s.vpnconfig.IPv6.Address); ok {
+		one6, _ := s.vpnconfig.IPv6.Netmask.Size()
+		pre6 = netip.PrefixFrom(ipv6, one6)
+	}
+
 	// filter non-local traffic to vpn addresses
-	addLocalAddressesIPv4(ctx, s.vpnconfig.Device.Name, []*net.IPNet{ipnet4})
-	addLocalAddressesIPv6(ctx, s.vpnconfig.Device.Name, []*net.IPNet{ipnet6})
+	addLocalAddressesIPv4(ctx, s.vpnconfig.Device.Name, []netip.Prefix{pre4})
+	addLocalAddressesIPv6(ctx, s.vpnconfig.Device.Name, []netip.Prefix{pre6})
 
 	// reject unsupported ip versions on vpn
-	if len(s.vpnconfig.IPv6.Address) == 0 {
+	if !pre6.IsValid() {
 		rejectIPv6(ctx, s.vpnconfig.Device.Name)
 	}
-	if len(s.vpnconfig.IPv4.Address) == 0 {
+	if !pre4.IsValid() {
 		rejectIPv4(ctx, s.vpnconfig.Device.Name)
 	}
 
@@ -59,21 +61,19 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 	s.excludes.Start()
 
 	// add gateway to static excludes
-	gateway := &net.IPNet{
-		IP:   s.vpnconfig.Gateway,
-		Mask: net.CIDRMask(32, 32),
+	if s.vpnconfig.Gateway != nil {
+		g := netip.MustParseAddr(s.vpnconfig.Gateway.String())
+		gateway := netip.PrefixFrom(g, g.BitLen())
+		s.excludes.AddStatic(ctx, gateway)
 	}
-	if gateway.IP.To4() == nil {
-		gateway.Mask = net.CIDRMask(128, 128)
-	}
-	s.excludes.AddStatic(ctx, gateway)
 
 	// add static IPv4 excludes
 	for _, e := range s.vpnconfig.Split.ExcludeIPv4 {
 		if e.String() == "0.0.0.0/32" {
 			continue
 		}
-		s.excludes.AddStatic(ctx, e)
+		p := netip.MustParsePrefix(e.String())
+		s.excludes.AddStatic(ctx, p)
 	}
 
 	// add static IPv6 excludes
@@ -82,7 +82,8 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 		if e.String() == "::/128" {
 			continue
 		}
-		s.excludes.AddStatic(ctx, e)
+		p := netip.MustParsePrefix(e.String())
+		s.excludes.AddStatic(ctx, p)
 	}
 
 	// setup routing
@@ -132,14 +133,14 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	}
 
 	// get addresses of these devices
-	excludes := []*net.IPNet{}
+	excludes := []netip.Prefix{}
 	for _, d := range devs {
 		excludes = append(excludes, s.addrs.Get(d)...)
 	}
 
 	// determine changes
 	// TODO: move s.locals into excludes?
-	isIn := func(n *net.IPNet, nets []*net.IPNet) bool {
+	isIn := func(n netip.Prefix, nets []netip.Prefix) bool {
 		for _, net := range nets {
 			if n.String() == net.String() {
 				return true
@@ -205,17 +206,7 @@ func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) 
 	defer r.Close()
 	log.WithField("report", r).Debug("SplitRouting handling DNS report")
 
-	if r.IP.To4() != nil {
-		s.excludes.AddDynamic(ctx, &net.IPNet{
-			IP:   r.IP,
-			Mask: net.CIDRMask(32, 32),
-		}, r.TTL)
-		return
-	}
-	s.excludes.AddDynamic(ctx, &net.IPNet{
-		IP:   r.IP,
-		Mask: net.CIDRMask(128, 128),
-	}, r.TTL)
+	s.excludes.AddDynamic(ctx, netip.PrefixFrom(r.IP, r.IP.BitLen()), r.TTL)
 }
 
 // start starts split routing.
