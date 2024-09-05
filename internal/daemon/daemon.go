@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
-	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -175,7 +174,7 @@ func (d *Daemon) setStatusConnectedAt(connectedAt int64) {
 
 // setStatusServers sets the vpn servers in status.
 func (d *Daemon) setStatusServers(servers []string) {
-	if reflect.DeepEqual(d.status.Servers, servers) {
+	if slices.Equal(d.status.Servers, servers) {
 		// servers not changed
 		return
 	}
