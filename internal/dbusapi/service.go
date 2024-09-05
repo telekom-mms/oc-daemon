@@ -195,7 +195,7 @@ func (d daemon) Connect(sender dbus.Sender, server, cookie, host, connectURL, fi
 
 // Disconnect is the "Disconnect" method of the D-Bus interface.
 func (d daemon) Disconnect(sender dbus.Sender) *dbus.Error {
-	log.WithField("sender", sender).Debug("Received D-Bus Connect() call")
+	log.WithField("sender", sender).Debug("Received D-Bus Disconnect() call")
 	request := &Request{
 		Name: RequestDisconnect,
 		wait: make(chan struct{}),

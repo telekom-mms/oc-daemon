@@ -530,7 +530,7 @@ func (d *Daemon) handleDBusRequest(request *dbusapi.Request) {
 		d.connectVPN(login)
 
 	case dbusapi.RequestDisconnect:
-		// diconnect VPN
+		// disconnect VPN
 		log.Info("Daemon got disconnect request from client")
 		d.disconnectVPN()
 
