@@ -14,6 +14,8 @@ import (
 type testClient struct {
 	querErr error
 	status  *vpnstatus.Status
+	dumpErr error
+	dumpSta string
 	authErr error
 	connErr error
 	discErr error
@@ -33,6 +35,7 @@ func (t *testClient) Subscribe() (chan *vpnstatus.Status, error) { return t.subs
 func (t *testClient) Authenticate() error                        { return t.authErr }
 func (t *testClient) Connect() error                             { return t.connErr }
 func (t *testClient) Disconnect() error                          { return t.discErr }
+func (t *testClient) DumpState() (string, error)                 { return t.dumpSta, t.dumpErr }
 func (t *testClient) Close() error                               { return nil }
 
 // TestListServers tests listServers.
@@ -202,6 +205,38 @@ func TestGetStatus(t *testing.T) {
 
 	if err := getStatus(); err != nil {
 		t.Error(err)
+	}
+}
+
+// TestDumpState tests dumpState.
+func TestDumpState(t *testing.T) {
+	defer func() { clientNewClient = client.NewClient }()
+
+	// test with client error
+	clientNewClient = func(*client.Config) (client.Client, error) {
+		return nil, errors.New("test error")
+	}
+
+	if err := dumpState(); err == nil {
+		t.Error("client error should return error")
+	}
+
+	// test with dump state error
+	clientNewClient = func(*client.Config) (client.Client, error) {
+		return &testClient{dumpErr: errors.New("test error")}, nil
+	}
+
+	if err := dumpState(); err == nil {
+		t.Error("dump state error should return error")
+	}
+
+	// test without error
+	clientNewClient = func(*client.Config) (client.Client, error) {
+		return &testClient{dumpSta: "test state"}, nil
+	}
+
+	if err := dumpState(); err != nil {
+		t.Error("dump state should not return error")
 	}
 }
 

@@ -221,6 +221,24 @@ func getStatus() error {
 	return printStatus(status)
 }
 
+// dumpState dumps the internal state of the daemon.
+func dumpState() error {
+	// create client
+	c, err := clientNewClient(config)
+	if err != nil {
+		return fmt.Errorf("error creating client: %w", err)
+	}
+	defer func() { _ = c.Close() }()
+
+	// get status
+	state, err := c.DumpState()
+	if err != nil {
+		return fmt.Errorf("error getting status: %w", err)
+	}
+	fmt.Println(state)
+	return nil
+}
+
 // monitor subscribes to VPN status updates from the daemon and displays them.
 func monitor() error {
 	// create client

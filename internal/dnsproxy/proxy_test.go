@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"net/netip"
+	"reflect"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -270,6 +271,34 @@ func TestProxySetWatches(_ *testing.T) {
 	p := NewProxy(config)
 	watches := []string{"example.com."}
 	p.SetWatches(watches)
+}
+
+// TestProxyGetState tests GetState of Proxy.
+func TestProxyGetState(t *testing.T) {
+	p := NewProxy(getTestConfig())
+
+	// set remotes
+	getRemotes := func() map[string][]string {
+		return map[string][]string{".": {"192.168.1.1"}}
+	}
+	p.SetRemotes(getRemotes())
+
+	// set watches
+	p.watches.Add("example.com.")
+	p.watches.AddTempCNAME("cname.example.com.", 300)
+	p.watches.AddTempDNAME("dname.example.com.", 300)
+
+	// check state
+	want := &State{
+		Config:      getTestConfig(),
+		Remotes:     getRemotes(),
+		Watches:     []string{"example.com."},
+		TempWatches: []string{"cname.example.com.", "dname.example.com."},
+	}
+	got := p.GetState()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
 }
 
 // TestNewProxy tests NewProxy.

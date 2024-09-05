@@ -130,12 +130,14 @@ const (
 const (
 	MethodConnect    = Interface + ".Connect"
 	MethodDisconnect = Interface + ".Disconnect"
+	MethodDumpState  = Interface + ".DumpState"
 )
 
 // Request Names.
 const (
 	RequestConnect    = "Connect"
 	RequestDisconnect = "Disconnect"
+	RequestDumpState  = "DumpState"
 )
 
 // Request is a D-Bus client request.
@@ -210,6 +212,27 @@ func (d daemon) Disconnect(sender dbus.Sender) *dbus.Error {
 		return dbus.NewError(Interface+".DisconnectAborted", []any{request.Error.Error()})
 	}
 	return nil
+}
+
+// DumpState is the "DumpState" method of the D-Bus interface.
+func (d daemon) DumpState(sender dbus.Sender) (string, *dbus.Error) {
+	log.WithField("sender", sender).Debug("Received D-Bus DumpState() call")
+	request := &Request{
+		Name: RequestDumpState,
+		wait: make(chan struct{}),
+		done: d.done,
+	}
+	select {
+	case d.requests <- request:
+	case <-d.done:
+		return "", dbus.NewError(Interface+".DumpStateAborted", []any{"DumpState aborted"})
+	}
+
+	request.Wait()
+	if request.Error != nil {
+		return "", dbus.NewError(Interface+".DumpStateAborted", []any{request.Error.Error()})
+	}
+	return request.Results[0].(string), nil
 }
 
 // propertyUpdate is an update of a property.
@@ -431,16 +454,18 @@ func (s *Service) Start() error {
 	// set names of method arguments
 	introMeths := introspect.Methods(meths)
 	for _, m := range introMeths {
-		if m.Name != "Connect" {
-			continue
+		if m.Name == "Connect" {
+			m.Args[0].Name = "server"
+			m.Args[1].Name = "cookie"
+			m.Args[2].Name = "host"
+			m.Args[3].Name = "connect_url"
+			m.Args[4].Name = "fingerprint"
+			m.Args[5].Name = "resolve"
 		}
-		m.Args[0].Name = "server"
-		m.Args[1].Name = "cookie"
-		m.Args[2].Name = "host"
-		m.Args[3].Name = "connect_url"
-		m.Args[4].Name = "fingerprint"
-		m.Args[5].Name = "resolve"
 
+		if m.Name == "DumpState" {
+			m.Args[0].Name = "state"
+		}
 	}
 	// set peer interface
 	peerData := introspect.Interface{

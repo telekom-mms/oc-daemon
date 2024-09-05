@@ -243,6 +243,8 @@ func run(args []string) error {
 		return reconnectVPN()
 	case "status":
 		return getStatus()
+	case "dumpstate":
+		return dumpState()
 	case "monitor":
 		return monitor()
 	case "save":

@@ -168,6 +168,23 @@ func (w *Watches) Contains(domain string) bool {
 	return false
 }
 
+// List returns the list of watches and temporary watches.
+func (w *Watches) List() (watches, tempWatches []string) {
+	w.RLock()
+	defer w.RUnlock()
+
+	for k := range w.m {
+		watches = append(watches, k)
+	}
+	for k := range w.c {
+		tempWatches = append(tempWatches, k)
+	}
+	for k := range w.d {
+		tempWatches = append(tempWatches, k)
+	}
+	return
+}
+
 // Close closes the watches
 func (w *Watches) Close() {
 	close(w.done)

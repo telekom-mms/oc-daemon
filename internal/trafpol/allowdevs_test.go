@@ -3,6 +3,7 @@ package trafpol
 import (
 	"context"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/execs"
@@ -62,6 +63,26 @@ func TestAllowDevsRemove(t *testing.T) {
 	// should not change anything
 	a.Remove(ctx, "eth3")
 	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestAllowDevsList tests List of AllowDevs.
+func TestAllowDevsList(t *testing.T) {
+	a := NewAllowDevs()
+	ctx := context.Background()
+
+	oldRunCmd := execs.RunCmd
+	execs.RunCmd = func(_ context.Context, _, _ string, _ ...string) ([]byte, []byte, error) {
+		return nil, nil, nil
+	}
+	defer func() { execs.RunCmd = oldRunCmd }()
+
+	a.Add(ctx, "test")
+
+	want := []string{"test"}
+	got := a.List()
+	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }

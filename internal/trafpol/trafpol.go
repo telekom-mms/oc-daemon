@@ -12,12 +12,29 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/dnsmon"
 )
 
-// trafPolAddrCmd is a TrafPol address command.
-type trafPolAddrCmd struct {
-	add  bool
-	ip   netip.Addr
-	ok   bool
-	done chan struct{}
+// TrafPol command types.
+const (
+	trafPolCmdAddAddress uint8 = iota + 1
+	trafPolCmdRemoveAddress
+	trafPolCmdGetState
+)
+
+// State is the internal TrafPol state.
+type State struct {
+	Config           *Config
+	CaptivePortal    bool
+	AllowedDevices   []string
+	AllowedAddresses []netip.Prefix
+	AllowedNames     map[string][]netip.Addr
+}
+
+// trafPolCmd is a TrafPol command.
+type trafPolCmd struct {
+	typ   uint8
+	ip    netip.Addr
+	ok    bool
+	state *State
+	done  chan struct{}
 }
 
 // TrafPol is a traffic policing component.
@@ -32,15 +49,15 @@ type TrafPol struct {
 
 	// allowed devices, addresses, names
 	allowDevs  *AllowDevs
-	allowAddrs map[string]netip.Prefix
-	allowNames map[string][]netip.Addr
+	allowAddrs *AllowAddrs
+	allowNames *AllowNames
 
 	// resolver for allowed names, channel for resolver updates
 	resolver *Resolver
 	resolvUp chan *ResolvedName
 
 	// address commands channel
-	cmds chan *trafPolAddrCmd
+	cmds chan *trafPolCmd
 
 	loopDone chan struct{}
 	done     chan struct{}
@@ -101,13 +118,13 @@ func (t *TrafPol) getAllowedHostsIPs() []netip.Prefix {
 	// - allowed names
 	// - allowed addrs
 	ipset := make(map[string]netip.Prefix)
-	for _, n := range t.allowNames {
+	for _, n := range t.allowNames.GetAll() {
 		for _, ip := range n {
 			prefix := netip.PrefixFrom(ip, ip.BitLen())
 			ipset[prefix.String()] = prefix
 		}
 	}
-	for _, a := range t.allowAddrs {
+	for _, a := range t.allowAddrs.List() {
 		ipset[a.String()] = a
 	}
 
@@ -123,33 +140,28 @@ func (t *TrafPol) getAllowedHostsIPs() []netip.Prefix {
 // handleResolverUpdate handles a resolver update.
 func (t *TrafPol) handleResolverUpdate(ctx context.Context, update *ResolvedName) {
 	// update allowed names
-	t.allowNames[update.Name] = update.IPs
+	t.allowNames.Add(update.Name, update.IPs)
 
 	// set new filter rules
 	setAllowedIPs(ctx, t.getAllowedHostsIPs())
 }
 
 // handleAddressCommand handles an address command.
-func (t *TrafPol) handleAddressCommand(ctx context.Context, cmd *trafPolAddrCmd) {
-	defer close(cmd.done)
-
+func (t *TrafPol) handleAddressCommand(ctx context.Context, cmd *trafPolCmd) {
 	// convert to prefix
 	prefix := netip.PrefixFrom(cmd.ip, cmd.ip.BitLen())
 
 	// update allowed addrs
-	s := prefix.String()
-	if cmd.add {
-		if _, ok := t.allowAddrs[s]; ok {
+	if cmd.typ == trafPolCmdAddAddress {
+		if ok := t.allowAddrs.Add(prefix); !ok {
 			// ip already in allowed addrs
 			return
 		}
-		t.allowAddrs[s] = prefix
 	} else {
-		if _, ok := t.allowAddrs[s]; !ok {
+		if ok := t.allowAddrs.Remove(prefix); !ok {
 			// ip not in allowed addrs
 			return
 		}
-		delete(t.allowAddrs, s)
 	}
 
 	// set new filter rules
@@ -157,6 +169,30 @@ func (t *TrafPol) handleAddressCommand(ctx context.Context, cmd *trafPolAddrCmd)
 
 	// added/removed successfully
 	cmd.ok = true
+}
+
+// handleGetStateCommand handles a get state command.
+func (t *TrafPol) handleGetStateCommand(cmd *trafPolCmd) {
+	// set state
+	cmd.state = &State{
+		Config:           t.config,
+		CaptivePortal:    t.capPortal,
+		AllowedDevices:   t.allowDevs.List(),
+		AllowedAddresses: t.allowAddrs.List(),
+		AllowedNames:     t.allowNames.GetAll(),
+	}
+}
+
+// handleCommand handles a command.
+func (t *TrafPol) handleCommand(ctx context.Context, cmd *trafPolCmd) {
+	defer close(cmd.done)
+
+	switch cmd.typ {
+	case trafPolCmdAddAddress, trafPolCmdRemoveAddress:
+		t.handleAddressCommand(ctx, cmd)
+	case trafPolCmdGetState:
+		t.handleGetStateCommand(cmd)
+	}
 }
 
 // start starts the traffic policing component.
@@ -192,9 +228,9 @@ func (t *TrafPol) start(ctx context.Context) {
 			t.handleResolverUpdate(ctx, u)
 
 		case c := <-t.cmds:
-			// Address Command
-			log.WithField("command", c).Debug("TrafPol got address command")
-			t.handleAddressCommand(ctx, c)
+			// Command
+			log.WithField("command", c).Debug("TrafPol got command")
+			t.handleCommand(ctx, c)
 
 		case <-t.done:
 			// shutdown
@@ -264,8 +300,8 @@ func (t *TrafPol) AddAllowedAddr(addr netip.Addr) (ok bool) {
 	log.WithField("addr", addr).
 		Debug("TrafPol adding IP to allowed addresses")
 
-	c := &trafPolAddrCmd{
-		add:  true,
+	c := &trafPolCmd{
+		typ:  trafPolCmdAddAddress,
 		ip:   addr,
 		done: make(chan struct{}),
 	}
@@ -280,7 +316,8 @@ func (t *TrafPol) RemoveAllowedAddr(addr netip.Addr) (ok bool) {
 	log.WithField("addr", addr).
 		Debug("TrafPol removing IP from allowed addresses")
 
-	c := &trafPolAddrCmd{
+	c := &trafPolCmd{
+		typ:  trafPolCmdRemoveAddress,
 		ip:   addr,
 		done: make(chan struct{}),
 	}
@@ -288,6 +325,20 @@ func (t *TrafPol) RemoveAllowedAddr(addr netip.Addr) (ok bool) {
 	<-c.done
 
 	return c.ok
+}
+
+// GetState returns the internal TrafPol state.
+func (t *TrafPol) GetState() *State {
+	log.Debug("TrafPol getting internal state")
+
+	c := &trafPolCmd{
+		typ:  trafPolCmdGetState,
+		done: make(chan struct{}),
+	}
+	t.cmds <- c
+	<-c.done
+
+	return c.state
 }
 
 // parseAllowedHosts parses the allowed hosts and returns IP addresses and DNS names
@@ -321,13 +372,13 @@ func NewTrafPol(config *Config) *TrafPol {
 	a, n := parseAllowedHosts(hosts)
 
 	// create allowed addrs and names
-	addrs := make(map[string]netip.Prefix)
-	names := make(map[string][]netip.Addr)
+	addrs := NewAllowAddrs()
+	names := NewAllowNames()
 	for _, addr := range a {
-		addrs[addr.String()] = addr
+		addrs.Add(addr)
 	}
 	for _, name := range n {
-		names[name] = []netip.Addr{}
+		names.Add(name, []netip.Addr{})
 	}
 
 	// create channel for resolver updates
@@ -347,7 +398,7 @@ func NewTrafPol(config *Config) *TrafPol {
 		resolver:   NewResolver(config, n, resolvUp),
 		resolvUp:   resolvUp,
 
-		cmds: make(chan *trafPolAddrCmd),
+		cmds: make(chan *trafPolCmd),
 
 		loopDone: make(chan struct{}),
 		done:     make(chan struct{}),

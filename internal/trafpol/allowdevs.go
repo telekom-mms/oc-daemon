@@ -23,6 +23,15 @@ func (a *AllowDevs) Remove(ctx context.Context, device string) {
 	}
 }
 
+// List returns a slice of all allowed devices.
+func (a *AllowDevs) List() []string {
+	var l []string
+	for _, v := range a.m {
+		l = append(l, v)
+	}
+	return l
+}
+
 // NewAllowDevs returns new allowDevs.
 func NewAllowDevs() *AllowDevs {
 	return &AllowDevs{

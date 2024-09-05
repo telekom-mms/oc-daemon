@@ -378,6 +378,56 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	v.Stop()
 }
 
+// TestVPNSetupGetState tests GetState of VPNSetup.
+func TestVPNSetupGetState(t *testing.T) {
+	// override functions
+	oldCmd := execs.RunCmd
+	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
+		return nil, nil, nil
+	}
+	defer func() { execs.RunCmd = oldCmd }()
+
+	oldRegisterAddrUpdates := addrmon.RegisterAddrUpdates
+	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) (chan netlink.AddrUpdate, error) {
+		return nil, nil
+	}
+	defer func() { addrmon.RegisterAddrUpdates = oldRegisterAddrUpdates }()
+
+	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
+	}
+	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
+
+	// start vpn setup
+	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v.Start()
+
+	// without vpn config
+	got := v.GetState()
+	if got == nil ||
+		got.SplitRouting != nil ||
+		got.DNSProxy == nil {
+		t.Errorf("got invalid state: %v", got)
+	}
+
+	// with vpn config
+	vpnconf := vpnconfig.New()
+	v.Setup(vpnconf)
+
+	got = v.GetState()
+	if got == nil ||
+		got.SplitRouting == nil ||
+		got.DNSProxy == nil {
+		t.Errorf("got invalid state: %v", got)
+	}
+
+	// teardown config
+	v.Teardown(vpnconf)
+
+	v.Stop()
+}
+
 // TestNewVPNSetup tests NewVPNSetup.
 func TestNewVPNSetup(t *testing.T) {
 	dnsConfig := dnsproxy.NewConfig()

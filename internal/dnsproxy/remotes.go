@@ -67,6 +67,18 @@ func (r *Remotes) Get(domain string) []string {
 	return r.m["."]
 }
 
+// List returns the remotes.
+func (r *Remotes) List() map[string][]string {
+	r.RLock()
+	defer r.RUnlock()
+
+	remotes := make(map[string][]string)
+	for k, v := range r.m {
+		remotes[k] = append(remotes[k], v...)
+	}
+	return remotes
+}
+
 // NewRemotes returns a new Remotes.
 func NewRemotes() *Remotes {
 	return &Remotes{

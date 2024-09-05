@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/netip"
 	"reflect"
+	"slices"
 	"sort"
 	"sync"
 	"testing"
@@ -132,10 +133,10 @@ func TestTrafPolGetAllowedHostsIPs(t *testing.T) {
 	tp := NewTrafPol(c)
 
 	// add allowed names
-	tp.allowNames["example.com"] = []netip.Addr{
+	tp.allowNames.Add("example.com", []netip.Addr{
 		netip.MustParseAddr("192.168.1.1"),
 		netip.MustParseAddr("2001:DB8:1::1"),
-	}
+	})
 
 	// wanted IPs
 	want := []netip.Prefix{}
@@ -202,9 +203,9 @@ func TestTrafPolAddRemoveAllowedAddr(t *testing.T) {
 		t.Errorf("address not added")
 	}
 
-	want := prefix.String()
-	got := tp.allowAddrs[prefix.String()].String()
-	if got != want {
+	want := []netip.Prefix{prefix}
+	got := tp.allowAddrs.List()
+	if !slices.Equal(got, want) {
 		t.Errorf("got %s, want %s", got, want)
 	}
 
@@ -218,9 +219,9 @@ func TestTrafPolAddRemoveAllowedAddr(t *testing.T) {
 		t.Errorf("address not removed")
 	}
 
-	want = netip.Prefix{}.String()
-	got = tp.allowAddrs[prefix.String()].String()
-	if got != want {
+	want = []netip.Prefix{}
+	got = tp.allowAddrs.List()
+	if !slices.Equal(got, want) {
 		t.Errorf("got %s, want %s", got, want)
 	}
 
@@ -238,6 +239,30 @@ func TestTrafPolAddRemoveAllowedAddr(t *testing.T) {
 		t.Errorf("address not removed")
 	}
 
+	tp.Stop()
+}
+
+// TestTrafPolGetState tests GetState of Trafpol.
+func TestTrafPolGetState(t *testing.T) {
+	// set dummy low level function for devmon
+	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
+	devmon.RegisterLinkUpdates = func(*devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
+	}
+	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
+
+	// start trafpol
+	tp := NewTrafPol(NewConfig())
+	if err := tp.Start(); err != nil {
+		t.Fatal(err)
+	}
+
+	// check state
+	if tp.GetState() == nil {
+		t.Errorf("got invalid state")
+	}
+
+	// stop trafpol
 	tp.Stop()
 }
 
