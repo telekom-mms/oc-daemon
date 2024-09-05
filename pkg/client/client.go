@@ -558,7 +558,7 @@ func (d *DBusClient) Connect() error {
 
 // disconnect sends a disconnect request to the daemon.
 var disconnect = func(d *DBusClient) error {
-	// call connect
+	// call disconnect
 	return d.conn.Object(dbusapi.Interface, dbusapi.Path).
 		Call(dbusapi.MethodDisconnect, 0).Store()
 }
