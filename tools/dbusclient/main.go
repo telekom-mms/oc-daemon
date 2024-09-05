@@ -1,5 +1,6 @@
 /*
-Dbusclient is an example of a D-Bus API client.
+Dbusclient is an example of a D-Bus API client. It monitors and shows the D-Bus
+properties of the OC-Daemon.
 */
 package main
 
