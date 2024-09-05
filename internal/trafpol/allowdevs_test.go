@@ -15,10 +15,12 @@ func TestAllowDevsAdd(t *testing.T) {
 	ctx := context.Background()
 
 	got := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test adding
 	want := []string{
@@ -43,10 +45,12 @@ func TestAllowDevsRemove(t *testing.T) {
 	ctx := context.Background()
 
 	got := []string{}
+	oldRunCmd := execs.RunCmd
 	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
 		got = append(got, s)
 		return nil, nil, nil
 	}
+	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test removing device
 	a.Add(ctx, "eth3")
