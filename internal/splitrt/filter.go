@@ -118,18 +118,57 @@ table inet oc-daemon-routing {
 	}
 }
 {{end}}
+
 {{/* TODO: change to SetupRouting and add nft -f - command and use RoutingRules as input? */}}
-{{define "AddDefaultRoute"}}
-{{if IPv4Address}}
+{{/* TODO: use variables for tools, e.g., IP, NFT, Sysctl? */}}
+{{define "SetupRouting"}}
+
+{{/* setup nftables routing rules */}}
+nft -f - {{RoutingRules}}
+
+{{/* TODO: can we add a line for the static excludes here? probably not */}}
+
+{{/* setup IPv4 routing */}}
 ip -4 route add 0.0.0.0/0 dev {{Device}} table {{RTTable}}
 ip -4 rule add iif {{Device}} table main pref {{RulePrio1}}
 ip -4 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}
 sysctl -q net.ipv4.conf.all.src_valid_mark=1
-{{end}}
-{{if IPv6Address}}
+
+{{/* setup IPv6 routing */}}
 ip -6 route add ::/0 dev {{Device}} table {{RTTable}}
 ip -6 rule add iif {{Device}} table main pref {{RulePrio1}}
 ip -6 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}
+
+{{end}}
+
+{{define "TeardownRouting"}}
+
+{{/* teardown IPv4 routing */}}
+ip -4 rule delete table {{RTTable}}
+ip -4 rule delete iif {{Device}} table main
+
+{{/* teardown IPv6 routing */}}
+ip -6 rule delete table {{RTTable}}
+ip -6 rule delete iif {{Device}} table main
+
+{{/* teardown nftables routing rules */}}
+nft -f - delete table inet oc-daemon-routing
+
+{{end}}
+
+{{define "CleanupRouting"}}
+
+{{/* cleanup routing */}}
+ip -4 rule delete pref {{RulePrio1}}
+ip -4 rule delete pref {{RulePrio2}}
+ip -6 rule delete pref {{RulePrio1}}
+ip -6 rule delete pref {{RulePrio2}}
+ip -4 route flush table {{RTTable}}
+ip -6 route flush table {{RTTable}}
+
+{{/* cleanup nftables routing rules */}}
+nft -f - delete table inet oc-daemon-routing
+
 {{end}}
 `
 
