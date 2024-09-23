@@ -10,6 +10,129 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
+const routingScript = `
+{{define "RoutingRules"}}
+table inet oc-daemon-routing {
+	# set for ipv4 excludes
+	set excludes4 {
+		type ipv4_addr
+		flags interval
+	}
+
+	# set for ipv6 excludes
+	set excludes6 {
+		type ipv6_addr
+		flags interval
+	}
+
+	chain preraw {
+		type filter hook prerouting priority raw; policy accept;
+
+		# add drop rules for non-local traffic from other devices to
+		# tunnel network addresses here
+		{{with IPv4Address}}
+		iifname != {{Device}} ip daddr {{.}} fib saddr type != local counter drop
+		{{end}}
+		{{with IPv6Address}}
+		iifname != {{Device}} ip6 daddr {{.}} fib saddr type != local counter drop
+		{{end}}
+	}
+
+	chain splitrouting {
+		# restore mark from conntracking
+		ct mark != 0 meta mark set ct mark counter
+		meta mark != 0 counter accept
+
+		# mark packets in exclude sets
+		ip daddr @excludes4 counter meta mark set {{FWMark}}
+		ip6 daddr @excludes6 counter meta mark set {{FWMark}}
+
+		# save mark in conntraction
+		ct mark set meta mark counter
+	}
+
+	chain premangle {
+		type filter hook prerouting priority mangle; policy accept;
+
+		# handle split routing
+		counter jump splitrouting
+	}
+
+	chain output {
+		type route hook output priority mangle; policy accept;
+
+		# handle split routing
+		counter jump splitrouting
+	}
+
+	chain postmangle {
+		type filter hook postrouting priority mangle; policy accept;
+
+		# save mark in conntracking
+		meta mark {{WMark}} ct mark set meta mark counter
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+
+		# masquerare tunnel/exclude traffic to make sure the source IP
+		# matches the outgoing interface
+		ct mark {{FWMark}} counter masquerade
+	}
+
+	chain rejectipversion {
+		# used to reject unsupported ip version on the tunnel device
+
+		# make sure exclude traffic is not filtered
+		ct mark {{FWMark}} counter accept
+
+		# use tcp reset and icmp admin prohibited
+		meta l4proto tcp counter reject with tcp reset
+		counter reject with icmpx admin-prohibited
+	}
+
+	chain rejectforward {
+		type filter hook forward priority filter; policy accept;
+
+		# reject unsupported ip versions when forwarding packets,
+		# add matching jump rule to rejectipversion if necessary
+		{{if IPv4Address}}
+		meta oifname {{Device}} meta nfproto ipv6 counter jump rejectipversion
+		{{end}}
+		{{if IPv6Address}}
+		meta oifname {{Device}} meta nfproto ipv4 counter jump rejectipversion
+		{{end}}
+	}
+
+	chain rejectoutput {
+		type filter hook output priority filter; policy accept;
+
+		# reject unsupported ip versions when sending packets,
+		# add matching jump rule to rejectipversion if necessary
+		{{if IPv4Address}}
+		meta oifname {{Device}} meta nfproto ipv6 counter jump rejectipversion
+		{{end}}
+		{{if IPv6Address}}
+		meta oifname {{Device}} meta nfproto ipv4 counter jump rejectipversion
+		{{end}}
+	}
+}
+{{end}}
+{{/* TODO: change to SetupRouting and add nft -f - command and use RoutingRules as input? */}}
+{{define "AddDefaultRoute"}}
+{{if IPv4Address}}
+ip -4 route add 0.0.0.0/0 dev {{Device}} table {{RTTable}}
+ip -4 rule add iif {{Device}} table main pref {{RulePrio1}}
+ip -4 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}
+sysctl -q net.ipv4.conf.all.src_valid_mark=1
+{{end}}
+{{if IPv6Address}}
+ip -6 route add ::/0 dev {{Device}} table {{RTTable}}
+ip -6 rule add iif {{Device}} table main pref {{RulePrio1}}
+ip -6 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}
+{{end}}
+`
+
 // setRoutingRules sets the basic nftables rules for routing.
 func setRoutingRules(ctx context.Context, fwMark string) {
 	const routeRules = `
