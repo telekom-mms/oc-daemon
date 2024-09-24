@@ -124,6 +124,7 @@ table inet oc-daemon-routing {
 {{define "SetupRouting"}}
 
 {{/* setup nftables routing rules */}}
+{{/* TODO use nft -f - <<EOF {{template "RoutingRules"}} EOF? */}}
 nft -f - {{RoutingRules}}
 
 {{/* TODO: can we add a line for the static excludes here? probably not */}}
@@ -168,6 +169,28 @@ ip -6 route flush table {{RTTable}}
 
 {{/* cleanup nftables routing rules */}}
 nft -f - delete table inet oc-daemon-routing
+
+{{end}}
+
+{{define "AddExclude"}}
+
+{{if .Is6}}
+nft -f - add element inet oc-daemon-routing excludes6 { {{.}} }
+{{else}}
+nft -f - add element inet oc-daemon-routing excludes4 { {{.}} }
+{{end}}
+
+{{end}}
+
+{{define "SetExcludes"}}
+
+nft -f - <<EOF
+flush set inet oc-daemon-routing excludes4
+flush set inet oc-daemon-routing excludes6
+{{range {{.}}}}
+{{template "AddExclude"}}
+{{end}}
+EOF
 
 {{end}}
 `
