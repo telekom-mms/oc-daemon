@@ -174,7 +174,7 @@ nft -f - delete table inet oc-daemon-routing
 
 {{define "AddExclude"}}
 
-{{if .Is6}}
+{{if {{.Is6}}}}
 nft -f - add element inet oc-daemon-routing excludes6 { {{.}} }
 {{else}}
 nft -f - add element inet oc-daemon-routing excludes4 { {{.}} }
