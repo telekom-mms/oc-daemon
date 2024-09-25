@@ -143,6 +143,7 @@ ip -6 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}
 {{end}}
 
 {{define "TeardownRouting"}}
+{{/* TODO:  rename to StartRouting and StopRouting? */}}
 
 {{/* teardown IPv4 routing */}}
 ip -4 rule delete table {{RTTable}}
@@ -158,6 +159,7 @@ nft -f - delete table inet oc-daemon-routing
 {{end}}
 
 {{define "CleanupRouting"}}
+{{/* TODO: just use template TeardownRouting? */}}
 
 {{/* cleanup routing */}}
 ip -4 rule delete pref {{RulePrio1}}

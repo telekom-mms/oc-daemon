@@ -156,6 +156,32 @@ table inet oc-daemon-filter {
 
 {{end}}
 
+{{define "SetFilterRules"}}
+
+nft -f - <<EOF
+{{FilterRules}}
+EOF
+
+{{end}}
+
+{{define "UnsetFilterRules"}}
+
+nft -f - delete table inet oc-daemon-filter
+
+{{end}}
+
+{{define "AddAllowedDevice"}}
+
+nft -f - add element inet oc-daemon-filter allowdevs { {{.}} }
+
+{{end}}
+
+{{define "RemoveAllowedDevice"}}
+
+nft -f - delete element inet oc-daemon-filter allowdevs { {{.}} }
+
+{{end}}
+
 {{define "SetAllowedIPs"}}
 
 nft -f - flush set inet oc-daemon-filter allowhosts4
@@ -168,6 +194,24 @@ nft -f - add element inet oc-daemon-filter allowhosts4 { {{.}} }
 {{else}}
 nft -f - add element inet oc-daemon-filter allowhosts6 { {{.}} }
 {{end}}
+
+{{end}}
+
+{{define "AddPortalPorts"}}
+
+nft -f - add element inet oc-daemon-filter allowports { {{.}} }
+
+{{end}}
+
+{{define "RemovePortalPorts"}}
+
+nft -f - delete element inet oc-daemon-filter allowports { {{.}} }
+
+{{end}}
+
+{{define "Cleanup"}}
+
+{{template "UnsetFilterRules"}}
 
 {{end}}
 
