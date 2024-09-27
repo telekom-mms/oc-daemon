@@ -53,6 +53,18 @@ type VPNSetup struct {
 	closed chan struct{}
 }
 
+const setupDeviceCommands = `
+ip link set {{Device}} mtu {{MTU}}
+ip link set {{Device}} up
+{{if {{IPv4Address}}
+ip address add {{IPv4Address}} dev {{Device}}
+{{end}}
+{{if {{IPv6Address}}
+ip address add {{IPv6Address}} dev {{Device}}
+{{end}}
+
+`
+
 // setupVPNDevice sets up the vpn device with config.
 func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	// set mtu on device
@@ -107,6 +119,10 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	}
 }
 
+const teardownDeviceCommands = `
+ip link set {{Device}} down
+`
+
 // teardownVPNDevice tears down the configured vpn device.
 func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 	// set device down
@@ -141,6 +157,10 @@ func (v *VPNSetup) teardownRouting() {
 	v.splitrt = nil
 }
 
+const setupDNSServerCommands = `
+resolvectl dns {{Device}} {{DNSProxyAddress}}
+`
+
 // setupDNSServer sets the DNS server.
 func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config) {
 	device := config.Device.Name
@@ -153,6 +173,10 @@ func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config)
 		}).Error("VPNSetup error setting dns server")
 	}
 }
+
+const setupDNSDomainsCommands = `
+resolvectl domain {{Device}} {{DNSDefaultDomain}} ~.
+`
 
 // setupDNSDomains sets the DNS domains.
 func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config) {
@@ -167,6 +191,10 @@ func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config
 	}
 }
 
+const setupDNSDefaultRouteCommands = `
+resolvectl default-route {{Device}} yes
+`
+
 // setupDNSDefaultRoute sets the DNS default route.
 func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.Config) {
 	device := config.Device.Name
@@ -178,6 +206,14 @@ func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.C
 		}).Error("VPNSetup error setting dns default route")
 	}
 }
+
+const setupDNSCommands = `
+resolvectl dns {{Device}} {{DNSProxyAddress}}
+resolvectl domain {{Device}} {{DNSDefaultDomain}} ~.
+resolvectl default-route {{Device}} yes
+resolvectl flush-caches
+resolvectl reset-server-features
+`
 
 // setupDNS sets up DNS using config.
 func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
@@ -220,6 +256,12 @@ func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 		}).Error("VPNSetup error resetting server features during setup")
 	}
 }
+
+const teardownDNSCommands = `
+resolvectl revert {{Device}}
+resolvectl flush-caches
+resolvectl reset-server-features
+`
 
 // teardownDNS tears down the DNS configuration.
 func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
@@ -307,6 +349,11 @@ func (v *VPNSetup) checkDNSDomain(config *vpnconfig.Config, domains []string) bo
 
 	return true
 }
+
+// TODO: newer versions support json output, support that?
+const ensureCommands = `
+resolvectl status {{Device}} --no-pager
+`
 
 // ensureDNS ensures the DNS config.
 func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool {
@@ -567,6 +614,11 @@ func NewVPNSetup(
 		closed: make(chan struct{}),
 	}
 }
+
+const cleanupCommands = `
+resolvectl revert {{Device}}
+ip link delete {{Device}}
+`
 
 // Cleanup cleans up the configuration after a failed shutdown.
 func Cleanup(ctx context.Context, vpnDevice string, splitrtConfig *splitrt.Config) {
