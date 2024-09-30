@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"context"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // executables.
@@ -92,4 +94,41 @@ func SetExecutables(config *Config) {
 	sysctl = config.Sysctl
 	nft = config.Nft
 	resolvectl = config.Resolvectl
+}
+
+type Command struct {
+	Name  string
+	Args  []string
+	Stdin string
+
+	// error handling?
+	LogError bool   // log everything on error? with name, args, stdin/out/err?
+	OnError  string // continue, stop? if list of commands
+}
+
+type CommandList struct {
+	Name     string
+	Commands []Command
+}
+
+type CommandLists map[string]CommandList
+
+// Run runs command list identified by name
+func (c CommandLists) Run(ctx context.Context, name string) {
+	for _, cmd := range c[name].Commands {
+		stdout, stderr, err := RunCmd(ctx, cmd.Name, cmd.Stdin, cmd.Args...)
+		if err != nil && cmd.LogError {
+			log.WithError(err).WithFields(log.Fields{
+				"list":    c[name].Name,
+				"command": cmd.Name,
+				"args":    cmd.Args,
+				"stdin":   cmd.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error executing command in command list")
+		}
+		if err != nil && cmd.OnError == "stop" {
+			return
+		}
+	}
 }

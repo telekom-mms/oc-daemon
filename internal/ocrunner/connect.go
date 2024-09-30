@@ -157,6 +157,27 @@ func (c *Connect) getPID() uint32 {
 	return uint32(c.command.Process.Pid)
 }
 
+const connectCommands = `
+openconnect
+--xmlconfig={{config.XMLProfie}}
+--script={{config.VPNCScript}}
+--cookie-on-stdin
+{{Host}}
+--servercert={{login.Fingerprint}}
+{{if config.NoProxy}}
+--no-proxy
+{{end}}
+{{if login.Resolve}}
+--resolve={{login.Resolve}}
+{{end}}
+{{if config.VPNDevice}}
+--interface={{config.VPNDevice}}
+{{end}}
+{{range config.ExtraArgs}}
+{{.}}
+{{end}}
+`
+
 // handleConnect establishes the connection by starting openconnect.
 func (c *Connect) handleConnect(e *ConnectEvent) {
 	if c.command != nil {
