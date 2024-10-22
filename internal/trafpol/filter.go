@@ -218,6 +218,101 @@ nft -f - delete element inet oc-daemon-filter allowports { {{.}} }
 {{end}}
 `
 
+// TODO: do not use an init func?
+func init() {
+	setFilterRules := execs.CommandList{
+		Name: "SetFilterRules",
+		Commands: []execs.Command{
+			{Name: "nft -f -", Stdin: "{{template FilterRules}}"},
+		},
+	}
+	log.Println(setFilterRules)
+
+	unsetFilterRules := execs.CommandList{
+		Name: "UnsetFilterRules",
+		Commands: []execs.Command{
+			{Name: "nft -f - delete table inet oc-daemon-filter"},
+		},
+	}
+	log.Println(unsetFilterRules)
+
+	addAllowedDevice := execs.CommandList{
+		Name: "AddAllowedDevice",
+		Commands: []execs.Command{
+			{Name: "nft -f - add element inet oc-daemon-filter allowdevs { {{.}} }"},
+		},
+	}
+	log.Println(addAllowedDevice)
+
+	removeAllowedDevice := execs.CommandList{
+		Name: "RemoveAllowedDevice",
+		Commands: []execs.Command{
+			{Name: "nft -f - delete element inet oc-daemon-filter allowdevs { {{.}} }"},
+		},
+	}
+	log.Println(removeAllowedDevice)
+
+	// setAllowedIPs does not work this way, rename to flushAllowedIPs and add addAllowedIP?
+	setAllowedIPs := execs.CommandList{
+		Name: "SetAllowedIPs",
+		Commands: []execs.Command{
+			{Name: "nft -f - flush set inet oc-daemon-filter allowhosts4"},
+			{Name: "nft -f - flush set inet oc-daemon-filter allowhosts6"},
+		},
+	}
+	log.Println(setAllowedIPs)
+	// {{range {{.}}}}
+	//
+	// {{if {{.Is4}}}}
+	// {{/* TODO: does this work with ip addresses or do we need .String here? */}}
+	// nft -f - add element inet oc-daemon-filter allowhosts4 { {{.}} }
+	// {{else}}
+	// nft -f - add element inet oc-daemon-filter allowhosts6 { {{.}} }
+	// {{end}}
+	//
+	// {{end}}`)
+	addAllowedIP := execs.CommandList{
+		Name: "AddAllowedIP",
+		Commands: []execs.Command{
+			{Name: "nft -f -",
+				Stdin: `
+				{{if {{.Is4}}}}
+				add element inet oc-daemon-filter allowhosts4 { {{.}} }
+				{{else}}
+				nft -f - add element inet oc-daemon-filter allowhosts6 { {{.}} }
+				{{end}}
+				`,
+			},
+		},
+	}
+	log.Println(addAllowedIP)
+
+	addPortalPorts := execs.CommandList{
+		Name: "AddPortalPorts",
+		Commands: []execs.Command{
+			{Name: "nft -f - add element inet oc-daemon-filter allowports { {{.}} }"},
+		},
+	}
+	log.Println(addPortalPorts)
+
+	removePortalPorts := execs.CommandList{
+		Name: "RemovePortalPorts",
+		Commands: []execs.Command{
+			{Name: "nft -f - delete element inet oc-daemon-filter allowports { {{.}} }"},
+		},
+	}
+	log.Println(removePortalPorts)
+
+	// TODO: change name, does not work?
+	cleanup := execs.CommandList{
+		Name: "Cleanup",
+		Commands: []execs.Command{
+			{Name: `{{template "UnsetFilterRules"}}`},
+		},
+	}
+	log.Println(cleanup)
+}
+
 // setFilterRules sets the filter rules.
 func setFilterRules(ctx context.Context, fwMark string) {
 	const filterRules = `
