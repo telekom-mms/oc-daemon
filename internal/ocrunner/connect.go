@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
 )
 
@@ -177,6 +178,34 @@ openconnect
 {{.}}
 {{end}}
 `
+
+// TODO: do not use init func?
+func init() {
+	connect := execs.CommandList{
+		Name: "OpenConnectConnect",
+		Commands: []execs.Command{
+			{Name: `openconnect
+			--xmlconfig={{config.XMLProfie}}
+			--script={{config.VPNCScript}}
+			--cookie-on-stdin
+			{{Host}}
+			--servercert={{login.Fingerprint}}
+			{{if config.NoProxy}}
+			--no-proxy
+			{{end}}
+			{{if login.Resolve}}
+			--resolve={{login.Resolve}}
+			{{end}}
+			{{if config.VPNDevice}}
+			--interface={{config.VPNDevice}}
+			{{end}}
+			{{range config.ExtraArgs}}
+			{{.}}
+			{{end}}`},
+		},
+	}
+	log.Println(connect)
+}
 
 // handleConnect establishes the connection by starting openconnect.
 func (c *Connect) handleConnect(e *ConnectEvent) {

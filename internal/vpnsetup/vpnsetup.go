@@ -62,8 +62,28 @@ ip address add {{IPv4Address}} dev {{Device}}
 {{if {{IPv6Address}}
 ip address add {{IPv6Address}} dev {{Device}}
 {{end}}
-
 `
+
+func initDeviceCommands() {
+	setupDevice := execs.CommandList{
+		Name: "SetupDevice",
+		Commands: []execs.Command{
+			{Name: "ip link set {{Device}} mtu {{MTU}}"},
+			{Name: "ip link set {{Device}} up"},
+			{Name: "{{if {{IPv4Address}}ip address add {{IPv4Address}} dev {{Device}}{{end}}"},
+			{Name: "{{if {{IPv6Address}}ip address add {{IPv6Address}} dev {{Device}}{{end}}"},
+		},
+	}
+	log.Println(setupDevice)
+
+	teardownDevice := execs.CommandList{
+		Name: "TeardownDevice",
+		Commands: []execs.Command{
+			{Name: "ip link set {{Device}} down"},
+		},
+	}
+	log.Println(teardownDevice)
+}
 
 // setupVPNDevice sets up the vpn device with config.
 func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
