@@ -177,6 +177,62 @@ func (v *VPNSetup) teardownRouting() {
 	v.splitrt = nil
 }
 
+func initDNSCommands() {
+	setupDNSServer := execs.CommandList{
+		Name: "SetupDNSServer",
+		Commands: []execs.Command{
+			{Name: "resolvectl dns {{Device}} {{DNSProxyAddress}}"},
+		},
+	}
+	log.Println(setupDNSServer)
+
+	setupDNSDomains := execs.CommandList{
+		Name: "SetupDNSDomains",
+		Commands: []execs.Command{
+			{Name: "resolvectl domain {{Device}} {{DNSDefaultDomain}} ~."},
+		},
+	}
+	log.Println(setupDNSDomains)
+
+	setupDNSDefaultRoute := execs.CommandList{
+		Name: "SetupDNSDefaultRoute",
+		Commands: []execs.Command{
+			{Name: "resolvectl default-route {{Device}} yes"},
+		},
+	}
+	log.Println(setupDNSDefaultRoute)
+
+	setupDNS := execs.CommandList{
+		Name: "SetupDNS",
+		Commands: []execs.Command{
+			{Name: "resolvectl dns {{Device}} {{DNSProxyAddress}}"},
+			{Name: "resolvectl domain {{Device}} {{DNSDefaultDomain}} ~."},
+			{Name: "resolvectl default-route {{Device}} yes"},
+			{Name: "resolvectl flush-caches"},
+			{Name: "resolvectl reset-server-features"},
+		},
+	}
+	log.Println(setupDNS)
+
+	teardownDNS := execs.CommandList{
+		Name: "TeardownDNS",
+		Commands: []execs.Command{
+			{Name: "resolvectl revert {{Device}}"},
+			{Name: "resolvectl flush-caches"},
+			{Name: "resolvectl reset-server-features"},
+		},
+	}
+	log.Println(teardownDNS)
+
+	ensureDNS := execs.CommandList{
+		Name: "EnsureDNS",
+		Commands: []execs.Command{
+			{Name: "resolvectl status {{Device}} --no-pager"},
+		},
+	}
+	log.Println(ensureDNS)
+}
+
 const setupDNSServerCommands = `
 resolvectl dns {{Device}} {{DNSProxyAddress}}
 `
@@ -633,6 +689,17 @@ func NewVPNSetup(
 		done:   make(chan struct{}),
 		closed: make(chan struct{}),
 	}
+}
+
+func initCleanup() {
+	cleanup := execs.CommandList{
+		Name: "Cleanup",
+		Commands: []execs.Command{
+			{Name: "resolvectl revert {{Device}}"},
+			{Name: "ip link delete {{Device}}"},
+		},
+	}
+	log.Println(cleanup)
 }
 
 const cleanupCommands = `
