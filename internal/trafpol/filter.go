@@ -223,7 +223,7 @@ func init() {
 	setFilterRules := execs.CommandList{
 		Name: "SetFilterRules",
 		Commands: []execs.Command{
-			{Name: "nft -f -", Stdin: "{{template FilterRules}}"},
+			{Line: "nft -f -", Stdin: "{{template FilterRules}}"},
 		},
 	}
 	log.Println(setFilterRules)
@@ -231,7 +231,7 @@ func init() {
 	unsetFilterRules := execs.CommandList{
 		Name: "UnsetFilterRules",
 		Commands: []execs.Command{
-			{Name: "nft -f - delete table inet oc-daemon-filter"},
+			{Line: "nft -f - delete table inet oc-daemon-filter"},
 		},
 	}
 	log.Println(unsetFilterRules)
@@ -239,7 +239,7 @@ func init() {
 	addAllowedDevice := execs.CommandList{
 		Name: "AddAllowedDevice",
 		Commands: []execs.Command{
-			{Name: "nft -f - add element inet oc-daemon-filter allowdevs { {{.}} }"},
+			{Line: "nft -f - add element inet oc-daemon-filter allowdevs { {{.}} }"},
 		},
 	}
 	log.Println(addAllowedDevice)
@@ -247,7 +247,7 @@ func init() {
 	removeAllowedDevice := execs.CommandList{
 		Name: "RemoveAllowedDevice",
 		Commands: []execs.Command{
-			{Name: "nft -f - delete element inet oc-daemon-filter allowdevs { {{.}} }"},
+			{Line: "nft -f - delete element inet oc-daemon-filter allowdevs { {{.}} }"},
 		},
 	}
 	log.Println(removeAllowedDevice)
@@ -256,8 +256,8 @@ func init() {
 	setAllowedIPs := execs.CommandList{
 		Name: "SetAllowedIPs",
 		Commands: []execs.Command{
-			{Name: "nft -f - flush set inet oc-daemon-filter allowhosts4"},
-			{Name: "nft -f - flush set inet oc-daemon-filter allowhosts6"},
+			{Line: "nft -f - flush set inet oc-daemon-filter allowhosts4"},
+			{Line: "nft -f - flush set inet oc-daemon-filter allowhosts6"},
 		},
 	}
 	log.Println(setAllowedIPs)
@@ -274,7 +274,7 @@ func init() {
 	addAllowedIP := execs.CommandList{
 		Name: "AddAllowedIP",
 		Commands: []execs.Command{
-			{Name: "nft -f -",
+			{Line: "nft -f -",
 				Stdin: `
 				{{if {{.Is4}}}}
 				add element inet oc-daemon-filter allowhosts4 { {{.}} }
@@ -290,7 +290,7 @@ func init() {
 	addPortalPorts := execs.CommandList{
 		Name: "AddPortalPorts",
 		Commands: []execs.Command{
-			{Name: "nft -f - add element inet oc-daemon-filter allowports { {{.}} }"},
+			{Line: "nft -f - add element inet oc-daemon-filter allowports { {{.}} }"},
 		},
 	}
 	log.Println(addPortalPorts)
@@ -298,7 +298,7 @@ func init() {
 	removePortalPorts := execs.CommandList{
 		Name: "RemovePortalPorts",
 		Commands: []execs.Command{
-			{Name: "nft -f - delete element inet oc-daemon-filter allowports { {{.}} }"},
+			{Line: "nft -f - delete element inet oc-daemon-filter allowports { {{.}} }"},
 		},
 	}
 	log.Println(removePortalPorts)
@@ -307,7 +307,7 @@ func init() {
 	cleanup := execs.CommandList{
 		Name: "Cleanup",
 		Commands: []execs.Command{
-			{Name: `{{template "UnsetFilterRules"}}`},
+			{Line: `{{template "UnsetFilterRules"}}`},
 		},
 	}
 	log.Println(cleanup)

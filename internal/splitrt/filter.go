@@ -202,15 +202,15 @@ func init() {
 	startRouting := execs.CommandList{
 		Name: "StartRouting",
 		Commands: []execs.Command{
-			{Name: "nft -f -", Stdin: "{{RoutingRules}}"},
-			{Name: "nft", Args: []string{"-f", "-"}, Stdin: "{{RoutingRules}}"},
-			{Name: "ip -4 route add 0.0.0.0/0 dev {{Device}} table {{RTTable}}"},
-			{Name: "ip -4 rule add iif {{Device}} table main pref {{RulePrio1}}"},
-			{Name: "ip -4 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}"},
-			{Name: "sysctl -q net.ipv4.conf.all.src_valid_mark=1"},
-			{Name: "ip -6 route add ::/0 dev {{Device}} table {{RTTable}}"},
-			{Name: "ip -6 rule add iif {{Device}} table main pref {{RulePrio1}}"},
-			{Name: "ip -6 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}"},
+			{Line: "nft -f -", Stdin: "{{RoutingRules}}"},
+			{Line: "nft", Args: []string{"-f", "-"}, Stdin: "{{RoutingRules}}"},
+			{Line: "ip -4 route add 0.0.0.0/0 dev {{Device}} table {{RTTable}}"},
+			{Line: "ip -4 rule add iif {{Device}} table main pref {{RulePrio1}}"},
+			{Line: "ip -4 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}"},
+			{Line: "sysctl -q net.ipv4.conf.all.src_valid_mark=1"},
+			{Line: "ip -6 route add ::/0 dev {{Device}} table {{RTTable}}"},
+			{Line: "ip -6 rule add iif {{Device}} table main pref {{RulePrio1}}"},
+			{Line: "ip -6 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}"},
 		},
 	}
 	log.Println(startRouting)
@@ -218,11 +218,11 @@ func init() {
 	stopRouting := execs.CommandList{
 		Name: "StopRouting",
 		Commands: []execs.Command{
-			{Name: "ip -4 rule delete table {{RTTable}}"},
-			{Name: "ip -4 rule delete iif {{Device}} table main"},
-			{Name: "ip -6 rule delete table {{RTTable}}"},
-			{Name: "ip -6 rule delete iif {{Device}} table main"},
-			{Name: "nft -f - delete table inet oc-daemon-routing"},
+			{Line: "ip -4 rule delete table {{RTTable}}"},
+			{Line: "ip -4 rule delete iif {{Device}} table main"},
+			{Line: "ip -6 rule delete table {{RTTable}}"},
+			{Line: "ip -6 rule delete iif {{Device}} table main"},
+			{Line: "nft -f - delete table inet oc-daemon-routing"},
 		},
 	}
 	log.Println(stopRouting)
@@ -230,13 +230,13 @@ func init() {
 	cleanupRouting := execs.CommandList{
 		Name: "CleanupRouting",
 		Commands: []execs.Command{
-			{Name: "ip -4 rule delete pref {{RulePrio1}}"},
-			{Name: "ip -4 rule delete pref {{RulePrio2}}"},
-			{Name: "ip -6 rule delete pref {{RulePrio1}}"},
-			{Name: "ip -6 rule delete pref {{RulePrio2}}"},
-			{Name: "ip -4 route flush table {{RTTable}}"},
-			{Name: "ip -6 route flush table {{RTTable}}"},
-			{Name: "nft -f - delete table inet oc-daemon-routing"},
+			{Line: "ip -4 rule delete pref {{RulePrio1}}"},
+			{Line: "ip -4 rule delete pref {{RulePrio2}}"},
+			{Line: "ip -6 rule delete pref {{RulePrio1}}"},
+			{Line: "ip -6 rule delete pref {{RulePrio2}}"},
+			{Line: "ip -4 route flush table {{RTTable}}"},
+			{Line: "ip -6 route flush table {{RTTable}}"},
+			{Line: "nft -f - delete table inet oc-daemon-routing"},
 		},
 	}
 	log.Println(cleanupRouting)
@@ -244,8 +244,8 @@ func init() {
 	addExclude := execs.CommandList{
 		Name: "AddExclude",
 		Commands: []execs.Command{
-			{Name: "{{if {{.Is6}}}}nft -f - add element inet oc-daemon-routing excludes6 { {{.}} }{{else}}nft -f - add element inet oc-daemon-routing excludes4 { {{.}} }{{end}}"},
-			{Name: "nft -f -",
+			{Line: "{{if {{.Is6}}}}nft -f - add element inet oc-daemon-routing excludes6 { {{.}} }{{else}}nft -f - add element inet oc-daemon-routing excludes4 { {{.}} }{{end}}"},
+			{Line: "nft -f -",
 				Stdin: `
 				{{if {{.Is6}}
 				add element inet oc-daemon-routing excludes6 { {{.}} }
@@ -259,14 +259,14 @@ func init() {
 	setExcludes := execs.CommandList{
 		Name: "SetExcludes",
 		Commands: []execs.Command{
-			{Name: `nft -f - <<EOF
+			{Line: `nft -f - <<EOF
 flush set inet oc-daemon-routing excludes4
 flush set inet oc-daemon-routing excludes6
 {{range {{.}}}}
 {{template "AddExclude"}}
 {{end}}
 EOF"`},
-			{Name: "nft -f -",
+			{Line: "nft -f -",
 				Stdin: `flush set inet oc-daemon-routing excludes4
 flush set inet oc-daemon-routing excludes6
 {{range {{.}}}}

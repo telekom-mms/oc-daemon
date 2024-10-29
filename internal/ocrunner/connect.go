@@ -184,7 +184,7 @@ func init() {
 	connect := execs.CommandList{
 		Name: "OpenConnectConnect",
 		Commands: []execs.Command{
-			{Name: `openconnect
+			{Line: `openconnect
 			--xmlconfig={{config.XMLProfie}}
 			--script={{config.VPNCScript}}
 			--cookie-on-stdin

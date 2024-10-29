@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"context"
 	"os/exec"
+	"strings"
+	"text/template"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -97,13 +99,58 @@ func SetExecutables(config *Config) {
 }
 
 type Command struct {
-	Name  string
-	Args  []string
+	Line  string
+	Args  []string // TODO: remove?
 	Stdin string
 
 	// error handling?
+	// TODO: remove?
 	LogError bool   // log everything on error? with name, args, stdin/out/err?
 	OnError  string // continue, stop? if list of commands
+}
+
+func (c *Command) execTemplate(tmpl string, data any) (string, error) {
+	t, err := template.New("CommandLineTemplate").Parse(tmpl)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	if err := t.Execute(buf, data); err != nil {
+		return "", err
+	}
+
+	line := buf.String()
+	return line, nil
+}
+
+func (c *Command) Run(ctx context.Context, data any) (stdout, stderr []byte, err error) {
+	// execute template for command line
+	line, err := c.execTemplate(c.Line, data)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// execute template for stdin
+	stdin, err := c.execTemplate(c.Stdin, data)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// extract command from command line
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return nil, nil, nil
+	}
+	cmd := fields[0]
+
+	// extract arguments from command line
+	args := []string{}
+	if len(fields) > 1 {
+		args = fields[1:]
+	}
+
+	// run command
+	return RunCmd(ctx, cmd, stdin, args...)
 }
 
 type CommandList struct {
@@ -111,16 +158,19 @@ type CommandList struct {
 	Commands []Command
 }
 
+func (cl *CommandList) Run(ctx context.Context) {
+}
+
 type CommandLists map[string]CommandList
 
 // Run runs command list identified by name
 func (c CommandLists) Run(ctx context.Context, name string) {
 	for _, cmd := range c[name].Commands {
-		stdout, stderr, err := RunCmd(ctx, cmd.Name, cmd.Stdin, cmd.Args...)
+		stdout, stderr, err := RunCmd(ctx, cmd.Line, cmd.Stdin, cmd.Args...)
 		if err != nil && cmd.LogError {
 			log.WithError(err).WithFields(log.Fields{
 				"list":    c[name].Name,
-				"command": cmd.Name,
+				"command": cmd.Line,
 				"args":    cmd.Args,
 				"stdin":   cmd.Stdin,
 				"stdout":  string(stdout),

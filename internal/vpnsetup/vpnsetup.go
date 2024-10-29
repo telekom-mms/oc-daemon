@@ -68,10 +68,10 @@ func initDeviceCommands() {
 	setupDevice := execs.CommandList{
 		Name: "SetupDevice",
 		Commands: []execs.Command{
-			{Name: "ip link set {{Device}} mtu {{MTU}}"},
-			{Name: "ip link set {{Device}} up"},
-			{Name: "{{if {{IPv4Address}}ip address add {{IPv4Address}} dev {{Device}}{{end}}"},
-			{Name: "{{if {{IPv6Address}}ip address add {{IPv6Address}} dev {{Device}}{{end}}"},
+			{Line: "ip link set {{Device}} mtu {{MTU}}"},
+			{Line: "ip link set {{Device}} up"},
+			{Line: "{{if {{IPv4Address}}ip address add {{IPv4Address}} dev {{Device}}{{end}}"},
+			{Line: "{{if {{IPv6Address}}ip address add {{IPv6Address}} dev {{Device}}{{end}}"},
 		},
 	}
 	log.Println(setupDevice)
@@ -79,7 +79,7 @@ func initDeviceCommands() {
 	teardownDevice := execs.CommandList{
 		Name: "TeardownDevice",
 		Commands: []execs.Command{
-			{Name: "ip link set {{Device}} down"},
+			{Line: "ip link set {{Device}} down"},
 		},
 	}
 	log.Println(teardownDevice)
@@ -181,7 +181,7 @@ func initDNSCommands() {
 	setupDNSServer := execs.CommandList{
 		Name: "SetupDNSServer",
 		Commands: []execs.Command{
-			{Name: "resolvectl dns {{Device}} {{DNSProxyAddress}}"},
+			{Line: "resolvectl dns {{Device}} {{DNSProxyAddress}}"},
 		},
 	}
 	log.Println(setupDNSServer)
@@ -189,7 +189,7 @@ func initDNSCommands() {
 	setupDNSDomains := execs.CommandList{
 		Name: "SetupDNSDomains",
 		Commands: []execs.Command{
-			{Name: "resolvectl domain {{Device}} {{DNSDefaultDomain}} ~."},
+			{Line: "resolvectl domain {{Device}} {{DNSDefaultDomain}} ~."},
 		},
 	}
 	log.Println(setupDNSDomains)
@@ -197,7 +197,7 @@ func initDNSCommands() {
 	setupDNSDefaultRoute := execs.CommandList{
 		Name: "SetupDNSDefaultRoute",
 		Commands: []execs.Command{
-			{Name: "resolvectl default-route {{Device}} yes"},
+			{Line: "resolvectl default-route {{Device}} yes"},
 		},
 	}
 	log.Println(setupDNSDefaultRoute)
@@ -205,11 +205,11 @@ func initDNSCommands() {
 	setupDNS := execs.CommandList{
 		Name: "SetupDNS",
 		Commands: []execs.Command{
-			{Name: "resolvectl dns {{Device}} {{DNSProxyAddress}}"},
-			{Name: "resolvectl domain {{Device}} {{DNSDefaultDomain}} ~."},
-			{Name: "resolvectl default-route {{Device}} yes"},
-			{Name: "resolvectl flush-caches"},
-			{Name: "resolvectl reset-server-features"},
+			{Line: "resolvectl dns {{Device}} {{DNSProxyAddress}}"},
+			{Line: "resolvectl domain {{Device}} {{DNSDefaultDomain}} ~."},
+			{Line: "resolvectl default-route {{Device}} yes"},
+			{Line: "resolvectl flush-caches"},
+			{Line: "resolvectl reset-server-features"},
 		},
 	}
 	log.Println(setupDNS)
@@ -217,9 +217,9 @@ func initDNSCommands() {
 	teardownDNS := execs.CommandList{
 		Name: "TeardownDNS",
 		Commands: []execs.Command{
-			{Name: "resolvectl revert {{Device}}"},
-			{Name: "resolvectl flush-caches"},
-			{Name: "resolvectl reset-server-features"},
+			{Line: "resolvectl revert {{Device}}"},
+			{Line: "resolvectl flush-caches"},
+			{Line: "resolvectl reset-server-features"},
 		},
 	}
 	log.Println(teardownDNS)
@@ -227,7 +227,7 @@ func initDNSCommands() {
 	ensureDNS := execs.CommandList{
 		Name: "EnsureDNS",
 		Commands: []execs.Command{
-			{Name: "resolvectl status {{Device}} --no-pager"},
+			{Line: "resolvectl status {{Device}} --no-pager"},
 		},
 	}
 	log.Println(ensureDNS)
@@ -695,8 +695,8 @@ func initCleanup() {
 	cleanup := execs.CommandList{
 		Name: "Cleanup",
 		Commands: []execs.Command{
-			{Name: "resolvectl revert {{Device}}"},
-			{Name: "ip link delete {{Device}}"},
+			{Line: "resolvectl revert {{Device}}"},
+			{Line: "ip link delete {{Device}}"},
 		},
 	}
 	log.Println(cleanup)
