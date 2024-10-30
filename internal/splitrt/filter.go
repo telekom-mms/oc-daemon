@@ -203,7 +203,7 @@ func init() {
 		Name: "StartRouting",
 		Commands: []execs.Command{
 			{Line: "nft -f -", Stdin: "{{RoutingRules}}"},
-			{Line: "nft", Args: []string{"-f", "-"}, Stdin: "{{RoutingRules}}"},
+			//{Line: "nft", Args: []string{"-f", "-"}, Stdin: "{{RoutingRules}}"},
 			{Line: "ip -4 route add 0.0.0.0/0 dev {{Device}} table {{RTTable}}"},
 			{Line: "ip -4 rule add iif {{Device}} table main pref {{RulePrio1}}"},
 			{Line: "ip -4 rule add not fwmark {{FWMark}} table {{RTTable}} pref {{RulePrio2}}"},

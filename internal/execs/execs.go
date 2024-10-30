@@ -7,8 +7,6 @@ import (
 	"os/exec"
 	"strings"
 	"text/template"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // executables.
@@ -98,19 +96,17 @@ func SetExecutables(config *Config) {
 	resolvectl = config.Resolvectl
 }
 
+// Command consists of a command line to be executed and an optional Stdin to
+// be passed to the command on execution.
 type Command struct {
 	Line  string
-	Args  []string // TODO: remove?
 	Stdin string
-
-	// error handling?
-	// TODO: remove?
-	LogError bool   // log everything on error? with name, args, stdin/out/err?
-	OnError  string // continue, stop? if list of commands
 }
 
-func (c *Command) execTemplate(tmpl string, data any) (string, error) {
-	t, err := template.New("CommandLineTemplate").Parse(tmpl)
+// executeTemplate executes the template on data and returns the resulting
+// output as string.
+func (c *Command) executeTemplate(tmpl string, data any) (string, error) {
+	t, err := template.New("CommandTemplate").Parse(tmpl)
 	if err != nil {
 		return "", err
 	}
@@ -123,15 +119,16 @@ func (c *Command) execTemplate(tmpl string, data any) (string, error) {
 	return line, nil
 }
 
+// Run runs the command and returns its output.
 func (c *Command) Run(ctx context.Context, data any) (stdout, stderr []byte, err error) {
 	// execute template for command line
-	line, err := c.execTemplate(c.Line, data)
+	line, err := c.executeTemplate(c.Line, data)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// execute template for stdin
-	stdin, err := c.execTemplate(c.Stdin, data)
+	stdin, err := c.executeTemplate(c.Stdin, data)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -163,22 +160,22 @@ func (cl *CommandList) Run(ctx context.Context) {
 
 type CommandLists map[string]CommandList
 
-// Run runs command list identified by name
-func (c CommandLists) Run(ctx context.Context, name string) {
-	for _, cmd := range c[name].Commands {
-		stdout, stderr, err := RunCmd(ctx, cmd.Line, cmd.Stdin, cmd.Args...)
-		if err != nil && cmd.LogError {
-			log.WithError(err).WithFields(log.Fields{
-				"list":    c[name].Name,
-				"command": cmd.Line,
-				"args":    cmd.Args,
-				"stdin":   cmd.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-			}).Error("Error executing command in command list")
-		}
-		if err != nil && cmd.OnError == "stop" {
-			return
-		}
-	}
-}
+//// Run runs command list identified by name
+//func (c CommandLists) Run(ctx context.Context, name string) {
+//	for _, cmd := range c[name].Commands {
+//		stdout, stderr, err := RunCmd(ctx, cmd.Line, cmd.Stdin, cmd.Args...)
+//		if err != nil && cmd.LogError {
+//			log.WithError(err).WithFields(log.Fields{
+//				"list":    c[name].Name,
+//				"command": cmd.Line,
+//				"args":    cmd.Args,
+//				"stdin":   cmd.Stdin,
+//				"stdout":  string(stdout),
+//				"stderr":  string(stderr),
+//			}).Error("Error executing command in command list")
+//		}
+//		if err != nil && cmd.OnError == "stop" {
+//			return
+//		}
+//	}
+//}

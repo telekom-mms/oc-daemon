@@ -9,6 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
@@ -64,6 +65,38 @@ type SplitRouting struct {
 
 // setupRouting sets up routing using config.
 func (s *SplitRouting) setupRouting(ctx context.Context) {
+
+	// TODO: set and load default template in constructor?
+	// TODO: rename to NewRunner?
+	// TODO: can we use one for the whole splitrouting instance?
+	ct := cmdtmpl.NewCommandTemplates()
+	// TODO: get commands from config?
+	commands := []*cmdtmpl.Command{
+		{Line: "nft -f -", Stdin: `{{template "RoutingRules"}}`},
+		{Line: "ip -4 route add 0.0.0.0/0 dev {{.VPNConfig.Device.Name}} table {{.Config.RTTable}}"},
+		{Line: "ip -4 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.Config.RulePrio1}}"},
+		{Line: "ip -4 rule add not fwmark {{.Config.FWMark}} table {{.Config.RTTable}} pref {{.Config.RulePrio2}}"},
+		{Line: "sysctl -q net.ipv4.conf.all.src_valid_mark=1"},
+		{Line: "ip -6 route add ::/0 dev {{.VPNConfig.Device.Name}} table {{.Config.RTTable}}"},
+		{Line: "ip -6 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.Config.RulePrio1}}"},
+		{Line: "ip -6 rule add not fwmark {{.Config.FWMark}} table {{.Config.RTTable}} pref {{.Config.RulePrio2}}"},
+	}
+	for _, c := range commands {
+		// TODO: add function that returns relevant entries in Config and VPNConfig as map[string]string and use it as data
+		stdout, stderr, err := ct.RunCommand(ctx, c, struct {
+			Config    *Config
+			VPNConfig *vpnconfig.Config
+		}{s.config, s.vpnconfig})
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"command": c.Line,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error executing command")
+		}
+	}
+
 	// prepare netfilter and excludes
 	setRoutingRules(ctx, s.config.FirewallMark)
 
