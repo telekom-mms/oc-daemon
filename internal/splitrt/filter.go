@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
@@ -466,20 +467,32 @@ func rejectIPv4(ctx context.Context, device string) {
 func addExclude(ctx context.Context, address netip.Prefix) {
 	log.WithField("address", address).Debug("SplitRouting adding exclude to netfilter")
 
-	set := "excludes4"
-	if address.Addr().Is6() {
-		set = "excludes6"
+	ct := cmdtmpl.NewCommandTemplates(DefaultTemplates)
+	data := address
+	commands := []*cmdtmpl.Command{
+		//{Line: "{{if {{.Is6}}}}nft -f - add element inet oc-daemon-routing excludes6 { {{.}} }{{else}}nft -f - add element inet oc-daemon-routing excludes4 { {{.}} }{{end}}"},
+		{Line: "nft -f -",
+			Stdin: `
+				{{- if .Addr.Is6 -}}
+				add element inet oc-daemon-routing excludes6 { {{.}} }
+				{{- else -}}
+				add element inet oc-daemon-routing excludes4 { {{.}} }
+				{{- end}}`},
+	}
+	for _, c := range commands {
+		// TODO: get final command and stdin
+		stdout, stderr, err := ct.RunCommand(ctx, c, data)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"address": address,
+				"command": c.Line,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error adding exclude")
+		}
 	}
 
-	nftconf := fmt.Sprintf("add element inet oc-daemon-routing %s { %s }",
-		set, address)
-	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"address": address,
-			"stdout":  string(stdout),
-			"stderr":  string(stderr),
-		}).Error("SplitRouting error adding exclude")
-	}
 }
 
 // setExcludes resets the excludes to addresses in netfilter.
