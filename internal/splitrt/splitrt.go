@@ -83,11 +83,11 @@ table inet oc-daemon-routing {
 
 		# add drop rules for non-local traffic from other devices to
 		# tunnel network addresses here
-		{{with .IPv4Address}}
-		iifname != {{.Device}} ip daddr {{.}} fib saddr type != local counter drop
+		{{if .IPv4Address}}
+		iifname != {{.Device}} ip daddr {{.IPv4Address}} fib saddr type != local counter drop
 		{{end}}
-		{{with .IPv6Address}}
-		iifname != {{.Device}} ip6 daddr {{.}} fib saddr type != local counter drop
+		{{if .IPv6Address}}
+		iifname != {{.Device}} ip6 daddr {{.IPv6Address}} fib saddr type != local counter drop
 		{{end}}
 	}
 
@@ -204,7 +204,7 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 	// TODO: get commands from config?
 	data := s.getTemplateData()
 	commands := []*cmdtmpl.Command{
-		{Line: "nft -f -", Stdin: `{{template "RoutingRules"}}`},
+		{Line: "nft -f -", Stdin: `{{template "RoutingRules" .}}`},
 		{Line: "ip -4 route add 0.0.0.0/0 dev {{.Device}} table {{.RTTable}}"},
 		{Line: "ip -4 rule add iif {{.Device}} table main pref {{.RulePrio1}}"},
 		{Line: "ip -4 rule add not fwmark {{.FWMark}} table {{.RTTable}} pref {{.RulePrio2}}"},
