@@ -258,9 +258,27 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 
 // teardownRouting tears down the routing configuration.
 func (s *SplitRouting) teardownRouting(ctx context.Context) {
-	deleteDefaultRouteIPv4(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable)
-	deleteDefaultRouteIPv6(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable)
-	unsetRoutingRules(ctx)
+
+	ct := cmdtmpl.NewCommandTemplates(DefaultTemplates)
+	data := s.getTemplateData()
+	commands := []*cmdtmpl.Command{
+		{Line: "ip -4 rule delete table {{.RTTable}}"},
+		{Line: "ip -4 rule delete iif {{.Device}} table main"},
+		{Line: "ip -6 rule delete table {{.RTTable}}"},
+		{Line: "ip -6 rule delete iif {{.Device}} table main"},
+		{Line: "nft -f - delete table inet oc-daemon-routing"},
+	}
+	for _, c := range commands {
+		stdout, stderr, err := ct.RunCommand(ctx, c, data)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"command": c.Line,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error executing command")
+		}
+	}
 
 	// remove excludes
 	s.excludes.Stop()
@@ -468,7 +486,34 @@ func NewSplitRouting(config *Config, vpnconfig *vpnconfig.Config) *SplitRouting 
 
 // Cleanup cleans up old configuration after a failed shutdown.
 func Cleanup(ctx context.Context, config *Config) {
-	cleanupRouting(ctx, config.RoutingTable, config.RulePriority1,
-		config.RulePriority2)
-	cleanupRoutingRules(ctx)
+
+	ct := cmdtmpl.NewCommandTemplates(DefaultTemplates)
+	data := map[string]string{
+		"RTTable":   config.RoutingTable,
+		"RulePrio1": config.RulePriority1,
+		"RulePrio2": config.RulePriority2,
+	}
+	commands := []*cmdtmpl.Command{
+		{Line: "ip -4 rule delete pref {{.RulePrio1}}"},
+		{Line: "ip -4 rule delete pref {{.RulePrio2}}"},
+		{Line: "ip -6 rule delete pref {{.RulePrio1}}"},
+		{Line: "ip -6 rule delete pref {{.RulePrio2}}"},
+		{Line: "ip -4 route flush table {{.RTTable}}"},
+		{Line: "ip -6 route flush table {{.RTTable}}"},
+		{Line: "nft -f - delete table inet oc-daemon-routing"},
+	}
+	for _, c := range commands {
+		// TODO: separate template errors from execution errors? here
+		// we want execution to fail but template execution should be
+		// not fail
+		stdout, stderr, err := ct.RunCommand(ctx, c, data)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"command": c.Line,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error executing command")
+		}
+	}
 }
