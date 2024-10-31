@@ -64,7 +64,7 @@ type SplitRouting struct {
 }
 
 const DefaultTemplates = `
-{{define "RoutingRules"}}
+{{- define "RoutingRules"}}
 table inet oc-daemon-routing {
 	# set for ipv4 excludes
 	set excludes4 {
@@ -170,7 +170,7 @@ table inet oc-daemon-routing {
 		{{end}}
 	}
 }
-{{end}}
+{{end -}}
 `
 
 func (s *SplitRouting) getTemplateData() map[string]string {
