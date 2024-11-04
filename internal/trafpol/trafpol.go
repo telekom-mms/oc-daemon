@@ -247,7 +247,7 @@ func (t *TrafPol) Start() error {
 	ctx := context.Background()
 
 	// set firewall config
-	setFilterRules(ctx, t.config.FirewallMark)
+	setFilterRules(ctx, t.config)
 
 	// set filter rules
 	setAllowedIPs(ctx, t.getAllowedHostsIPs())
