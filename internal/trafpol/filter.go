@@ -3,14 +3,12 @@ package trafpol
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/netip"
 	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
 const DefaultTemplates = `
@@ -147,96 +145,13 @@ table inet oc-daemon-filter {
                 ct state established,related counter accept
 
                 # accept split exclude traffic
-                iifname @allowdevs ct mark {{.FWMark}} counter accept
+                iifname @allowdevs ct mark {{.FirewallMark}} counter accept
 
                 # accept traffic on allowed devices
                 iifname @allowdevs oifname @allowdevs counter accept
         }
 }
 {{end}}`
-
-const otherRules = `
-{{define "SetFilterRules"}}
-
-nft -f - <<EOF
-{{FilterRules}}
-EOF
-
-{{end}}
-
-{{define "UnsetFilterRules"}}
-
-nft -f - delete table inet oc-daemon-filter
-
-{{end}}
-
-{{define "AddAllowedDevice"}}
-
-nft -f - add element inet oc-daemon-filter allowdevs { {{.}} }
-
-{{end}}
-
-{{define "RemoveAllowedDevice"}}
-
-nft -f - delete element inet oc-daemon-filter allowdevs { {{.}} }
-
-{{end}}
-
-{{define "SetAllowedIPs"}}
-
-nft -f - flush set inet oc-daemon-filter allowhosts4
-nft -f - flush set inet oc-daemon-filter allowhosts6
-{{range {{.}}}}
-
-{{if {{.Is4}}}}
-{{/* TODO: does this work with ip addresses or do we need .String here? */}}
-nft -f - add element inet oc-daemon-filter allowhosts4 { {{.}} }
-{{else}}
-nft -f - add element inet oc-daemon-filter allowhosts6 { {{.}} }
-{{end}}
-
-{{end}}
-
-{{define "AddPortalPorts"}}
-
-nft -f - add element inet oc-daemon-filter allowports { {{.}} }
-
-{{end}}
-
-{{define "RemovePortalPorts"}}
-
-nft -f - delete element inet oc-daemon-filter allowports { {{.}} }
-
-{{end}}
-
-{{define "Cleanup"}}
-
-{{template "UnsetFilterRules"}}
-
-{{end}}
-
-{{end}}
-`
-
-// TODO: do not use an init func?
-func init() {
-	removePortalPorts := execs.CommandList{
-		Name: "RemovePortalPorts",
-		Commands: []execs.Command{
-			{Line: "nft -f - delete element inet oc-daemon-filter allowports { {{.}} }"},
-		},
-	}
-	log.Println(removePortalPorts)
-
-	// TODO: change name, does not work?
-	cleanup := execs.CommandList{
-		Name: "Cleanup",
-		Commands: []execs.Command{
-			{Line: `{{template "UnsetFilterRules"}}`},
-		},
-	}
-	log.Println(cleanup)
-}
 
 // setFilterRules sets the filter rules.
 func setFilterRules(ctx context.Context, config *Config) {
@@ -368,7 +283,7 @@ func setAllowedIPs(ctx context.Context, ips []netip.Prefix) {
 		commands := []*cmdtmpl.Command{
 			{Line: "nft -f -",
 				Stdin: `
-				{{if {{.Is4}}}}
+				{{if .Addr.Is4}}
 				add element inet oc-daemon-filter allowhosts4 { {{.}} }
 				{{else}}
 				add element inet oc-daemon-filter allowhosts6 { {{.}} }
@@ -427,21 +342,53 @@ func addPortalPorts(ctx context.Context, ports []uint16) {
 
 // removePortalPorts removes ports for a captive portal from the allowed ports.
 func removePortalPorts(ctx context.Context, ports []uint16) {
-	p := portsToString(ports)
-	nftconf := fmt.Sprintf("delete element inet oc-daemon-filter allowports { %s }", p)
-	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil &&
-		!errors.Is(err, context.Canceled) {
 
-		log.WithError(err).WithFields(log.Fields{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		}).Error("TrafPol error removing portal ports")
+	ct := cmdtmpl.NewCommandTemplates(DefaultTemplates)
+	data := portsToString(ports) // TODO: change?
+	commands := []*cmdtmpl.Command{
+		{Line: "nft -f - delete element inet oc-daemon-filter allowports { {{.}} }"},
 	}
+
+	for _, c := range commands {
+		// TODO: get final command and stdin
+		// TODO: add LogError() helper?
+		stdout, stderr, err := ct.RunCommand(ctx, c, data)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.WithError(err).WithFields(log.Fields{
+				"command": c.Line,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error executing command")
+		}
+	}
+
 }
 
 // cleanupFilterRules cleans up the filter rules after a failed shutdown.
 func cleanupFilterRules(ctx context.Context) {
-	if _, _, err := execs.RunNft(ctx, "delete table inet oc-daemon-filter"); err == nil {
-		log.Debug("TrafPol cleaned up nft")
+
+	ct := cmdtmpl.NewCommandTemplates(DefaultTemplates)
+	data := "" // TODO: change?
+	commands := []*cmdtmpl.Command{
+		{Line: "nft -f - delete table inet oc-daemon-filter"},
+	}
+
+	for _, c := range commands {
+		// TODO: get final command and stdin
+		// TODO: add LogError() helper?
+		// TODO: check template vs execution error
+		// stdout, stderr, err := ct.RunCommand(ctx, c, data)
+		// if err != nil && !errors.Is(err, context.Canceled) {
+		//	log.WithError(err).WithFields(log.Fields{
+		//		"command": c.Line,
+		//		"stdin":   c.Stdin,
+		//		"stdout":  string(stdout),
+		//		"stderr":  string(stderr),
+		//	}).Error("Error executing command")
+		// }
+		if _, _, err := ct.RunCommand(ctx, c, data); err == nil {
+			log.Debug("TrafPol cleaned up nft")
+		}
 	}
 }

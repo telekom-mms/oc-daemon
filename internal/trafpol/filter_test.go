@@ -20,7 +20,9 @@ func TestFilterFunctionsErrors(_ *testing.T) {
 	ctx := context.Background()
 
 	// filter rules
-	setFilterRules(ctx, "123")
+	conf := NewConfig()
+	conf.FirewallMark = "123"
+	setFilterRules(ctx, conf)
 	unsetFilterRules(ctx)
 
 	// allowed devices

@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/execs"
@@ -16,15 +17,15 @@ func TestAllowDevsAdd(t *testing.T) {
 
 	got := []string{}
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
+	execs.RunCmd = func(_ context.Context, cmd string, _ string, args ...string) ([]byte, []byte, error) {
+		got = append(got, cmd+" "+strings.Join(args, " "))
 		return nil, nil, nil
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test adding
 	want := []string{
-		"add element inet oc-daemon-filter allowdevs { eth3 }",
+		"nft -f - add element inet oc-daemon-filter allowdevs { eth3 }",
 	}
 	a.Add(ctx, "eth3")
 	if !reflect.DeepEqual(got, want) {
@@ -46,8 +47,8 @@ func TestAllowDevsRemove(t *testing.T) {
 
 	got := []string{}
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
+	execs.RunCmd = func(_ context.Context, cmd string, _ string, args ...string) ([]byte, []byte, error) {
+		got = append(got, cmd+" "+strings.Join(args, " "))
 		return nil, nil, nil
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
@@ -55,7 +56,7 @@ func TestAllowDevsRemove(t *testing.T) {
 	// test removing device
 	a.Add(ctx, "eth3")
 	want := []string{
-		"delete element inet oc-daemon-filter allowdevs { eth3 }",
+		"nft -f - delete element inet oc-daemon-filter allowdevs { eth3 }",
 	}
 	got = []string{}
 	a.Remove(ctx, "eth3")
