@@ -3,12 +3,13 @@ package vpnsetup
 
 import (
 	"context"
+	"errors"
 	"net/netip"
-	"strconv"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
@@ -53,108 +54,101 @@ type VPNSetup struct {
 	closed chan struct{}
 }
 
-const setupDeviceCommands = `
-ip link set {{Device}} mtu {{MTU}}
-ip link set {{Device}} up
-{{if {{IPv4Address}}
-ip address add {{IPv4Address}} dev {{Device}}
-{{end}}
-{{if {{IPv6Address}}
-ip address add {{IPv6Address}} dev {{Device}}
-{{end}}
-`
+// config is an internal version of the vpnconfig.Config with netip.
+type config struct {
+	Gateway netip.Addr
+	PID     int
+	Timeout int
+	Device  vpnconfig.Device
+	IPv4    netip.Prefix
+	IPv6    netip.Prefix
+	DNS     vpnconfig.DNS
+	Split   vpnconfig.Split
+	Flags   vpnconfig.Flags
+}
 
-func initDeviceCommands() {
-	setupDevice := execs.CommandList{
-		Name: "SetupDevice",
-		Commands: []execs.Command{
-			{Line: "ip link set {{Device}} mtu {{MTU}}"},
-			{Line: "ip link set {{Device}} up"},
-			{Line: "{{if {{IPv4Address}}ip address add {{IPv4Address}} dev {{Device}}{{end}}"},
-			{Line: "{{if {{IPv6Address}}ip address add {{IPv6Address}} dev {{Device}}{{end}}"},
-		},
+// getTemplateData returns vpnconfig.Config as template data.
+func getTemplateData(c *vpnconfig.Config) *config {
+	gw := netip.Addr{}
+	if g, ok := netip.AddrFromSlice(c.Gateway); ok {
+		gw = g
 	}
-	log.Println(setupDevice)
+	pre4 := netip.Prefix{}
+	if ipv4, ok := netip.AddrFromSlice(c.IPv4.Address.To4()); ok {
+		one4, _ := c.IPv4.Netmask.Size()
+		pre4 = netip.PrefixFrom(ipv4, one4)
+	}
+	pre6 := netip.Prefix{}
+	if ipv6, ok := netip.AddrFromSlice(c.IPv6.Address); ok {
+		one6, _ := c.IPv6.Netmask.Size()
+		pre6 = netip.PrefixFrom(ipv6, one6)
+	}
 
-	teardownDevice := execs.CommandList{
-		Name: "TeardownDevice",
-		Commands: []execs.Command{
-			{Line: "ip link set {{Device}} down"},
-		},
+	return &config{
+		Gateway: gw,
+		PID:     c.PID,
+		Timeout: c.Timeout,
+		Device:  c.Device,
+		IPv4:    pre4,
+		IPv6:    pre6,
+		DNS:     c.DNS,   // TODO: convert DNS to netip
+		Split:   c.Split, // TODO: convert Split to netip
+		Flags:   c.Flags,
 	}
-	log.Println(teardownDevice)
 }
 
 // setupVPNDevice sets up the vpn device with config.
 func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
-	// set mtu on device
-	mtu := strconv.Itoa(c.Device.MTU)
-	if stdout, stderr, err := execs.RunIPLink(ctx, "set", c.Device.Name, "mtu", mtu); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"device": c.Device.Name,
-			"mtu":    mtu,
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		}).Error("Daemon could not set mtu on device")
-		return
-	}
 
-	// set device up
-	if stdout, stderr, err := execs.RunIPLink(ctx, "set", c.Device.Name, "up"); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"device": c.Device.Name,
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		}).Error("Daemon could not set device up")
-		return
+	ct := cmdtmpl.NewCommandTemplates("") // TODO: change?
+	data := getTemplateData(c)            // TODO: change?
+	commands := []*cmdtmpl.Command{
+		// set mtu on device
+		{Line: "ip link set {{.Device.Name}} mtu {{.Device.MTU}}"},
+		// set device up
+		{Line: "ip link set {{.Device.Name}} up"},
+		// set ipv4 and ipv6 addresses on device
+		{Line: "{{if .IPv4.IsValid}}ip address add {{.IPv4}} dev {{.Device.Name}}{{end}}"},
+		{Line: "{{if .IPv6.IsValid}}ip address add {{.IPv6}} dev {{.Device.Name}}{{end}}"},
 	}
-
-	// set ipv4 and ipv6 addresses on device
-	setupIP := func(a netip.Prefix) {
-		dev := c.Device.Name
-		addr := a.String()
-		if stdout, stderr, err := execs.RunIPAddress(ctx, "add", addr, "dev", dev); err != nil {
+	for _, c := range commands {
+		// TODO: get final command and stdin
+		// TODO: add LogError() helper?
+		stdout, stderr, err := ct.RunCommand(ctx, c, data)
+		if err != nil && !errors.Is(err, context.Canceled) {
 			log.WithError(err).WithFields(log.Fields{
-				"device": dev,
-				"ip":     addr,
-				"stdout": string(stdout),
-				"stderr": string(stderr),
-			}).Error("Daemon could not set ip on device")
-			return
+				"command": c.Line,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error executing command")
+			// TODO: return?
 		}
-
-	}
-
-	if ipv4, ok := netip.AddrFromSlice(c.IPv4.Address.To4()); ok {
-		one4, _ := c.IPv4.Netmask.Size()
-		pre4 := netip.PrefixFrom(ipv4, one4)
-
-		setupIP(pre4)
-	}
-	if ipv6, ok := netip.AddrFromSlice(c.IPv6.Address); ok {
-		one6, _ := c.IPv6.Netmask.Size()
-		pre6 := netip.PrefixFrom(ipv6, one6)
-
-		setupIP(pre6)
 	}
 }
 
-const teardownDeviceCommands = `
-ip link set {{Device}} down
-`
-
 // teardownVPNDevice tears down the configured vpn device.
 func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config) {
-	// set device down
-	if stdout, stderr, err := execs.RunIPLink(ctx, "set", c.Device.Name, "down"); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"device": c.Device.Name,
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		}).Error("Daemon could not set device down")
-		return
-	}
 
+	ct := cmdtmpl.NewCommandTemplates("") // TODO: change?
+	data := getTemplateData(c)            // TODO: change?
+	commands := []*cmdtmpl.Command{
+		{Line: "ip link set {{.Device.Name}} down"},
+	}
+	for _, c := range commands {
+		// TODO: get final command and stdin
+		// TODO: add LogError() helper?
+		stdout, stderr, err := ct.RunCommand(ctx, c, data)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.WithError(err).WithFields(log.Fields{
+				"command": c.Line,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error executing command")
+			// TODO: return?
+		}
+	}
 }
 
 // setupRouting sets up routing using config.
