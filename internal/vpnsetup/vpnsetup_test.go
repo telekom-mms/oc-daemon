@@ -47,7 +47,7 @@ func TestSetupVPNDevice(t *testing.T) {
 	}
 
 	// test
-	setupVPNDevice(context.Background(), c)
+	setupVPNDevice(context.Background(), c, "127.0.0.1:4253")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -73,7 +73,7 @@ func TestSetupVPNDevice(t *testing.T) {
 		numRuns = 0
 		failAt = f
 
-		setupVPNDevice(context.Background(), c)
+		setupVPNDevice(context.Background(), c, "127.0.0.1:4253")
 		if !reflect.DeepEqual(got, want[:f]) {
 			t.Errorf("got %v, want %v", got, want)
 		}
@@ -100,7 +100,7 @@ func TestTeardownVPNDevice(t *testing.T) {
 	}
 
 	// test
-	teardownVPNDevice(context.Background(), c)
+	teardownVPNDevice(context.Background(), c, "127.0.0.1:4253")
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -109,7 +109,7 @@ func TestTeardownVPNDevice(t *testing.T) {
 	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("test error")
 	}
-	teardownVPNDevice(context.Background(), c)
+	teardownVPNDevice(context.Background(), c, "127.0.0.1:4253")
 }
 
 // TestVPNSetupSetupDNS tests setupDNS of VPNSetup.

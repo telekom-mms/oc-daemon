@@ -54,6 +54,13 @@ type VPNSetup struct {
 	closed chan struct{}
 }
 
+type dns struct {
+	ProxyAddress  string
+	DefaultDomain string
+	ServersIPv4   []netip.Addr
+	ServersIPv6   []netip.Addr
+}
+
 // config is an internal version of the vpnconfig.Config with netip.
 type config struct {
 	Gateway netip.Addr
@@ -62,13 +69,13 @@ type config struct {
 	Device  vpnconfig.Device
 	IPv4    netip.Prefix
 	IPv6    netip.Prefix
-	DNS     vpnconfig.DNS
+	DNS     dns
 	Split   vpnconfig.Split
 	Flags   vpnconfig.Flags
 }
 
 // getTemplateData returns vpnconfig.Config as template data.
-func getTemplateData(c *vpnconfig.Config) *config {
+func getTemplateData(c *vpnconfig.Config, dnsProxyAddress string) *config {
 	gw := netip.Addr{}
 	if g, ok := netip.AddrFromSlice(c.Gateway); ok {
 		gw = g
@@ -83,6 +90,18 @@ func getTemplateData(c *vpnconfig.Config) *config {
 		one6, _ := c.IPv6.Netmask.Size()
 		pre6 = netip.PrefixFrom(ipv6, one6)
 	}
+	var dnsSrv4 []netip.Addr
+	for _, s := range c.DNS.ServersIPv4 {
+		if ipv4, ok := netip.AddrFromSlice(s.To4()); ok {
+			dnsSrv4 = append(dnsSrv4, ipv4)
+		}
+	}
+	var dnsSrv6 []netip.Addr
+	for _, s := range c.DNS.ServersIPv6 {
+		if ipv6, ok := netip.AddrFromSlice(s); ok {
+			dnsSrv6 = append(dnsSrv6, ipv6)
+		}
+	}
 
 	return &config{
 		Gateway: gw,
@@ -91,17 +110,22 @@ func getTemplateData(c *vpnconfig.Config) *config {
 		Device:  c.Device,
 		IPv4:    pre4,
 		IPv6:    pre6,
-		DNS:     c.DNS,   // TODO: convert DNS to netip
-		Split:   c.Split, // TODO: convert Split to netip
-		Flags:   c.Flags,
+		DNS: dns{
+			ProxyAddress:  dnsProxyAddress,
+			DefaultDomain: c.DNS.DefaultDomain,
+			ServersIPv4:   dnsSrv4,
+			ServersIPv6:   dnsSrv6,
+		}, // TODO: convert DNS to netip
+		Split: c.Split, // TODO: convert Split to netip
+		Flags: c.Flags,
 	}
 }
 
 // setupVPNDevice sets up the vpn device with config.
-func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
+func setupVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress string) {
 
-	ct := cmdtmpl.NewCommandTemplates("") // TODO: change?
-	data := getTemplateData(c)            // TODO: change?
+	ct := cmdtmpl.NewCommandTemplates("")       // TODO: change?
+	data := getTemplateData(c, dnsProxyAddress) // TODO: change?
 	commands := []*cmdtmpl.Command{
 		// set mtu on device
 		{Line: "ip link set {{.Device.Name}} mtu {{.Device.MTU}}"},
@@ -128,10 +152,10 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config) {
 }
 
 // teardownVPNDevice tears down the configured vpn device.
-func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config) {
+func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress string) {
 
-	ct := cmdtmpl.NewCommandTemplates("") // TODO: change?
-	data := getTemplateData(c)            // TODO: change?
+	ct := cmdtmpl.NewCommandTemplates("")       // TODO: change?
+	data := getTemplateData(c, dnsProxyAddress) // TODO: change?
 	commands := []*cmdtmpl.Command{
 		{Line: "ip link set {{.Device.Name}} down"},
 	}
@@ -196,28 +220,6 @@ func initDNSCommands() {
 	}
 	log.Println(setupDNSDefaultRoute)
 
-	setupDNS := execs.CommandList{
-		Name: "SetupDNS",
-		Commands: []execs.Command{
-			{Line: "resolvectl dns {{Device}} {{DNSProxyAddress}}"},
-			{Line: "resolvectl domain {{Device}} {{DNSDefaultDomain}} ~."},
-			{Line: "resolvectl default-route {{Device}} yes"},
-			{Line: "resolvectl flush-caches"},
-			{Line: "resolvectl reset-server-features"},
-		},
-	}
-	log.Println(setupDNS)
-
-	teardownDNS := execs.CommandList{
-		Name: "TeardownDNS",
-		Commands: []execs.Command{
-			{Line: "resolvectl revert {{Device}}"},
-			{Line: "resolvectl flush-caches"},
-			{Line: "resolvectl reset-server-features"},
-		},
-	}
-	log.Println(teardownDNS)
-
 	ensureDNS := execs.CommandList{
 		Name: "EnsureDNS",
 		Commands: []execs.Command{
@@ -277,14 +279,6 @@ func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.C
 	}
 }
 
-const setupDNSCommands = `
-resolvectl dns {{Device}} {{DNSProxyAddress}}
-resolvectl domain {{Device}} {{DNSDefaultDomain}} ~.
-resolvectl default-route {{Device}} yes
-resolvectl flush-caches
-resolvectl reset-server-features
-`
-
 // setupDNS sets up DNS using config.
 func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 	// configure dns proxy
@@ -300,30 +294,27 @@ func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 
 	// update dns configuration of host
 
-	// set dns server for device
-	v.setupDNSServer(ctx, config)
-
-	// set domains for device
-	// this includes "~." to use this device for all domains
-	v.setupDNSDomains(ctx, config)
-
-	// set default route for device
-	v.setupDNSDefaultRoute(ctx, config)
-
-	// flush dns caches
-	if stdout, stderr, err := execs.RunResolvectl(ctx, "flush-caches"); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		}).Error("VPNSetup error flushing dns caches during setup")
+	ct := cmdtmpl.NewCommandTemplates("")                   // TODO: change?
+	data := getTemplateData(config, v.dnsProxyConf.Address) // TODO: change?
+	commands := []*cmdtmpl.Command{
+		{Line: "resolvectl dns {{.Device.Name}} {{.DNS.ProxyAddress}}"},
+		{Line: "resolvectl domain {{.Device.Name}} {{.DNS.DefaultDomain}} ~."},
+		{Line: "resolvectl default-route {{.Device.Name}} yes"},
+		{Line: "resolvectl flush-caches"},
+		{Line: "resolvectl reset-server-features"},
 	}
-
-	// reset learnt server features
-	if stdout, stderr, err := execs.RunResolvectl(ctx, "reset-server-features"); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		}).Error("VPNSetup error resetting server features during setup")
+	for _, c := range commands {
+		// TODO: get final command and stdin
+		// TODO: add LogError() helper?
+		stdout, stderr, err := ct.RunCommand(ctx, c, data)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.WithError(err).WithFields(log.Fields{
+				"command": c.Line,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error executing command")
+		}
 	}
 }
 
@@ -346,29 +337,25 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 
 	// update dns configuration of host
 
-	// undo device dns configuration
-	if stdout, stderr, err := execs.RunResolvectl(ctx, "revert", vpnconf.Device.Name); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"device": vpnconf.Device.Name,
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		}).Error("VPNSetup error reverting dns configuration")
+	ct := cmdtmpl.NewCommandTemplates("")                    // TODO: change?
+	data := getTemplateData(vpnconf, v.dnsProxyConf.Address) // TODO: change?
+	commands := []*cmdtmpl.Command{
+		{Line: "resolvectl revert {{.Device.Name}}"},
+		{Line: "resolvectl flush-caches"},
+		{Line: "resolvectl reset-server-features"},
 	}
-
-	// flush dns caches
-	if stdout, stderr, err := execs.RunResolvectl(ctx, "flush-caches"); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		}).Error("VPNSetup error flushing dns caches during teardown")
-	}
-
-	// reset learnt server features
-	if stdout, stderr, err := execs.RunResolvectl(ctx, "reset-server-features"); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"stdout": string(stdout),
-			"stderr": string(stderr),
-		}).Error("VPNSetup error resetting server features during teardown")
+	for _, c := range commands {
+		// TODO: get final command and stdin
+		// TODO: add LogError() helper?
+		stdout, stderr, err := ct.RunCommand(ctx, c, data)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.WithError(err).WithFields(log.Fields{
+				"command": c.Line,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+			}).Error("Error executing command")
+		}
 	}
 }
 
@@ -540,7 +527,7 @@ func (v *VPNSetup) stopEnsure() {
 // setup sets up the vpn configuration.
 func (v *VPNSetup) setup(ctx context.Context, vpnconf *vpnconfig.Config) {
 	// setup device, routing, dns
-	setupVPNDevice(ctx, vpnconf)
+	setupVPNDevice(ctx, vpnconf, v.dnsProxyConf.Address)
 	v.setupRouting(vpnconf)
 	v.setupDNS(ctx, vpnconf)
 
@@ -554,7 +541,7 @@ func (v *VPNSetup) teardown(ctx context.Context, vpnconf *vpnconfig.Config) {
 	v.stopEnsure()
 
 	// tear down device, routing, dns
-	teardownVPNDevice(ctx, vpnconf)
+	teardownVPNDevice(ctx, vpnconf, v.dnsProxyConf.Address)
 	v.teardownRouting()
 	v.teardownDNS(ctx, vpnconf)
 }
