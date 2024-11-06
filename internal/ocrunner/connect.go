@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
 )
 
@@ -181,10 +181,8 @@ openconnect
 
 // TODO: do not use init func?
 func init() {
-	connect := execs.CommandList{
-		Name: "OpenConnectConnect",
-		Commands: []execs.Command{
-			{Line: `openconnect
+	connect := []*cmdtmpl.Command{
+		{Line: `openconnect
 			--xmlconfig={{config.XMLProfie}}
 			--script={{config.VPNCScript}}
 			--cookie-on-stdin
@@ -202,7 +200,6 @@ func init() {
 			{{range config.ExtraArgs}}
 			{{.}}
 			{{end}}`},
-		},
 	}
 	log.Println(connect)
 }
