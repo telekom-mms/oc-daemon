@@ -63,116 +63,7 @@ type SplitRouting struct {
 	closed    chan struct{}
 }
 
-const DefaultTemplates = `
-{{- define "RoutingRules"}}
-table inet oc-daemon-routing {
-	# set for ipv4 excludes
-	set excludes4 {
-		type ipv4_addr
-		flags interval
-	}
-
-	# set for ipv6 excludes
-	set excludes6 {
-		type ipv6_addr
-		flags interval
-	}
-
-	chain preraw {
-		type filter hook prerouting priority raw; policy accept;
-
-		# add drop rules for non-local traffic from other devices to
-		# tunnel network addresses here
-		{{if .IPv4Address}}
-		iifname != {{.Device}} ip daddr {{.IPv4Address}} fib saddr type != local counter drop
-		{{end}}
-		{{if .IPv6Address}}
-		iifname != {{.Device}} ip6 daddr {{.IPv6Address}} fib saddr type != local counter drop
-		{{end}}
-	}
-
-	chain splitrouting {
-		# restore mark from conntracking
-		ct mark != 0 meta mark set ct mark counter
-		meta mark != 0 counter accept
-
-		# mark packets in exclude sets
-		ip daddr @excludes4 counter meta mark set {{.FWMark}}
-		ip6 daddr @excludes6 counter meta mark set {{.FWMark}}
-
-		# save mark in conntraction
-		ct mark set meta mark counter
-	}
-
-	chain premangle {
-		type filter hook prerouting priority mangle; policy accept;
-
-		# handle split routing
-		counter jump splitrouting
-	}
-
-	chain output {
-		type route hook output priority mangle; policy accept;
-
-		# handle split routing
-		counter jump splitrouting
-	}
-
-	chain postmangle {
-		type filter hook postrouting priority mangle; policy accept;
-
-		# save mark in conntracking
-		meta mark {{.FWMark}} ct mark set meta mark counter
-	}
-
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-
-		# masquerare tunnel/exclude traffic to make sure the source IP
-		# matches the outgoing interface
-		ct mark {{.FWMark}} counter masquerade
-	}
-
-	chain rejectipversion {
-		# used to reject unsupported ip version on the tunnel device
-
-		# make sure exclude traffic is not filtered
-		ct mark {{.FWMark}} counter accept
-
-		# use tcp reset and icmp admin prohibited
-		meta l4proto tcp counter reject with tcp reset
-		counter reject with icmpx admin-prohibited
-	}
-
-	chain rejectforward {
-		type filter hook forward priority filter; policy accept;
-
-		# reject unsupported ip versions when forwarding packets,
-		# add matching jump rule to rejectipversion if necessary
-		{{if .IPv4Address}}
-		meta oifname {{.Device}} meta nfproto ipv6 counter jump rejectipversion
-		{{end}}
-		{{if .IPv6Address}}
-		meta oifname {{.Device}} meta nfproto ipv4 counter jump rejectipversion
-		{{end}}
-	}
-
-	chain rejectoutput {
-		type filter hook output priority filter; policy accept;
-
-		# reject unsupported ip versions when sending packets,
-		# add matching jump rule to rejectipversion if necessary
-		{{if .IPv4Address}}
-		meta oifname {{.Device}} meta nfproto ipv6 counter jump rejectipversion
-		{{end}}
-		{{if .IPv6Address}}
-		meta oifname {{.Device}} meta nfproto ipv4 counter jump rejectipversion
-		{{end}}
-	}
-}
-{{end -}}
-`
-
+// getTemplateData returns template data.
 func (s *SplitRouting) getTemplateData() map[string]string {
 	ipv4 := ""
 	if len(s.vpnconfig.IPv4.Address) > 0 {
@@ -196,33 +87,22 @@ func (s *SplitRouting) getTemplateData() map[string]string {
 
 // setupRouting sets up routing using config.
 func (s *SplitRouting) setupRouting(ctx context.Context) {
-
-	// TODO: set and load default template in constructor?
-	// TODO: rename to NewRunner?
-	// TODO: can we use one for the whole splitrouting instance?
-	ct := cmdtmpl.NewCommandTemplates(DefaultTemplates)
-	// TODO: get commands from config?
+	// set up routing
+	// TODO: move this to VPNSetup?
 	data := s.getTemplateData()
-	commands := []*cmdtmpl.Command{
-		{Line: "nft -f -", Stdin: `{{template "RoutingRules" .}}`},
-		{Line: "ip -4 route add 0.0.0.0/0 dev {{.Device}} table {{.RTTable}}"},
-		{Line: "ip -4 rule add iif {{.Device}} table main pref {{.RulePrio1}}"},
-		{Line: "ip -4 rule add not fwmark {{.FWMark}} table {{.RTTable}} pref {{.RulePrio2}}"},
-		{Line: "sysctl -q net.ipv4.conf.all.src_valid_mark=1"},
-		{Line: "ip -6 route add ::/0 dev {{.Device}} table {{.RTTable}}"},
-		{Line: "ip -6 rule add iif {{.Device}} table main pref {{.RulePrio1}}"},
-		{Line: "ip -6 rule add not fwmark {{.FWMark}} table {{.RTTable}} pref {{.RulePrio2}}"},
+	cmds, err := cmdtmpl.GetCmds("SplitRoutingSetupRouting", data)
+	if err != nil {
+		log.WithError(err).Error("SplitRouting could not get setup routing commands")
 	}
-	for _, c := range commands {
-		// TODO: get final command and stdin
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
-			}).Error("Error executing command")
+			}).Error("SplitRouting could not run setup routing command")
 		}
 	}
 
@@ -258,25 +138,22 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 
 // teardownRouting tears down the routing configuration.
 func (s *SplitRouting) teardownRouting(ctx context.Context) {
-
-	ct := cmdtmpl.NewCommandTemplates(DefaultTemplates)
+	// tear down routing
+	// TODO: move this to VPNSetup?
 	data := s.getTemplateData()
-	commands := []*cmdtmpl.Command{
-		{Line: "ip -4 rule delete table {{.RTTable}}"},
-		{Line: "ip -4 rule delete iif {{.Device}} table main"},
-		{Line: "ip -6 rule delete table {{.RTTable}}"},
-		{Line: "ip -6 rule delete iif {{.Device}} table main"},
-		{Line: "nft -f - delete table inet oc-daemon-routing"},
+	cmds, err := cmdtmpl.GetCmds("SplitRoutingTeardownRouting", data)
+	if err != nil {
+		log.WithError(err).Error("SplitRouting could not get teardown routing commands")
 	}
-	for _, c := range commands {
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
-			}).Error("Error executing command")
+			}).Error("SplitRouting could not run teardown routing command")
 		}
 	}
 
@@ -486,34 +363,22 @@ func NewSplitRouting(config *Config, vpnconfig *vpnconfig.Config) *SplitRouting 
 
 // Cleanup cleans up old configuration after a failed shutdown.
 func Cleanup(ctx context.Context, config *Config) {
-
-	ct := cmdtmpl.NewCommandTemplates(DefaultTemplates)
 	data := map[string]string{
 		"RTTable":   config.RoutingTable,
 		"RulePrio1": config.RulePriority1,
 		"RulePrio2": config.RulePriority2,
 	}
-	commands := []*cmdtmpl.Command{
-		{Line: "ip -4 rule delete pref {{.RulePrio1}}"},
-		{Line: "ip -4 rule delete pref {{.RulePrio2}}"},
-		{Line: "ip -6 rule delete pref {{.RulePrio1}}"},
-		{Line: "ip -6 rule delete pref {{.RulePrio2}}"},
-		{Line: "ip -4 route flush table {{.RTTable}}"},
-		{Line: "ip -6 route flush table {{.RTTable}}"},
-		{Line: "nft -f - delete table inet oc-daemon-routing"},
+	cmds, err := cmdtmpl.GetCmds("SplitRoutingCleanup", data)
+	if err != nil {
+		log.WithError(err).Error("SplitRouting could not get cleanup commands")
 	}
-	for _, c := range commands {
-		// TODO: separate template errors from execution errors? here
-		// we want execution to fail but template execution should be
-		// not fail
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if _, _, err := c.Run(ctx); err == nil {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-			}).Error("Error executing command")
+			}).Warn("SplitRouting cleaned up configuration")
 		}
 	}
 }
