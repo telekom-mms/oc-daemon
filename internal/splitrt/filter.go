@@ -9,6 +9,7 @@ import (
 )
 
 // addExclude adds exclude address to netfilter.
+// TODO: remove and only use setExcludes?
 func addExclude(ctx context.Context, address netip.Prefix) {
 	log.WithField("address", address).Debug("SplitRouting adding exclude to netfilter")
 

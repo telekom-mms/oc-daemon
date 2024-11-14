@@ -306,9 +306,265 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 	commandLists[cleanup.Name] = cleanup
 }
 
+const TrafPolDefaultTemplate = `
+{{- define "FilterRules"}}
+table inet oc-daemon-filter {
+        # set for allowed devices
+        set allowdevs {
+                type ifname
+                elements = { lo }
+        }
+
+        # set for allowed ipv4 hosts
+        set allowhosts4 {
+                type ipv4_addr
+                flags interval
+        }
+
+        # set for allowed ipv6 hosts
+        set allowhosts6 {
+                type ipv6_addr
+                flags interval
+        }
+
+        # set for allowed ports
+        set allowports {
+                type inet_service
+                elements = { 53 }
+        }
+
+        chain input {
+                type filter hook input priority 0; policy drop;
+
+                # accept related traffic
+                ct state established,related counter accept
+
+                # accept traffic on allowed devices, e.g., lo
+                iifname @allowdevs counter accept
+
+                # accept ICMP traffic
+                icmp type {
+                        echo-reply,
+                        destination-unreachable,
+                        source-quench,
+                        redirect,
+                        time-exceeded,
+                        parameter-problem,
+                        timestamp-reply,
+                        info-reply,
+                        address-mask-reply,
+                        router-advertisement,
+                } counter accept
+
+                # accept ICMPv6 traffic otherwise IPv6 connectivity breaks
+                icmpv6 type {
+                        destination-unreachable,
+                        packet-too-big,
+                        time-exceeded,
+                        echo-reply,
+                        mld-listener-query,
+                        mld-listener-report,
+                        mld2-listener-report,
+                        mld-listener-done,
+                        nd-router-advert,
+                        nd-neighbor-solicit,
+                        nd-neighbor-advert,
+                        ind-neighbor-solicit,
+                        ind-neighbor-advert,
+                        nd-redirect,
+                        parameter-problem,
+                        router-renumbering
+                } counter accept
+
+                # accept DHCPv4 traffic
+                udp dport 68 udp sport 67 counter accept
+
+                # accept DHCPv6 traffic
+                udp dport 546 udp sport 547 counter accept
+        }
+
+        chain output {
+                type filter hook output priority 0; policy drop;
+
+                # accept related traffic
+                ct state established,related counter accept
+
+                # accept traffic on allowed devices, e.g., lo
+                oifname @allowdevs counter accept
+
+                # accept traffic to allowed hosts
+                ip daddr @allowhosts4 counter accept
+                ip6 daddr @allowhosts6 counter accept
+
+                # accept ICMP traffic
+                icmp type {
+                        source-quench,
+                        echo-request,
+                        timestamp-request,
+                        info-request,
+                        address-mask-request,
+                        router-solicitation
+                } counter accept
+
+                # accept ICMPv6 traffic otherwise IPv6 connectivity breaks
+                icmpv6 type {
+                        echo-request,
+                        mld-listener-report,
+                        mld2-listener-report,
+                        mld-listener-done,
+                        nd-router-solicit,
+                        nd-neighbor-solicit,
+                        nd-neighbor-advert,
+                        ind-neighbor-solicit,
+                        ind-neighbor-advert,
+                } counter accept
+
+                # accept traffic to allowed ports, e.g., DNS
+                udp dport @allowports counter accept
+                tcp dport @allowports counter accept
+
+                # accept DHCPv4 traffic
+                udp dport 67 udp sport 68 counter accept
+
+                # accept DHCPv6 traffic
+                udp dport 547 udp sport 546 counter accept
+
+                # reject everything else
+                counter reject
+        }
+
+        chain forward {
+                type filter hook forward priority 0; policy drop;
+
+                # accept related traffic
+                ct state established,related counter accept
+
+                # accept split exclude traffic
+                iifname @allowdevs ct mark {{.FirewallMark}} counter accept
+
+                # accept traffic on allowed devices
+                iifname @allowdevs oifname @allowdevs counter accept
+        }
+}
+{{end}}`
+
+func initCommandListsTrafPol() {
+	// TODO: change this?
+	t := template.Must(template.New("Template").Parse(TrafPolDefaultTemplate))
+
+	// Set Filter Rules
+	setFilterRules := &CommandList{
+		Name: "TrafPolSetFilterRules",
+		Commands: []*Command{
+			{Line: "nft -f -", Stdin: `{{template "FilterRules" .}}`},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        t,
+	}
+	commandLists[setFilterRules.Name] = setFilterRules
+
+	// Unset Filter Rules
+	unsetFilterRules := &CommandList{
+		Name: "TrafPolUnsetFilterRules",
+		Commands: []*Command{
+			{Line: "nft -f - delete table inet oc-daemon-filter"},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        t,
+	}
+	commandLists[unsetFilterRules.Name] = unsetFilterRules
+
+	// Add Allowed Device
+	addAllowedDevice := &CommandList{
+		Name: "TrafPolAddAllowedDevice",
+		Commands: []*Command{
+			{Line: "nft -f - add element inet oc-daemon-filter allowdevs { {{.}} }"},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        t,
+	}
+	commandLists[addAllowedDevice.Name] = addAllowedDevice
+
+	// Remove Allowed Device
+	removeAllowedDevice := &CommandList{
+		Name: "TrafPolRemoveAllowedDevice",
+		Commands: []*Command{
+			{Line: "nft -f - delete element inet oc-daemon-filter allowdevs { {{.}} }"},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        t,
+	}
+	commandLists[removeAllowedDevice.Name] = removeAllowedDevice
+
+	// Flush Allowed Hosts
+	flushAllowedHosts := &CommandList{
+		Name: "TrafPolFlushAllowedHost",
+		Commands: []*Command{
+			{Line: "nft -f - flush set inet oc-daemon-filter allowhosts4"},
+			{Line: "nft -f - flush set inet oc-daemon-filter allowhosts6"},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        t,
+	}
+	commandLists[flushAllowedHosts.Name] = flushAllowedHosts
+
+	// Add Allowed Host
+	addAllowedHost := &CommandList{
+		Name: "TrafPolAddAllowedHost",
+		Commands: []*Command{
+			{Line: "nft -f -",
+				Stdin: `
+				{{if .Addr.Is4}}
+				add element inet oc-daemon-filter allowhosts4 { {{.}} }
+				{{else}}
+				add element inet oc-daemon-filter allowhosts6 { {{.}} }
+				{{end}}
+				`,
+			},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        t,
+	}
+	commandLists[addAllowedHost.Name] = addAllowedHost
+
+	// Remove Portal Ports
+	addPortalPorts := &CommandList{
+		Name: "TrafPolAddPortalPorts",
+		Commands: []*Command{
+			{Line: "nft -f - add element inet oc-daemon-filter allowports { {{.}} }"},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        t,
+	}
+	commandLists[addPortalPorts.Name] = addPortalPorts
+
+	// Remove Portal Ports
+	removePortalPorts := &CommandList{
+		Name: "TrafPolRemovePortalPorts",
+		Commands: []*Command{
+			{Line: "nft -f - delete element inet oc-daemon-filter allowports { {{.}} }"},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        t,
+	}
+	commandLists[removePortalPorts.Name] = removePortalPorts
+
+	// Cleanup
+	cleanup := &CommandList{
+		Name: "TrafPolCleanup",
+		Commands: []*Command{
+			{Line: "nft -f - delete table inet oc-daemon-filter"},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        t,
+	}
+	commandLists[cleanup.Name] = cleanup
+}
+
 func initCommandLists() {
 	commandLists = make(map[string]*CommandList)
 	initCommandListsSplitRouting()
+	initCommandListsTrafPol()
 }
 
 // TODO: remove?
