@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/netip"
+	"slices"
 	"strings"
 	"time"
 
@@ -122,29 +123,20 @@ func getTemplateData(c *vpnconfig.Config, dnsProxyAddress string) *config {
 
 // setupVPNDevice sets up the vpn device with config.
 func setupVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress string) {
-
-	ct := cmdtmpl.NewCommandTemplates("")       // TODO: change?
 	data := getTemplateData(c, dnsProxyAddress) // TODO: change?
-	commands := []*cmdtmpl.Command{
-		// set mtu on device
-		{Line: "ip link set {{.Device.Name}} mtu {{.Device.MTU}}"},
-		// set device up
-		{Line: "ip link set {{.Device.Name}} up"},
-		// set ipv4 and ipv6 addresses on device
-		{Line: "{{if .IPv4.IsValid}}ip address add {{.IPv4}} dev {{.Device.Name}}{{end}}"},
-		{Line: "{{if .IPv6.IsValid}}ip address add {{.IPv6}} dev {{.Device.Name}}{{end}}"},
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupVPNDevice", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get setup VPN device commands")
 	}
-	for _, c := range commands {
-		// TODO: get final command and stdin
-		// TODO: add LogError() helper?
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil && !errors.Is(err, context.Canceled) {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
-			}).Error("Error executing command")
+			}).Error("VPNSetup could not run setup VPN device command")
 			// TODO: return?
 		}
 	}
@@ -152,24 +144,20 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress st
 
 // teardownVPNDevice tears down the configured vpn device.
 func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress string) {
-
-	ct := cmdtmpl.NewCommandTemplates("")       // TODO: change?
 	data := getTemplateData(c, dnsProxyAddress) // TODO: change?
-	commands := []*cmdtmpl.Command{
-		{Line: "ip link set {{.Device.Name}} down"},
+	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownVPNDevice", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get teardown VPN device commands")
 	}
-	for _, c := range commands {
-		// TODO: get final command and stdin
-		// TODO: add LogError() helper?
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil && !errors.Is(err, context.Canceled) {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
-			}).Error("Error executing command")
-			// TODO: return?
+			}).Error("VPNSetup could not run teardown VPN device command")
 		}
 	}
 }
@@ -196,69 +184,60 @@ func (v *VPNSetup) teardownRouting() {
 
 // setupDNSServer sets the DNS server.
 func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config) {
-
-	ct := cmdtmpl.NewCommandTemplates("")                   // TODO: change?
 	data := getTemplateData(config, v.dnsProxyConf.Address) // TODO: change?
-	commands := []*cmdtmpl.Command{
-		{Line: "resolvectl dns {{.Device.Name}} {{.DNS.ProxyAddress}}"},
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSServer", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get setup DNS server commands")
 	}
-	for _, c := range commands {
-		// TODO: get final command and stdin
-		// TODO: add LogError() helper?
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil && !errors.Is(err, context.Canceled) {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
-			}).Error("Error executing command")
+			}).Error("VPNSetup could not run setup DNS server command")
 		}
 	}
 }
 
 // setupDNSDomains sets the DNS domains.
 func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config) {
-
-	ct := cmdtmpl.NewCommandTemplates("")                   // TODO: change?
 	data := getTemplateData(config, v.dnsProxyConf.Address) // TODO: change?
-	commands := []*cmdtmpl.Command{
-		{Line: "resolvectl domain {{.Device.Name}} {{.DNS.DefaultDomain}} ~."},
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDomains", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get setup DNS domains commands")
 	}
-	for _, c := range commands {
-		// TODO: get final command and stdin
-		// TODO: add LogError() helper?
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil && !errors.Is(err, context.Canceled) {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
-			}).Error("Error executing command")
+			}).Error("VPNSetup could not run setup DNS domains command")
 		}
 	}
 }
 
 // setupDNSDefaultRoute sets the DNS default route.
 func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.Config) {
-
-	ct := cmdtmpl.NewCommandTemplates("")                   // TODO: change?
 	data := getTemplateData(config, v.dnsProxyConf.Address) // TODO: change?
-	commands := []*cmdtmpl.Command{
-		{Line: "resolvectl default-route {{Device}} yes"},
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDefaultRoute", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get setup DNS default route commands")
 	}
-	for _, c := range commands {
-		// TODO: get final command and stdin
-		// TODO: add LogError() helper?
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil && !errors.Is(err, context.Canceled) {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
-			}).Error("Error executing command")
+			}).Error("VPNSetup could not run setup DNS default route command")
 		}
 	}
 }
@@ -277,27 +256,20 @@ func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 	v.dnsProxy.SetWatches(excludes)
 
 	// update dns configuration of host
-
-	ct := cmdtmpl.NewCommandTemplates("")                   // TODO: change?
 	data := getTemplateData(config, v.dnsProxyConf.Address) // TODO: change?
-	commands := []*cmdtmpl.Command{
-		{Line: "resolvectl dns {{.Device.Name}} {{.DNS.ProxyAddress}}"},
-		{Line: "resolvectl domain {{.Device.Name}} {{.DNS.DefaultDomain}} ~."},
-		{Line: "resolvectl default-route {{.Device.Name}} yes"},
-		{Line: "resolvectl flush-caches"},
-		{Line: "resolvectl reset-server-features"},
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNS", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get setup DNS commands")
 	}
-	for _, c := range commands {
-		// TODO: get final command and stdin
-		// TODO: add LogError() helper?
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil && !errors.Is(err, context.Canceled) {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
-			}).Error("Error executing command")
+			}).Error("VPNSetup could not run setup DNS command")
 		}
 	}
 }
@@ -314,25 +286,20 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 	v.dnsProxy.SetWatches([]string{})
 
 	// update dns configuration of host
-
-	ct := cmdtmpl.NewCommandTemplates("")                    // TODO: change?
 	data := getTemplateData(vpnconf, v.dnsProxyConf.Address) // TODO: change?
-	commands := []*cmdtmpl.Command{
-		{Line: "resolvectl revert {{.Device.Name}}"},
-		{Line: "resolvectl flush-caches"},
-		{Line: "resolvectl reset-server-features"},
+	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownDNS", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get teardown DNS commands")
 	}
-	for _, c := range commands {
-		// TODO: get final command and stdin
-		// TODO: add LogError() helper?
-		stdout, stderr, err := ct.RunCommand(ctx, c, data)
-		if err != nil && !errors.Is(err, context.Canceled) {
-			log.WithError(err).WithFields(log.Fields{
-				"command": c.Line,
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
-			}).Error("Error executing command")
+			}).Error("VPNSetup could not run teardown DNS command")
 		}
 	}
 }
@@ -390,24 +357,26 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool
 	log.Debug("VPNSetup checking DNS settings")
 
 	// get dns settings
-
-	ct := cmdtmpl.NewCommandTemplates("")                   // TODO: change?
 	data := getTemplateData(config, v.dnsProxyConf.Address) // TODO: change?
-	c := &cmdtmpl.Command{
-		// TODO: newer versions support json output, support that?
-		Line: "resolvectl status {{.Device.Name}} --no-pager",
+	cmds, err := cmdtmpl.GetCmds("VPNSetupEnsureDNS", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get ensure DNS commands")
 	}
-	// TODO: get final command and stdin
-	// TODO: add LogError() helper?
-	stdout, stderr, err := ct.RunCommand(ctx, c, data)
-	if err != nil && !errors.Is(err, context.Canceled) {
-		log.WithError(err).WithFields(log.Fields{
-			"command": c.Line,
-			"stdin":   c.Stdin,
-			"stdout":  string(stdout),
-			"stderr":  string(stderr),
-		}).Error("Error executing command")
-		return false
+	var stdout []byte
+	for _, c := range cmds {
+		sout, serr, err := c.Run(ctx)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
+				"stdin":   c.Stdin,
+				"stdout":  string(sout),
+				"stderr":  string(serr),
+			}).Error("VPNSetup could not run ensure DNS command")
+			return false
+		}
+		// collect output
+		stdout = slices.Concat(stdout, sout)
 	}
 
 	// parse and check dns settings line by line
@@ -657,19 +626,19 @@ func NewVPNSetup(
 // Cleanup cleans up the configuration after a failed shutdown.
 func Cleanup(ctx context.Context, vpnDevice string, splitrtConfig *splitrt.Config) {
 	// dns, device, split routing
-	ct := cmdtmpl.NewCommandTemplates("") // TODO: change?
-	data := vpnDevice                     // TODO: change?
-	commands := []*cmdtmpl.Command{
-		{Line: "resolvectl revert {{.}}"},
-		{Line: "ip link delete {{.}}"},
+	data := vpnDevice // TODO: change?
+	cmds, err := cmdtmpl.GetCmds("VPNSetupCleanup", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get cleanup commands")
 	}
-	for _, c := range commands {
-		// TODO: get final command and stdin
-		// TODO: add LogError() helper?
-		_, _, err := ct.RunCommand(ctx, c, data)
-		if err == nil {
-			log.WithField("device", vpnDevice).WithField("line", c.Line).
-				Warn("VPNSetup cleaned up config")
+	for _, c := range cmds {
+		if _, _, err := c.Run(ctx); err == nil {
+			log.WithFields(log.Fields{
+				"device":  vpnDevice,
+				"command": c.Cmd,
+				"args":    c.Args,
+				"stdin":   c.Stdin,
+			}).Warn("VPNSetup cleaned up configuration")
 		}
 	}
 	splitrt.Cleanup(ctx, splitrtConfig)

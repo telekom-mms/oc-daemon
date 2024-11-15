@@ -561,10 +561,132 @@ func initCommandListsTrafPol() {
 	commandLists[cleanup.Name] = cleanup
 }
 
+func initCommandListsVPNSetup() {
+	// TODO: change this? change empty string as template?
+	t := template.Must(template.New("Template").Parse(""))
+
+	// Setup VPN Device
+	setupVPNDevice := &CommandList{
+		Name: "VPNSetupSetupVPNDevice",
+		Commands: []*Command{
+			// set mtu on device
+			{Line: "ip link set {{.Device.Name}} mtu {{.Device.MTU}}"},
+			// set device up
+			{Line: "ip link set {{.Device.Name}} up"},
+			// set ipv4 and ipv6 addresses on device
+			{Line: "{{if .IPv4.IsValid}}ip address add {{.IPv4}} dev {{.Device.Name}}{{end}}"},
+			{Line: "{{if .IPv6.IsValid}}ip address add {{.IPv6}} dev {{.Device.Name}}{{end}}"},
+		},
+		defaultTemplate: "",
+		template:        t,
+	}
+	commandLists[setupVPNDevice.Name] = setupVPNDevice
+
+	// Teardown VPN Device
+	teardownVPNDevice := &CommandList{
+		Name: "VPNSetupTeardownVPNDevice",
+		Commands: []*Command{
+			{Line: "ip link set {{.Device.Name}} down"},
+		},
+		defaultTemplate: "",
+		template:        t,
+	}
+	commandLists[teardownVPNDevice.Name] = teardownVPNDevice
+
+	// Setup DNS server
+	setupDNSServer := &CommandList{
+		Name: "VPNSetupSetupDNSServer",
+		Commands: []*Command{
+			{Line: "resolvectl dns {{.Device.Name}} {{.DNS.ProxyAddress}}"},
+		},
+		defaultTemplate: "",
+		template:        t,
+	}
+	commandLists[setupDNSServer.Name] = setupDNSServer
+
+	// Setup DNS domains
+	setupDNSDomains := &CommandList{
+		Name: "VPNSetupSetupDNSDomains",
+		Commands: []*Command{
+			{Line: "resolvectl domain {{.Device.Name}} {{.DNS.DefaultDomain}} ~."},
+		},
+		defaultTemplate: "",
+		template:        t,
+	}
+	commandLists[setupDNSDomains.Name] = setupDNSDomains
+
+	// Setup DNS Default Route
+	setupDNSDefaultRoute := &CommandList{
+		Name: "VPNSetupSetupDNSDefaultRoute",
+		Commands: []*Command{
+			{Line: "resolvectl default-route {{Device}} yes"},
+		},
+		defaultTemplate: "",
+		template:        t,
+	}
+	commandLists[setupDNSDefaultRoute.Name] = setupDNSDefaultRoute
+
+	// Setup DNS
+	// TODO: combine all setup and teardown lists? move static splitrt
+	// parts into vpnsetup to have only one setup and one teardown list?
+	// TODO: create separate ensure check and fixup command lists then?
+	setupDNS := &CommandList{
+		Name: "VPNSetupSetupDNS",
+		Commands: []*Command{
+			{Line: "resolvectl dns {{.Device.Name}} {{.DNS.ProxyAddress}}"},
+			{Line: "resolvectl domain {{.Device.Name}} {{.DNS.DefaultDomain}} ~."},
+			{Line: "resolvectl default-route {{.Device.Name}} yes"},
+			{Line: "resolvectl flush-caches"},
+			{Line: "resolvectl reset-server-features"},
+		},
+		defaultTemplate: "",
+		template:        t,
+	}
+	commandLists[setupDNS.Name] = setupDNS
+
+	// Teardown DNS
+	teardownDNS := &CommandList{
+		Name: "VPNSetupTeardownDNS",
+		Commands: []*Command{
+			{Line: "resolvectl revert {{.Device.Name}}"},
+			{Line: "resolvectl flush-caches"},
+			{Line: "resolvectl reset-server-features"},
+		},
+		defaultTemplate: "",
+		template:        t,
+	}
+	commandLists[teardownDNS.Name] = teardownDNS
+
+	// Ensure DNS
+	ensureDNS := &CommandList{
+		Name: "VPNSetupEnsureDNS",
+		Commands: []*Command{
+			// TODO: newer versions support json output, support that?
+			{Line: "resolvectl status {{.Device.Name}} --no-pager"},
+		},
+		defaultTemplate: "",
+		template:        t,
+	}
+	commandLists[ensureDNS.Name] = ensureDNS
+
+	// Cleanup
+	cleanup := &CommandList{
+		Name: "VPNSetupCleanup",
+		Commands: []*Command{
+			{Line: "resolvectl revert {{.}}"},
+			{Line: "ip link delete {{.}}"},
+		},
+		defaultTemplate: "",
+		template:        t,
+	}
+	commandLists[cleanup.Name] = cleanup
+}
+
 func initCommandLists() {
 	commandLists = make(map[string]*CommandList)
 	initCommandListsSplitRouting()
 	initCommandListsTrafPol()
+	initCommandListsVPNSetup()
 }
 
 // TODO: remove?
