@@ -1,3 +1,4 @@
+// Package cmdtmpl contains command lists for external commands with templates.
 package cmdtmpl
 
 import (
@@ -659,7 +660,7 @@ func (c *Cmd) Run(ctx context.Context) (stdout, stderr []byte, err error) {
 	return execs.RunCmd(ctx, c.Cmd, c.Stdin, c.Args...)
 }
 
-// func GetCommands(name string, data any) ([]*Command, error) {
+// GetCmds returns a list of Cmds ready to run.
 func GetCmds(name string, data any) ([]*Cmd, error) {
 	cl, ok := commandLists[name]
 	if !ok {
