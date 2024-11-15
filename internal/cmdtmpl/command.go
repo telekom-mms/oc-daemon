@@ -430,7 +430,7 @@ func initCommandListsTrafPol() {
 
 	// Flush Allowed Hosts
 	flushAllowedHosts := &CommandList{
-		Name: "TrafPolFlushAllowedHost",
+		Name: "TrafPolFlushAllowedHosts",
 		Commands: []*Command{
 			{Line: "nft -f - flush set inet oc-daemon-filter allowhosts4"},
 			{Line: "nft -f - flush set inet oc-daemon-filter allowhosts6"},
