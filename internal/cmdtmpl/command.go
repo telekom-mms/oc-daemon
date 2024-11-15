@@ -3,95 +3,21 @@ package cmdtmpl
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"text/template"
 
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
-// CommandTemplates are command templates.
-type CommandTemplates struct {
-	templates *template.Template
-}
-
-func NewCommandTemplates(templates string) *CommandTemplates {
-	t := template.Must(template.New("Templates").Parse(templates))
-	return &CommandTemplates{
-		templates: t,
-	}
-}
-
-// LoadTemplates loads the command templates.
-func (ct *CommandTemplates) Load() error {
-	// TODO: try to load templates from filesystem and update ct.templates
-	return nil
-}
-
 // Command consists of a command line to be executed and an optional Stdin to
 // be passed to the command on execution.
 type Command struct {
 	Line  string
 	Stdin string
-
-	cmd   string
-	args  []string
-	stdin string
 }
 
-// executeTemplate executes the template on data and returns the resulting
-// output as string.
-func (ct *CommandTemplates) executeTemplate(tmpl string, data any) (string, error) {
-	t, err := ct.templates.Clone()
-	if err != nil {
-		return "", err
-	}
-	t, err = t.Parse(tmpl)
-	if err != nil {
-		return "", err
-	}
-	buf := &bytes.Buffer{}
-	if err := t.Execute(buf, data); err != nil {
-		return "", err
-	}
-
-	line := buf.String()
-	return line, nil
-}
-
-// Run runs the command and returns its output.
-func (ct *CommandTemplates) RunCommand(ctx context.Context, cmd *Command, data any) (stdout, stderr []byte, err error) {
-	// execute template for command line
-	line, err := ct.executeTemplate(cmd.Line, data)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// execute template for stdin
-	stdin, err := ct.executeTemplate(cmd.Stdin, data)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// extract command from command line
-	fields := strings.Fields(line)
-	if len(fields) == 0 {
-		return nil, nil, nil
-	}
-	command := fields[0]
-
-	// extract arguments from command line
-	args := []string{}
-	if len(fields) > 1 {
-		args = fields[1:]
-	}
-
-	// run command
-	return execs.RunCmd(ctx, command, stdin, args...)
-}
-
+// CommandList is a list of Commands.
 type CommandList struct {
 	Name     string
 	Commands []*Command
@@ -100,8 +26,10 @@ type CommandList struct {
 	template        *template.Template
 }
 
+// commandLists is a collection of command lists.
 var commandLists map[string]*CommandList
 
+// SplitRoutingDefaultTemplate is the default template for Split Routing.
 const SplitRoutingDefaultTemplate = `
 {{- define "RoutingRules"}}
 table inet oc-daemon-routing {
@@ -212,6 +140,7 @@ table inet oc-daemon-routing {
 {{end -}}
 `
 
+// initCommandListsSplitRouting initializes the command lists for SplitRouting.
 func initCommandListsSplitRouting() {
 	// TODO: change this?
 	t := template.Must(template.New("Template").Parse(SplitRoutingDefaultTemplate))
@@ -306,6 +235,7 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 	commandLists[cleanup.Name] = cleanup
 }
 
+// TrafPolDefaultTemplate is the default template for Traffic Policing.
 const TrafPolDefaultTemplate = `
 {{- define "FilterRules"}}
 table inet oc-daemon-filter {
@@ -448,6 +378,7 @@ table inet oc-daemon-filter {
 }
 {{end}}`
 
+// initCommandListsTrafPol initializes the command lists for Traffic Policing.
 func initCommandListsTrafPol() {
 	// TODO: change this?
 	t := template.Must(template.New("Template").Parse(TrafPolDefaultTemplate))
@@ -561,6 +492,7 @@ func initCommandListsTrafPol() {
 	commandLists[cleanup.Name] = cleanup
 }
 
+// initCommandListsVPNSetup initializes the command lists for VPNSetup.
 func initCommandListsVPNSetup() {
 	// TODO: change this? change empty string as template?
 	t := template.Must(template.New("Template").Parse(""))
@@ -682,6 +614,7 @@ func initCommandListsVPNSetup() {
 	commandLists[cleanup.Name] = cleanup
 }
 
+// initCommandLists initializes the command lists.
 func initCommandLists() {
 	commandLists = make(map[string]*CommandList)
 	initCommandListsSplitRouting()
@@ -712,57 +645,6 @@ func (cl *CommandList) executeTemplate(tmpl string, data any) (string, error) {
 
 	line := buf.String()
 	return line, nil
-}
-
-func (cl *CommandList) RunCommand(ctx context.Context, cmd *Command, data any) (stdout, stderr []byte, err error) {
-	// execute template for command line
-	line, err := cl.executeTemplate(cmd.Line, data)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// execute template for stdin
-	stdin, err := cl.executeTemplate(cmd.Stdin, data)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// extract command from command line
-	fields := strings.Fields(line)
-	if len(fields) == 0 {
-		return nil, nil, nil
-	}
-	command := fields[0]
-
-	// extract arguments from command line
-	args := []string{}
-	if len(fields) > 1 {
-		args = fields[1:]
-	}
-
-	// run command
-	return execs.RunCmd(ctx, command, stdin, args...)
-}
-
-func (cl *CommandList) Run(ctx context.Context, data any) (stdout, stderr []byte, err error) {
-	errs := []error{}
-	for _, cmd := range cl.Commands {
-		sout, serr, err := cl.RunCommand(ctx, cmd, data)
-		stdout = slices.Concat(stdout, sout)
-		stderr = slices.Concat(stderr, serr)
-		errs = append(errs, err)
-
-		//if err != nil {
-		//	log.WithError(err).WithFields(log.Fields{
-		//		"command": cmd.Line,
-		//		"stdin":   cmd.Stdin,
-		//		"stdout":  string(stdout),
-		//		"stderr":  string(stderr),
-		//	}).Error("Error executing command")
-		//}
-	}
-	err = errors.Join(errs...)
-	return
 }
 
 // Cmd is a command ready to run.
@@ -817,11 +699,3 @@ func GetCmds(name string, data any) ([]*Cmd, error) {
 	}
 	return commands, nil
 }
-
-//func RunCommands(ctx context.Context, name string, data any) (stdout, stderr []byte, err error) {
-//	commands, err := GetCommands(name, data)
-//	if err != nil {
-//		return nil, nil, err
-//	}
-//	return commandLists[name].Run(ctx, data)
-//}
