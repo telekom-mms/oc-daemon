@@ -32,7 +32,7 @@ var commandLists map[string]*CommandList
 
 // SplitRoutingDefaultTemplate is the default template for Split Routing.
 const SplitRoutingDefaultTemplate = `
-{{- define "RoutingRules"}}
+{{- define "SplitRoutingRules"}}
 table inet oc-daemon-routing {
 	# set for ipv4 excludes
 	set excludes4 {
@@ -150,7 +150,7 @@ func initCommandListsSplitRouting() {
 	setupRouting := &CommandList{
 		Name: "SplitRoutingSetupRouting",
 		Commands: []*Command{
-			{Line: "nft -f -", Stdin: `{{template "RoutingRules" .}}`},
+			{Line: "nft -f -", Stdin: `{{template "SplitRoutingRules" .}}`},
 			{Line: "ip -4 route add 0.0.0.0/0 dev {{.Device}} table {{.RTTable}}"},
 			{Line: "ip -4 rule add iif {{.Device}} table main pref {{.RulePrio1}}"},
 			{Line: "ip -4 rule add not fwmark {{.FWMark}} table {{.RTTable}} pref {{.RulePrio2}}"},
@@ -238,7 +238,7 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 
 // TrafPolDefaultTemplate is the default template for Traffic Policing.
 const TrafPolDefaultTemplate = `
-{{- define "FilterRules"}}
+{{- define "TrafPolRules"}}
 table inet oc-daemon-filter {
         # set for allowed devices
         set allowdevs {
@@ -388,7 +388,7 @@ func initCommandListsTrafPol() {
 	setFilterRules := &CommandList{
 		Name: "TrafPolSetFilterRules",
 		Commands: []*Command{
-			{Line: "nft -f -", Stdin: `{{template "FilterRules" .}}`},
+			{Line: "nft -f -", Stdin: `{{template "TrafPolRules" .}}`},
 		},
 		defaultTemplate: TrafPolDefaultTemplate,
 		template:        t,
