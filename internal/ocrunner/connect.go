@@ -12,7 +12,6 @@ import (
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
 )
 
@@ -156,52 +155,6 @@ func (c *Connect) getPID() uint32 {
 		return 0
 	}
 	return uint32(c.command.Process.Pid)
-}
-
-const connectCommands = `
-openconnect
---xmlconfig={{config.XMLProfie}}
---script={{config.VPNCScript}}
---cookie-on-stdin
-{{Host}}
---servercert={{login.Fingerprint}}
-{{if config.NoProxy}}
---no-proxy
-{{end}}
-{{if login.Resolve}}
---resolve={{login.Resolve}}
-{{end}}
-{{if config.VPNDevice}}
---interface={{config.VPNDevice}}
-{{end}}
-{{range config.ExtraArgs}}
-{{.}}
-{{end}}
-`
-
-// TODO: do not use init func?
-func init() {
-	connect := []*cmdtmpl.Command{
-		{Line: `openconnect
-			--xmlconfig={{config.XMLProfie}}
-			--script={{config.VPNCScript}}
-			--cookie-on-stdin
-			{{Host}}
-			--servercert={{login.Fingerprint}}
-			{{if config.NoProxy}}
-			--no-proxy
-			{{end}}
-			{{if login.Resolve}}
-			--resolve={{login.Resolve}}
-			{{end}}
-			{{if config.VPNDevice}}
-			--interface={{config.VPNDevice}}
-			{{end}}
-			{{range config.ExtraArgs}}
-			{{.}}
-			{{end}}`},
-	}
-	log.Println(connect)
 }
 
 // handleConnect establishes the connection by starting openconnect.
