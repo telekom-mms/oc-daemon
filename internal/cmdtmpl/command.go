@@ -27,6 +27,26 @@ type CommandList struct {
 	template        *template.Template
 }
 
+// executeTemplate executes the template on data and returns the resulting
+// output as string.
+func (cl *CommandList) executeTemplate(tmpl string, data any) (string, error) {
+	t, err := cl.template.Clone()
+	if err != nil {
+		return "", err
+	}
+	t, err = t.Parse(tmpl)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	if err := t.Execute(buf, data); err != nil {
+		return "", err
+	}
+
+	s := buf.String()
+	return s, nil
+}
+
 // commandLists is a collection of command lists.
 var commandLists map[string]*CommandList
 
@@ -626,26 +646,6 @@ func initCommandLists() {
 // TODO: remove?
 func init() {
 	initCommandLists()
-}
-
-// executeTemplate executes the template on data and returns the resulting
-// output as string.
-func (cl *CommandList) executeTemplate(tmpl string, data any) (string, error) {
-	t, err := cl.template.Clone()
-	if err != nil {
-		return "", err
-	}
-	t, err = t.Parse(tmpl)
-	if err != nil {
-		return "", err
-	}
-	buf := &bytes.Buffer{}
-	if err := t.Execute(buf, data); err != nil {
-		return "", err
-	}
-
-	line := buf.String()
-	return line, nil
 }
 
 // Cmd is a command ready to run.
