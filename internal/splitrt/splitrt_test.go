@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
@@ -65,6 +66,7 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 
 // TestSplitRoutingHandleAddressUpdate tests handleAddressUpdate of SplitRouting.
 func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
 	ctx := context.Background()
 
 	// test with exclude
@@ -155,6 +157,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 
 // TestSplitRoutingHandleDNSReport tests handleDNSReport of SplitRouting.
 func TestSplitRoutingHandleDNSReport(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
 	ctx := context.Background()
 	s := NewSplitRouting(NewConfig(), vpnconfig.New())
 
@@ -359,6 +362,7 @@ func TestNewSplitRouting(t *testing.T) {
 
 // TestCleanup tests Cleanup.
 func TestCleanup(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
 	got := []string{}
 
 	oldRunCmd := execs.RunCmd

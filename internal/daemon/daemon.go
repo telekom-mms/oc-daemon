@@ -15,6 +15,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/api"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
@@ -888,6 +889,9 @@ func (d *Daemon) Start() error {
 
 	// set executables
 	execs.SetExecutables(d.config.Executables)
+
+	// load command lists
+	cmdtmpl.LoadCommandLists()
 
 	// cleanup after a failed shutdown
 	d.cleanup(ctx)

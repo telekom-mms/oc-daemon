@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
@@ -46,6 +47,7 @@ func TestTrafPolHandleDNSUpdate(_ *testing.T) {
 
 // TestTrafPolHandleCPDReport tests handleCPDReport of TrafPol.
 func TestTrafPolHandleCPDReport(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
 	tp := NewTrafPol(NewConfig())
 	ctx := context.Background()
 
@@ -294,6 +296,7 @@ func TestNewTrafPol(t *testing.T) {
 
 // TestCleanup tests Cleanup.
 func TestCleanup(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
 	want := []string{
 		"nft -f - delete table inet oc-daemon-filter",
 	}

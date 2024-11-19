@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
@@ -62,6 +63,7 @@ func getTestDynamicExcludes(t *testing.T) []netip.Prefix {
 
 // TestExcludesAddStatic tests AddStatic of Excludes.
 func TestExcludesAddStatic(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
 	ctx := context.Background()
 	e := NewExcludes()
 	excludes := getTestStaticExcludes(t)
@@ -107,6 +109,7 @@ func TestExcludesAddStatic(t *testing.T) {
 
 // TestExcludesAddDynamic tests AddDynamic of Excludes.
 func TestExcludesAddDynamic(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
 	ctx := context.Background()
 	e := NewExcludes()
 	excludes := getTestDynamicExcludes(t)
@@ -170,6 +173,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 
 // TestExcludesRemoveStatic tests RemoveStatic of Excludes.
 func TestExcludesRemove(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
 	ctx := context.Background()
 	e := NewExcludes()
 	excludes := getTestStaticExcludes(t)
@@ -264,6 +268,7 @@ func TestExcludesRemove(t *testing.T) {
 
 // TestExcludesCleanup tests cleanup of Excludes.
 func TestExcludesCleanup(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
 	ctx := context.Background()
 	e := NewExcludes()
 

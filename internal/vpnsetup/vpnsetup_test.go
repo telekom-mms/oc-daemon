@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
@@ -21,6 +22,8 @@ import (
 
 // TestSetupVPNDevice tests setupVPNDevice.
 func TestSetupVPNDevice(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
+
 	// clean up after tests
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
@@ -82,6 +85,8 @@ func TestSetupVPNDevice(t *testing.T) {
 
 // TestTeardownVPNDevice tests teardownVPNDevice.
 func TestTeardownVPNDevice(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
+
 	// clean up after tests
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
@@ -114,6 +119,8 @@ func TestTeardownVPNDevice(t *testing.T) {
 
 // TestVPNSetupSetupDNS tests setupDNS of VPNSetup.
 func TestVPNSetupSetupDNS(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
+
 	// clean up after tests
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
@@ -156,6 +163,8 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 
 // TestVPNSetupTeardownDNS tests teardownDNS of VPNSetup.
 func TestVPNSetupTeardownDNS(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
+
 	// clean up after tests
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
@@ -270,6 +279,8 @@ func TestVPNSetupCheckDNSDomain(t *testing.T) {
 
 // TestVPNSetupEnsureDNS tests ensureDNS of VPNSetup.
 func TestVPNSetupEnsureDNS(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
+
 	// clean up after tests
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
@@ -446,6 +457,8 @@ func TestNewVPNSetup(t *testing.T) {
 
 // TestCleanup tests Cleanup.
 func TestCleanup(t *testing.T) {
+	cmdtmpl.LoadCommandLists()
+
 	got := []string{}
 	execs.RunCmd = func(_ context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		if s == "" {

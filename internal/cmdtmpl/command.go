@@ -643,8 +643,8 @@ func initCommandLists() {
 	initCommandListsVPNSetup()
 }
 
-// TODO: remove?
-func init() {
+// LoadCommandLists loads the command lists.
+func LoadCommandLists() {
 	initCommandLists()
 }
 
