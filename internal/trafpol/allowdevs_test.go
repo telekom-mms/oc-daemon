@@ -7,13 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
 // TestAllowDevsAdd tests Add of AllowDevs.
 func TestAllowDevsAdd(t *testing.T) {
-	cmdtmpl.LoadCommandLists()
 	a := NewAllowDevs()
 	ctx := context.Background()
 
@@ -44,7 +42,6 @@ func TestAllowDevsAdd(t *testing.T) {
 
 // TestAllowDevsRemove tests Remove of AllowDevs.
 func TestAllowDevsRemove(t *testing.T) {
-	cmdtmpl.LoadCommandLists()
 	a := NewAllowDevs()
 	ctx := context.Background()
 
