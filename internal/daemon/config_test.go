@@ -5,13 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/telekom-mms/oc-daemon/internal/api"
-	"github.com/telekom-mms/oc-daemon/internal/cpd"
-	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
-	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
-	"github.com/telekom-mms/oc-daemon/internal/splitrt"
-	"github.com/telekom-mms/oc-daemon/internal/trafpol"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/tnd/pkg/tnd"
 )
 
@@ -57,11 +51,11 @@ func TestConfigValid(t *testing.T) {
 
 // TestConfigLoad tests Load of Config.
 func TestConfigLoad(t *testing.T) {
-	config := NewConfig()
-	config.Config = "does not exist"
+	conf := NewConfig()
+	conf.Config = "does not exist"
 
 	// test invalid path
-	err := config.Load()
+	err := conf.Load()
 	if err == nil {
 		t.Errorf("got != nil, want nil")
 	}
@@ -75,9 +69,9 @@ func TestConfigLoad(t *testing.T) {
 		_ = os.Remove(empty.Name())
 	}()
 
-	config = NewConfig()
-	config.Config = empty.Name()
-	err = config.Load()
+	conf = NewConfig()
+	conf.Config = empty.Name()
+	err = conf.Load()
 	if err == nil {
 		t.Errorf("got != nil, want nil")
 	}
@@ -161,48 +155,48 @@ func TestConfigLoad(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		config := NewConfig()
-		config.Config = valid.Name()
-		if err := config.Load(); err != nil {
+		conf := NewConfig()
+		conf.Config = valid.Name()
+		if err := conf.Load(); err != nil {
 			t.Errorf("could not load valid config: %s", err)
 		}
 
-		if !config.Valid() {
+		if !conf.Valid() {
 			t.Errorf("config is not valid")
 		}
 
 		want := &Config{
 			Config:          valid.Name(),
 			Verbose:         true,
-			SocketServer:    api.NewConfig(),
-			CPD:             cpd.NewConfig(),
-			DNSProxy:        dnsproxy.NewConfig(),
-			OpenConnect:     ocrunner.NewConfig(),
-			Executables:     execs.NewConfig(),
-			SplitRouting:    splitrt.NewConfig(),
-			TrafficPolicing: trafpol.NewConfig(),
+			SocketServer:    config.NewSocketServer(),
+			CPD:             config.NewCPD(),
+			DNSProxy:        config.NewDNSProxy(),
+			OpenConnect:     config.NewOpenConnect(),
+			Executables:     config.NewExecutables(),
+			SplitRouting:    config.NewSplitRouting(),
+			TrafficPolicing: config.NewTrafficPolicing(),
 			TND:             tnd.NewConfig(),
 		}
-		if !reflect.DeepEqual(want.DNSProxy, config.DNSProxy) {
-			t.Errorf("got %v, want %v", config.DNSProxy, want.DNSProxy)
+		if !reflect.DeepEqual(want.DNSProxy, conf.DNSProxy) {
+			t.Errorf("got %v, want %v", conf.DNSProxy, want.DNSProxy)
 		}
-		if !reflect.DeepEqual(want.OpenConnect, config.OpenConnect) {
-			t.Errorf("got %v, want %v", config.OpenConnect, want.OpenConnect)
+		if !reflect.DeepEqual(want.OpenConnect, conf.OpenConnect) {
+			t.Errorf("got %v, want %v", conf.OpenConnect, want.OpenConnect)
 		}
-		if !reflect.DeepEqual(want.Executables, config.Executables) {
-			t.Errorf("got %v, want %v", config.Executables, want.Executables)
+		if !reflect.DeepEqual(want.Executables, conf.Executables) {
+			t.Errorf("got %v, want %v", conf.Executables, want.Executables)
 		}
-		if !reflect.DeepEqual(want.SplitRouting, config.SplitRouting) {
-			t.Errorf("got %v, want %v", config.SplitRouting, want.SplitRouting)
+		if !reflect.DeepEqual(want.SplitRouting, conf.SplitRouting) {
+			t.Errorf("got %v, want %v", conf.SplitRouting, want.SplitRouting)
 		}
-		if !reflect.DeepEqual(want.TrafficPolicing, config.TrafficPolicing) {
-			t.Errorf("got %v, want %v", config.TrafficPolicing, want.TrafficPolicing)
+		if !reflect.DeepEqual(want.TrafficPolicing, conf.TrafficPolicing) {
+			t.Errorf("got %v, want %v", conf.TrafficPolicing, want.TrafficPolicing)
 		}
-		if !reflect.DeepEqual(want.TND, config.TND) {
-			t.Errorf("got %v, want %v", config.TND, want.TND)
+		if !reflect.DeepEqual(want.TND, conf.TND) {
+			t.Errorf("got %v, want %v", conf.TND, want.TND)
 		}
-		if !reflect.DeepEqual(want, config) {
-			t.Errorf("got %v, want %v", config, want)
+		if !reflect.DeepEqual(want, conf) {
+			t.Errorf("got %v, want %v", conf, want)
 		}
 	}
 }
@@ -212,13 +206,13 @@ func TestNewConfig(t *testing.T) {
 	want := &Config{
 		Config:          "/var/lib/oc-daemon/oc-daemon.json",
 		Verbose:         false,
-		SocketServer:    api.NewConfig(),
-		CPD:             cpd.NewConfig(),
-		DNSProxy:        dnsproxy.NewConfig(),
-		OpenConnect:     ocrunner.NewConfig(),
-		Executables:     execs.NewConfig(),
-		SplitRouting:    splitrt.NewConfig(),
-		TrafficPolicing: trafpol.NewConfig(),
+		SocketServer:    config.NewSocketServer(),
+		CPD:             config.NewCPD(),
+		DNSProxy:        config.NewDNSProxy(),
+		OpenConnect:     config.NewOpenConnect(),
+		Executables:     config.NewExecutables(),
+		SplitRouting:    config.NewSplitRouting(),
+		TrafficPolicing: config.NewTrafficPolicing(),
 		TND:             tnd.NewConfig(),
 	}
 	got := NewConfig()

@@ -10,7 +10,7 @@ func TestDaemonErrors(t *testing.T) {
 	// create daemon
 	c := NewConfig()
 	c.OpenConnect.XMLProfile = filepath.Join(t.TempDir(), "does-not-exist")
-	d := NewDaemon(c)
+	d := NewDaemon(c.GetConfig())
 
 	if d.Errors() == nil || d.Errors() != d.errors {
 		t.Errorf("invalid errors channel: %v", d.Errors())
@@ -22,14 +22,14 @@ func TestNewDaemon(t *testing.T) {
 	// create daemon
 	c := NewConfig()
 	c.OpenConnect.XMLProfile = filepath.Join(t.TempDir(), "does-not-exist")
-	d := NewDaemon(c)
+	d := NewDaemon(c.GetConfig())
 
 	// check daemon
 	if d == nil {
 		t.Fatal("daemon is nil")
 	}
 
-	if d.config != c {
+	if d.config != c.GetConfig() {
 		t.Fatal("wrong config")
 	}
 

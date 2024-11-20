@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
@@ -17,7 +18,7 @@ import (
 
 // State is the internal state.
 type State struct {
-	Config          *Config
+	Config          *config.Config // TODO: remove?
 	VPNConfig       *vpnconfig.Config
 	Devices         []*devmon.Update
 	Addresses       []*addrmon.Update
@@ -50,7 +51,7 @@ func (l *locals) set(locals []netip.Prefix) {
 
 // SplitRouting is a split routing configuration.
 type SplitRouting struct {
-	config    *Config
+	config    *config.Config
 	vpnconfig *vpnconfig.Config
 	devmon    *devmon.DevMon
 	addrmon   *addrmon.AddrMon
@@ -78,10 +79,10 @@ func (s *SplitRouting) getTemplateData() map[string]string {
 		"Device":      s.vpnconfig.Device.Name,
 		"IPv4Address": ipv4,
 		"IPv6Address": ipv6,
-		"FWMark":      s.config.FirewallMark,
-		"RTTable":     s.config.RoutingTable,
-		"RulePrio1":   s.config.RulePriority1,
-		"RulePrio2":   s.config.RulePriority2,
+		"FWMark":      s.config.SplitRouting.FirewallMark,
+		"RTTable":     s.config.SplitRouting.RoutingTable,
+		"RulePrio1":   s.config.SplitRouting.RulePriority1,
+		"RulePrio2":   s.config.SplitRouting.RulePriority2,
 	}
 }
 
@@ -346,23 +347,22 @@ func (s *SplitRouting) GetState() *State {
 }
 
 // NewSplitRouting returns a new SplitRouting.
-func NewSplitRouting(config *Config, vpnconfig *vpnconfig.Config) *SplitRouting {
+func NewSplitRouting(config *config.Config) *SplitRouting {
 	return &SplitRouting{
-		config:    config,
-		vpnconfig: vpnconfig,
-		devmon:    devmon.NewDevMon(),
-		addrmon:   addrmon.NewAddrMon(),
-		devices:   NewDevices(),
-		addrs:     NewAddresses(),
-		excludes:  NewExcludes(),
-		dnsreps:   make(chan *dnsproxy.Report),
-		done:      make(chan struct{}),
-		closed:    make(chan struct{}),
+		config:   config,
+		devmon:   devmon.NewDevMon(),
+		addrmon:  addrmon.NewAddrMon(),
+		devices:  NewDevices(),
+		addrs:    NewAddresses(),
+		excludes: NewExcludes(),
+		dnsreps:  make(chan *dnsproxy.Report),
+		done:     make(chan struct{}),
+		closed:   make(chan struct{}),
 	}
 }
 
 // Cleanup cleans up old configuration after a failed shutdown.
-func Cleanup(ctx context.Context, config *Config) {
+func Cleanup(ctx context.Context, config *config.SplitRouting) {
 	data := map[string]string{
 		"RTTable":   config.RoutingTable,
 		"RulePrio1": config.RulePriority1,

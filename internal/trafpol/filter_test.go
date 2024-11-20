@@ -6,6 +6,7 @@ import (
 	"net/netip"
 	"testing"
 
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
@@ -20,7 +21,7 @@ func TestFilterFunctionsErrors(_ *testing.T) {
 	ctx := context.Background()
 
 	// filter rules
-	conf := NewConfig()
+	conf := config.NewTrafficPolicing()
 	conf.FirewallMark = "123"
 	setFilterRules(ctx, conf)
 	unsetFilterRules(ctx)

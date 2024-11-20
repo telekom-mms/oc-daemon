@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
@@ -20,7 +21,7 @@ import (
 // TestSplitRoutingHandleDeviceUpdate tests handleDeviceUpdate of SplitRouting.
 func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 	ctx := context.Background()
-	s := NewSplitRouting(NewConfig(), vpnconfig.New())
+	s := NewSplitRouting(config.NewConfig())
 
 	want := []string{"nothing else"}
 	got := []string{"nothing else"}
@@ -75,7 +76,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 			Mask: net.CIDRMask(32, 32),
 		},
 	}
-	s := NewSplitRouting(NewConfig(), vpnconf)
+	s := NewSplitRouting(config.NewConfig())
 	s.devices.Add(getTestDevMonUpdate())
 
 	got := []string{}

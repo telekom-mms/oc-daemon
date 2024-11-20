@@ -9,10 +9,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 )
 
 // setFilterRules sets the filter rules.
-func setFilterRules(ctx context.Context, config *Config) {
+func setFilterRules(ctx context.Context, config *config.TrafficPolicing) {
 	data := config // TODO: change?
 	cmds, err := cmdtmpl.GetCmds("TrafPolSetFilterRules", data)
 	if err != nil {

@@ -111,7 +111,7 @@ func run(args []string) error {
 	}
 
 	// start daemon
-	daemon := NewDaemon(config)
+	daemon := NewDaemon(config.GetConfig())
 	if err := daemon.Start(); err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/pkg/client"
 )
@@ -36,15 +37,15 @@ func main() {
 	}
 
 	// create config
-	config := client.NewConfig()
-	config.ClientCertificate = *cert
-	config.ClientKey = *key
-	config.CACertificate = *ca
-	config.XMLProfile = *profile
-	config.VPNServer = *server
+	conf := client.NewConfig()
+	conf.ClientCertificate = *cert
+	conf.ClientKey = *key
+	conf.CACertificate = *ca
+	conf.XMLProfile = *profile
+	conf.VPNServer = *server
 
 	// authenticate client
-	a, err := client.NewClient(config)
+	a, err := client.NewClient(conf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,7 +58,7 @@ func main() {
 	}
 
 	// connect client
-	ocrConf := ocrunner.NewConfig()
+	ocrConf := &config.OpenConnect{}
 	ocrConf.XMLProfile = *profile
 	ocrConf.VPNCScript = *script
 	c := ocrunner.NewConnect(ocrConf)

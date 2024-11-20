@@ -7,11 +7,12 @@ import (
 
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 )
 
 // State is the internal state of the DNS Proxy.
 type State struct {
-	Config      *Config
+	Config      *config.DNSProxy // TODO: remove?
 	Remotes     map[string][]string
 	Watches     []string
 	TempWatches []string
@@ -19,7 +20,7 @@ type State struct {
 
 // Proxy is a DNS proxy.
 type Proxy struct {
-	config  *Config
+	config  *config.DNSProxy
 	udp     *dns.Server
 	tcp     *dns.Server
 	remotes *Remotes
@@ -267,7 +268,7 @@ func (p *Proxy) GetState() *State {
 }
 
 // NewProxy returns a new Proxy that listens on address.
-func NewProxy(config *Config) *Proxy {
+func NewProxy(config *config.DNSProxy) *Proxy {
 	var udp *dns.Server
 	if config.ListenUDP {
 		udp = &dns.Server{

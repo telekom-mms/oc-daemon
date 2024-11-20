@@ -15,6 +15,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/api"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
@@ -32,7 +33,7 @@ import (
 
 // Daemon is used to run the daemon.
 type Daemon struct {
-	config *Config
+	config *config.Config
 
 	server *api.Server
 	dbus   *dbusapi.Service
@@ -638,7 +639,7 @@ func (d *Daemon) handleProfileUpdate() error {
 // cleanup cleans up after a failed shutdown.
 func (d *Daemon) cleanup(ctx context.Context) {
 	ocrunner.CleanupConnect(d.config.OpenConnect)
-	vpnsetup.Cleanup(ctx, d.config.OpenConnect.VPNDevice, d.config.SplitRouting)
+	vpnsetup.Cleanup(ctx, d.config)
 	trafpol.Cleanup(ctx)
 }
 
@@ -767,7 +768,7 @@ func (d *Daemon) startTrafPol() error {
 		return nil
 	}
 	log.Info("Daemon starting TrafPol")
-	c := trafpol.NewConfig()
+	c := config.NewTrafficPolicing()
 	c.AllowedHosts = append(c.AllowedHosts, d.getProfileAllowedHosts()...)
 	c.FirewallMark = d.config.SplitRouting.FirewallMark
 	d.trafpol = trafpol.NewTrafPol(c)
@@ -984,7 +985,7 @@ func (d *Daemon) Errors() chan error {
 }
 
 // NewDaemon returns a new Daemon.
-func NewDaemon(config *Config) *Daemon {
+func NewDaemon(config *config.Config) *Daemon {
 	return &Daemon{
 		config: config,
 
@@ -993,8 +994,7 @@ func NewDaemon(config *Config) *Daemon {
 
 		sleepmon: sleepmon.NewSleepMon(),
 
-		vpnsetup: vpnsetup.NewVPNSetup(config.DNSProxy,
-			config.SplitRouting),
+		vpnsetup: vpnsetup.NewVPNSetup(config),
 
 		runner: ocrunner.NewConnect(config.OpenConnect),
 

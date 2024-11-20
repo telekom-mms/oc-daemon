@@ -7,6 +7,7 @@ import (
 	"net/netip"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsmon"
@@ -21,7 +22,7 @@ const (
 
 // State is the internal TrafPol state.
 type State struct {
-	Config           *Config
+	Config           *config.TrafficPolicing // TODO: remove
 	CaptivePortal    bool
 	AllowedDevices   []string
 	AllowedAddresses []netip.Prefix
@@ -39,7 +40,7 @@ type trafPolCmd struct {
 
 // TrafPol is a traffic policing component.
 type TrafPol struct {
-	config *Config
+	config *config.TrafficPolicing
 	devmon *devmon.DevMon
 	dnsmon *dnsmon.DNSMon
 	cpd    *cpd.CPD
@@ -363,12 +364,12 @@ func parseAllowedHosts(hosts []string) (addrs []netip.Prefix, names []string) {
 }
 
 // NewTrafPol returns a new traffic policing component.
-func NewTrafPol(config *Config) *TrafPol {
+func NewTrafPol(conf *config.TrafficPolicing) *TrafPol {
 	// create cpd
-	c := cpd.NewCPD(cpd.NewConfig())
+	c := cpd.NewCPD(config.NewCPD())
 
 	// get allowed addrs and names
-	hosts := append(config.AllowedHosts, c.Hosts()...)
+	hosts := append(conf.AllowedHosts, c.Hosts()...)
 	a, n := parseAllowedHosts(hosts)
 
 	// create allowed addrs and names
@@ -386,7 +387,7 @@ func NewTrafPol(config *Config) *TrafPol {
 
 	// return trafpol
 	return &TrafPol{
-		config: config,
+		config: conf,
 		devmon: devmon.NewDevMon(),
 		dnsmon: dnsmon.NewDNSMon(dnsmon.NewConfig()),
 		cpd:    c,
@@ -395,7 +396,7 @@ func NewTrafPol(config *Config) *TrafPol {
 
 		allowAddrs: addrs,
 		allowNames: names,
-		resolver:   NewResolver(config, n, resolvUp),
+		resolver:   NewResolver(conf, n, resolvUp),
 		resolvUp:   resolvUp,
 
 		cmds: make(chan *trafPolCmd),

@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
 )
 
@@ -34,7 +35,7 @@ type ConnectEvent struct {
 // Connect is a openconnect connection runner.
 type Connect struct {
 	// connection runner configuration
-	config *Config
+	config *config.OpenConnect
 
 	// openconnect command
 	command *exec.Cmd
@@ -326,7 +327,7 @@ func (c *Connect) Events() chan *ConnectEvent {
 }
 
 // NewConnect returns a new Connect.
-func NewConnect(config *Config) *Connect {
+func NewConnect(config *config.OpenConnect) *Connect {
 	return &Connect{
 		config: config,
 
@@ -341,7 +342,7 @@ func NewConnect(config *Config) *Connect {
 }
 
 // CleanupConnect cleans up connect after a failed shutdown.
-func CleanupConnect(config *Config) {
+func CleanupConnect(config *config.OpenConnect) {
 	// get pid from file
 	b, err := osReadFile(config.PIDFile)
 	if err != nil {

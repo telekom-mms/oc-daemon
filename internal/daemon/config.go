@@ -4,13 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/telekom-mms/oc-daemon/internal/api"
-	"github.com/telekom-mms/oc-daemon/internal/cpd"
-	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
-	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
-	"github.com/telekom-mms/oc-daemon/internal/splitrt"
-	"github.com/telekom-mms/oc-daemon/internal/trafpol"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/tnd/pkg/tnd"
 )
 
@@ -27,17 +21,21 @@ var (
 )
 
 // Config is an OC-Daemon configuration.
+// TODO: move this into separate package
+// TODO: use it in cmdtmpl?
+// TODO: add runtime config login with json:"-"?
+// TODO: add runtime config VPNConfig with json:"-"?
 type Config struct {
 	Config  string `json:"-"`
 	Verbose bool
 
-	SocketServer    *api.Config
-	CPD             *cpd.Config
-	DNSProxy        *dnsproxy.Config
-	OpenConnect     *ocrunner.Config
-	Executables     *execs.Config
-	SplitRouting    *splitrt.Config
-	TrafficPolicing *trafpol.Config
+	SocketServer    *config.SocketServer
+	CPD             *config.CPD
+	DNSProxy        *config.DNSProxy
+	OpenConnect     *config.OpenConnect
+	Executables     *config.Executables
+	SplitRouting    *config.SplitRouting
+	TrafficPolicing *config.TrafficPolicing
 	TND             *tnd.Config
 }
 
@@ -80,19 +78,59 @@ func (c *Config) Load() error {
 	return nil
 }
 
+func (c *Config) GetConfig() *config.Config {
+	conf := &config.Config{
+		Verbose: c.Verbose,
+
+		// Socket Server
+		SocketServer: c.SocketServer,
+
+		// CPD
+		CPD: c.CPD,
+
+		// DNS Proxy
+		DNSProxy: c.DNSProxy,
+
+		// OpenConnect
+		OpenConnect: c.OpenConnect,
+
+		// Executables
+		Executables: c.Executables,
+
+		// SplitRouting
+		SplitRouting: c.SplitRouting,
+
+		// TrafficPolicing
+		TrafficPolicing: &config.TrafficPolicing{
+			AllowedHosts:      c.TrafficPolicing.AllowedHosts,
+			PortalPorts:       c.TrafficPolicing.PortalPorts,
+			FirewallMark:      c.TrafficPolicing.FirewallMark,
+			ResolveTimeout:    c.TrafficPolicing.ResolveTimeout,
+			ResolveTries:      c.TrafficPolicing.ResolveTries,
+			ResolveTriesSleep: c.TrafficPolicing.ResolveTriesSleep,
+			ResolveTimer:      c.TrafficPolicing.ResolveTimer,
+			ResolveTTL:        c.TrafficPolicing.ResolveTTL,
+		},
+
+		// TND
+		TND: c.TND,
+	}
+	return conf
+}
+
 // NewConfig returns a new Config.
 func NewConfig() *Config {
 	return &Config{
 		Config:  ConfigFile,
 		Verbose: false,
 
-		SocketServer:    api.NewConfig(),
-		CPD:             cpd.NewConfig(),
-		DNSProxy:        dnsproxy.NewConfig(),
-		OpenConnect:     ocrunner.NewConfig(),
-		Executables:     execs.NewConfig(),
-		SplitRouting:    splitrt.NewConfig(),
-		TrafficPolicing: trafpol.NewConfig(),
+		SocketServer:    config.NewSocketServer(),
+		CPD:             config.NewCPD(),
+		DNSProxy:        config.NewDNSProxy(),
+		OpenConnect:     config.NewOpenConnect(),
+		Executables:     config.NewExecutables(),
+		SplitRouting:    config.NewSplitRouting(),
+		TrafficPolicing: config.NewTrafficPolicing(),
 		TND:             tnd.NewConfig(),
 	}
 }
