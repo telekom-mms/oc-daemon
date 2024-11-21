@@ -57,7 +57,7 @@ func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 
 	// test adding vpn device
 	update = getTestDevMonUpdate()
-	update.Device = s.vpnconfig.Device.Name
+	update.Device = s.config.VPNConfig.Device.Name
 	s.handleDeviceUpdate(ctx, update)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -69,14 +69,11 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	ctx := context.Background()
 
 	// test with exclude
-	vpnconf := vpnconfig.New()
-	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
-		{
-			IP:   net.IPv4(0, 0, 0, 0),
-			Mask: net.CIDRMask(32, 32),
-		},
+	conf := config.NewConfig()
+	conf.VPNConfig.Split.ExcludeIPv4 = []netip.Prefix{
+		netip.MustParsePrefix("0.0.0.0/32"),
 	}
-	s := NewSplitRouting(config.NewConfig())
+	s := NewSplitRouting(conf)
 	s.devices.Add(getTestDevMonUpdate())
 
 	got := []string{}
@@ -110,15 +107,12 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	}
 
 	// test with exclude and virtual
-	vpnconf = vpnconfig.New()
-	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
-		{
-			IP:   net.IPv4(0, 0, 0, 0),
-			Mask: net.CIDRMask(32, 32),
-		},
+	conf = config.NewConfig()
+	conf.VPNConfig.Split.ExcludeIPv4 = []netip.Prefix{
+		netip.MustParsePrefix("0.0.0.0/32"),
 	}
-	vpnconf.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
-	s = NewSplitRouting(NewConfig(), vpnconf)
+	conf.VPNConfig.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
+	s = NewSplitRouting(conf)
 	devUp := getTestDevMonUpdate()
 	devUp.Type = "virtual"
 	s.devices.Add(devUp)
@@ -157,7 +151,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 // TestSplitRoutingHandleDNSReport tests handleDNSReport of SplitRouting.
 func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	ctx := context.Background()
-	s := NewSplitRouting(NewConfig(), vpnconfig.New())
+	s := NewSplitRouting(config.NewConfig())
 
 	got := []string{}
 	oldRunCmd := execs.RunCmd
@@ -208,7 +202,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	// test with new configs
-	s := NewSplitRouting(NewConfig(), vpnconfig.New())
+	s := NewSplitRouting(config.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
@@ -236,7 +230,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 			Mask: net.CIDRMask(128, 128),
 		},
 	}
-	s = NewSplitRouting(NewConfig(), vpnconf)
+	s = NewSplitRouting(config.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
@@ -246,14 +240,14 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	vpnconf = vpnconfig.New()
 	vpnconf.IPv4.Address = net.IPv4(192, 168, 1, 1)
 	vpnconf.IPv4.Netmask = net.CIDRMask(24, 32)
-	s = NewSplitRouting(NewConfig(), vpnconf)
+	s = NewSplitRouting(config.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
 	s.Stop()
 
 	// test with events
-	s = NewSplitRouting(NewConfig(), vpnconfig.New())
+	s = NewSplitRouting(config.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
@@ -268,7 +262,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("test error")
 	}
-	s = NewSplitRouting(NewConfig(), vpnconfig.New())
+	s = NewSplitRouting(config.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
@@ -277,7 +271,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 
 // TestSplitRoutingDNSReports tests DNSReports of SplitRouting.
 func TestSplitRoutingDNSReports(t *testing.T) {
-	s := NewSplitRouting(NewConfig(), vpnconfig.New())
+	s := NewSplitRouting(config.NewConfig())
 	want := s.dnsreps
 	got := s.DNSReports()
 	if got != want {
@@ -287,7 +281,7 @@ func TestSplitRoutingDNSReports(t *testing.T) {
 
 // TestSplitRoutingGetState tests GetState of SplitRouting.
 func TestSplitRoutingGetState(t *testing.T) {
-	s := NewSplitRouting(NewConfig(), vpnconfig.New())
+	s := NewSplitRouting(config.NewConfig())
 
 	// set devices
 	dev := &devmon.Update{
@@ -320,8 +314,7 @@ func TestSplitRoutingGetState(t *testing.T) {
 
 	// get and check state
 	want := &State{
-		Config:          NewConfig(),
-		VPNConfig:       vpnconfig.New(),
+		Config:          config.NewConfig(),
 		Devices:         []*devmon.Update{dev},
 		Addresses:       []*addrmon.Update{addr},
 		LocalExcludes:   []string{"10.0.0.0/24"},
@@ -336,14 +329,10 @@ func TestSplitRoutingGetState(t *testing.T) {
 
 // TestNewSplitRouting tests NewSplitRouting.
 func TestNewSplitRouting(t *testing.T) {
-	config := NewConfig()
-	vpnconf := vpnconfig.New()
-	s := NewSplitRouting(config, vpnconf)
+	config := config.NewConfig()
+	s := NewSplitRouting(config)
 	if s.config != config {
 		t.Errorf("got %p, want %p", s.config, config)
-	}
-	if s.vpnconfig != vpnconf {
-		t.Errorf("got %p, want %p", s.vpnconfig, vpnconf)
 	}
 	if s.devmon == nil ||
 		s.addrmon == nil ||
@@ -373,7 +362,7 @@ func TestCleanup(t *testing.T) {
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	Cleanup(context.Background(), NewConfig())
+	Cleanup(context.Background(), config.NewSplitRouting())
 	want := []string{
 		"ip -4 rule delete pref 2111",
 		"ip -4 rule delete pref 2112",

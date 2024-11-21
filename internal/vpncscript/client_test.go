@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/api"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/daemon"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
@@ -13,7 +14,7 @@ import (
 // TestRunClient tests runClient.
 func TestRunClient(t *testing.T) {
 	sockfile := filepath.Join(t.TempDir(), "sockfile")
-	config := api.NewConfig()
+	config := config.NewSocketServer()
 	config.SocketFile = sockfile
 
 	// without errors

@@ -3,6 +3,8 @@ package daemon
 import (
 	"path/filepath"
 	"testing"
+
+	"github.com/telekom-mms/oc-daemon/internal/config"
 )
 
 // TestDaemonErrors tests Errors of Daemon.
@@ -20,16 +22,16 @@ func TestDaemonErrors(t *testing.T) {
 // TestNewDaemon tests NewDaemon.
 func TestNewDaemon(t *testing.T) {
 	// create daemon
-	c := NewConfig()
+	c := config.NewConfig()
 	c.OpenConnect.XMLProfile = filepath.Join(t.TempDir(), "does-not-exist")
-	d := NewDaemon(c.GetConfig())
+	d := NewDaemon(c)
 
 	// check daemon
 	if d == nil {
 		t.Fatal("daemon is nil")
 	}
 
-	if d.config != c.GetConfig() {
+	if d.config != c {
 		t.Fatal("wrong config")
 	}
 

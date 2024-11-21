@@ -572,5 +572,19 @@ type Config struct {
 
 // NewConfig returns a new Config.
 func NewConfig() *Config {
-	return &Config{}
+	return &Config{
+		Verbose: false,
+
+		SocketServer:    NewSocketServer(),
+		CPD:             NewCPD(),
+		DNSProxy:        NewDNSProxy(),
+		OpenConnect:     NewOpenConnect(),
+		Executables:     NewExecutables(),
+		SplitRouting:    NewSplitRouting(),
+		TrafficPolicing: NewTrafficPolicing(),
+		TND:             tnd.NewConfig(),
+
+		LoginInfo: &logininfo.LoginInfo{},
+		VPNConfig: &VPNConfig{},
+	}
 }

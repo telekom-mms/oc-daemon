@@ -13,13 +13,11 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
-	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
 // State is the internal state.
 type State struct {
 	Config          *config.Config // TODO: remove?
-	VPNConfig       *vpnconfig.Config
 	Devices         []*devmon.Update
 	Addresses       []*addrmon.Update
 	LocalExcludes   []string
@@ -51,32 +49,32 @@ func (l *locals) set(locals []netip.Prefix) {
 
 // SplitRouting is a split routing configuration.
 type SplitRouting struct {
-	config    *config.Config
-	vpnconfig *vpnconfig.Config
-	devmon    *devmon.DevMon
-	addrmon   *addrmon.AddrMon
-	devices   *Devices
-	addrs     *Addresses
-	locals    locals
-	excludes  *Excludes
-	dnsreps   chan *dnsproxy.Report
-	done      chan struct{}
-	closed    chan struct{}
+	config   *config.Config
+	devmon   *devmon.DevMon
+	addrmon  *addrmon.AddrMon
+	devices  *Devices
+	addrs    *Addresses
+	locals   locals
+	excludes *Excludes
+	dnsreps  chan *dnsproxy.Report
+	done     chan struct{}
+	closed   chan struct{}
 }
 
 // getTemplateData returns template data.
+// TODO: remove?
 func (s *SplitRouting) getTemplateData() map[string]string {
 	ipv4 := ""
-	if len(s.vpnconfig.IPv4.Address) > 0 {
-		ipv4 = s.vpnconfig.IPv4.Address.String()
+	if s.config.VPNConfig.IPv4.IsValid() {
+		ipv4 = s.config.VPNConfig.IPv4.String()
 	}
 	ipv6 := ""
-	if len(s.vpnconfig.IPv6.Address) > 0 {
-		ipv4 = s.vpnconfig.IPv6.Address.String()
+	if s.config.VPNConfig.IPv6.IsValid() {
+		ipv4 = s.config.VPNConfig.IPv6.String()
 	}
 	// TODO: change names to full names like FirewallMark?
 	return map[string]string{
-		"Device":      s.vpnconfig.Device.Name,
+		"Device":      s.config.VPNConfig.Device.Name,
 		"IPv4Address": ipv4,
 		"IPv6Address": ipv6,
 		"FWMark":      s.config.SplitRouting.FirewallMark,
@@ -103,6 +101,7 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("SplitRouting could not run setup routing command")
 		}
 	}
@@ -111,29 +110,26 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 	s.excludes.Start()
 
 	// add gateway to static excludes
-	if s.vpnconfig.Gateway != nil {
-		g := netip.MustParseAddr(s.vpnconfig.Gateway.String())
-		gateway := netip.PrefixFrom(g, g.BitLen())
+	if s.config.VPNConfig.Gateway.IsValid() {
+		gateway := netip.PrefixFrom(s.config.VPNConfig.Gateway, s.config.VPNConfig.Gateway.BitLen())
 		s.excludes.AddStatic(ctx, gateway)
 	}
 
 	// add static IPv4 excludes
-	for _, e := range s.vpnconfig.Split.ExcludeIPv4 {
+	for _, e := range s.config.VPNConfig.Split.ExcludeIPv4 {
 		if e.String() == "0.0.0.0/32" {
 			continue
 		}
-		p := netip.MustParsePrefix(e.String())
-		s.excludes.AddStatic(ctx, p)
+		s.excludes.AddStatic(ctx, e)
 	}
 
 	// add static IPv6 excludes
-	for _, e := range s.vpnconfig.Split.ExcludeIPv6 {
+	for _, e := range s.config.VPNConfig.Split.ExcludeIPv6 {
 		// TODO: does ::/128 exist?
 		if e.String() == "::/128" {
 			continue
 		}
-		p := netip.MustParsePrefix(e.String())
-		s.excludes.AddStatic(ctx, p)
+		s.excludes.AddStatic(ctx, e)
 	}
 }
 
@@ -154,6 +150,7 @@ func (s *SplitRouting) teardownRouting(ctx context.Context) {
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("SplitRouting could not run teardown routing command")
 		}
 	}
@@ -164,12 +161,12 @@ func (s *SplitRouting) teardownRouting(ctx context.Context) {
 
 // excludeSettings returns whether local (virtual) networks should be excluded.
 func (s *SplitRouting) excludeLocalNetworks() (exclude bool, virtual bool) {
-	for _, e := range s.vpnconfig.Split.ExcludeIPv4 {
+	for _, e := range s.config.VPNConfig.Split.ExcludeIPv4 {
 		if e.String() == "0.0.0.0/32" {
 			exclude = true
 		}
 	}
-	if s.vpnconfig.Split.ExcludeVirtualSubnetsOnlyIPv4 {
+	if s.config.VPNConfig.Split.ExcludeVirtualSubnetsOnlyIPv4 {
 		virtual = true
 	}
 	return
@@ -235,7 +232,7 @@ func (s *SplitRouting) handleDeviceUpdate(ctx context.Context, u *devmon.Update)
 			// skip loopback devices
 			return
 		}
-		if u.Device == s.vpnconfig.Device.Name {
+		if u.Device == s.config.VPNConfig.Device.Name {
 			// skip vpn tunnel device, so we do not use it for
 			// split excludes
 			return
@@ -337,7 +334,6 @@ func (s *SplitRouting) GetState() *State {
 	static, dynamic := s.excludes.List()
 	return &State{
 		Config:          s.config,
-		VPNConfig:       s.vpnconfig,
 		Devices:         s.devices.List(),
 		Addresses:       s.addrs.List(),
 		LocalExcludes:   locals,
@@ -362,6 +358,7 @@ func NewSplitRouting(config *config.Config) *SplitRouting {
 }
 
 // Cleanup cleans up old configuration after a failed shutdown.
+// TODO: use *config.Config?
 func Cleanup(ctx context.Context, config *config.SplitRouting) {
 	data := map[string]string{
 		"RTTable":   config.RoutingTable,
