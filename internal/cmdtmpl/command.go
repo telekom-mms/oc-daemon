@@ -68,11 +68,11 @@ table inet oc-daemon-routing {
 
 		# add drop rules for non-local traffic from other devices to
 		# tunnel network addresses here
-		{{if .IPv4Address}}
-		iifname != {{.Device}} ip daddr {{.IPv4Address}} fib saddr type != local counter drop
+		{{if .VPNConfig.IPv4.IsValid}}
+		iifname != {{.VPNConfig.Device.Name}} ip daddr {{.VPNConfig.IPv4}} fib saddr type != local counter drop
 		{{end}}
-		{{if .IPv6Address}}
-		iifname != {{.Device}} ip6 daddr {{.IPv6Address}} fib saddr type != local counter drop
+		{{if .VPNConfig.IPv6.IsValid}}
+		iifname != {{.VPNConfig.Device.Name}} ip6 daddr {{.VPNConfig.IPv6}} fib saddr type != local counter drop
 		{{end}}
 	}
 
@@ -82,8 +82,8 @@ table inet oc-daemon-routing {
 		meta mark != 0 counter accept
 
 		# mark packets in exclude sets
-		ip daddr @excludes4 counter meta mark set {{.FWMark}}
-		ip6 daddr @excludes6 counter meta mark set {{.FWMark}}
+		ip daddr @excludes4 counter meta mark set {{.SplitRouting.FirewallMark}}
+		ip6 daddr @excludes6 counter meta mark set {{.SplitRouting.FirewallMark}}
 
 		# save mark in conntraction
 		ct mark set meta mark counter
@@ -107,7 +107,7 @@ table inet oc-daemon-routing {
 		type filter hook postrouting priority mangle; policy accept;
 
 		# save mark in conntracking
-		meta mark {{.FWMark}} ct mark set meta mark counter
+		meta mark {{.SplitRouting.FirewallMark}} ct mark set meta mark counter
 	}
 
 	chain postrouting {
@@ -115,14 +115,14 @@ table inet oc-daemon-routing {
 
 		# masquerare tunnel/exclude traffic to make sure the source IP
 		# matches the outgoing interface
-		ct mark {{.FWMark}} counter masquerade
+		ct mark {{.SplitRouting.FirewallMark}} counter masquerade
 	}
 
 	chain rejectipversion {
 		# used to reject unsupported ip version on the tunnel device
 
 		# make sure exclude traffic is not filtered
-		ct mark {{.FWMark}} counter accept
+		ct mark {{.SplitRouting.FirewallMark}} counter accept
 
 		# use tcp reset and icmp admin prohibited
 		meta l4proto tcp counter reject with tcp reset
@@ -134,11 +134,11 @@ table inet oc-daemon-routing {
 
 		# reject unsupported ip versions when forwarding packets,
 		# add matching jump rule to rejectipversion if necessary
-		{{if .IPv4Address}}
-		meta oifname {{.Device}} meta nfproto ipv6 counter jump rejectipversion
+		{{if .VPNConfig.IPv4.IsValid}}
+		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv6 counter jump rejectipversion
 		{{end}}
-		{{if .IPv6Address}}
-		meta oifname {{.Device}} meta nfproto ipv4 counter jump rejectipversion
+		{{if .VPNConfig.IPv6.IsValid}}
+		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv4 counter jump rejectipversion
 		{{end}}
 	}
 
@@ -147,11 +147,11 @@ table inet oc-daemon-routing {
 
 		# reject unsupported ip versions when sending packets,
 		# add matching jump rule to rejectipversion if necessary
-		{{if .IPv4Address}}
-		meta oifname {{.Device}} meta nfproto ipv6 counter jump rejectipversion
+		{{if .VPNConfig.IPv4.IsValid}}
+		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv6 counter jump rejectipversion
 		{{end}}
-		{{if .IPv6Address}}
-		meta oifname {{.Device}} meta nfproto ipv4 counter jump rejectipversion
+		{{if .VPNConfig.IPv6.IsValid}}
+		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv4 counter jump rejectipversion
 		{{end}}
 	}
 }
@@ -167,14 +167,14 @@ func getCommandListSplitRouting(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f -", Stdin: `{{template "SplitRoutingRules" .}}`},
-				{Line: "ip -4 route add 0.0.0.0/0 dev {{.Device}} table {{.RTTable}}"},
-				{Line: "ip -4 rule add iif {{.Device}} table main pref {{.RulePrio1}}"},
-				{Line: "ip -4 rule add not fwmark {{.FWMark}} table {{.RTTable}} pref {{.RulePrio2}}"},
-				{Line: "sysctl -q net.ipv4.conf.all.src_valid_mark=1"},
-				{Line: "ip -6 route add ::/0 dev {{.Device}} table {{.RTTable}}"},
-				{Line: "ip -6 rule add iif {{.Device}} table main pref {{.RulePrio1}}"},
-				{Line: "ip -6 rule add not fwmark {{.FWMark}} table {{.RTTable}} pref {{.RulePrio2}}"},
+				{Line: "{{.Executables.Nft}} -f -", Stdin: `{{template "SplitRoutingRules" .}}`},
+				{Line: "{{.Executables.IP}} -4 route add 0.0.0.0/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -4 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
+				{Line: "{{.Executables.IP}} -4 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
+				{Line: "{{.Executables.Sysctl}} -q net.ipv4.conf.all.src_valid_mark=1"},
+				{Line: "{{.Executables.IP}} -6 route add ::/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -6 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
+				{Line: "{{.Executables.IP}} -6 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
 			},
 			defaultTemplate: SplitRoutingDefaultTemplate,
 		}
@@ -183,11 +183,11 @@ func getCommandListSplitRouting(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "ip -4 rule delete table {{.RTTable}}"},
-				{Line: "ip -4 rule delete iif {{.Device}} table main"},
-				{Line: "ip -6 rule delete table {{.RTTable}}"},
-				{Line: "ip -6 rule delete iif {{.Device}} table main"},
-				{Line: "nft -f - delete table inet oc-daemon-routing"},
+				{Line: "{{.Executables.IP}} -4 rule delete table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -4 rule delete iif {{.VPNConfig.Device.Name}} table main"},
+				{Line: "{{.Executables.IP}} -6 rule delete table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -6 rule delete iif {{.VPNConfig.Device.Name}} table main"},
+				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
 			},
 			defaultTemplate: SplitRoutingDefaultTemplate,
 		}
@@ -231,13 +231,13 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "ip -4 rule delete pref {{.RulePrio1}}"},
-				{Line: "ip -4 rule delete pref {{.RulePrio2}}"},
-				{Line: "ip -6 rule delete pref {{.RulePrio1}}"},
-				{Line: "ip -6 rule delete pref {{.RulePrio2}}"},
-				{Line: "ip -4 route flush table {{.RTTable}}"},
-				{Line: "ip -6 route flush table {{.RTTable}}"},
-				{Line: "nft -f - delete table inet oc-daemon-routing"},
+				{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority1}}"},
+				{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority2}}"},
+				{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority1}}"},
+				{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority2}}"},
+				{Line: "{{.Executables.IP}} -4 route flush table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -6 route flush table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
 			},
 			defaultTemplate: SplitRoutingDefaultTemplate,
 		}

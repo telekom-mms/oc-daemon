@@ -3,7 +3,6 @@ package splitrt
 import (
 	"context"
 	"errors"
-	"net"
 	"net/netip"
 	"reflect"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
-	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/vishvananda/netlink"
 )
 
@@ -209,37 +207,24 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	s.Stop()
 
 	// test with excludes
-	vpnconf := vpnconfig.New()
-	vpnconf.Split.ExcludeIPv4 = []*net.IPNet{
-		{
-			IP:   net.IPv4(0, 0, 0, 0),
-			Mask: net.CIDRMask(32, 32),
-		},
-		{
-			IP:   net.IPv4(192, 168, 1, 1),
-			Mask: net.CIDRMask(32, 32),
-		},
+	conf := config.NewConfig()
+	conf.VPNConfig.Split.ExcludeIPv4 = []netip.Prefix{
+		netip.MustParsePrefix("0.0.0.0/32"),
+		netip.MustParsePrefix("192.168.1.1/32"),
 	}
-	vpnconf.Split.ExcludeIPv6 = []*net.IPNet{
-		{
-			IP:   net.ParseIP("::"),
-			Mask: net.CIDRMask(128, 128),
-		},
-		{
-			IP:   net.ParseIP("2000::1"),
-			Mask: net.CIDRMask(128, 128),
-		},
+	conf.VPNConfig.Split.ExcludeIPv6 = []netip.Prefix{
+		netip.MustParsePrefix("::/128"),
+		netip.MustParsePrefix("2000::1/128"),
 	}
-	s = NewSplitRouting(config.NewConfig())
+	s = NewSplitRouting(conf)
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
 	s.Stop()
 
 	// test with vpn address
-	vpnconf = vpnconfig.New()
-	vpnconf.IPv4.Address = net.IPv4(192, 168, 1, 1)
-	vpnconf.IPv4.Netmask = net.CIDRMask(24, 32)
+	conf = config.NewConfig()
+	conf.VPNConfig.IPv4 = netip.MustParsePrefix("192.168.1.1/24")
 	s = NewSplitRouting(config.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
@@ -362,7 +347,7 @@ func TestCleanup(t *testing.T) {
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	Cleanup(context.Background(), config.NewSplitRouting())
+	Cleanup(context.Background(), config.NewConfig())
 	want := []string{
 		"ip -4 rule delete pref 2111",
 		"ip -4 rule delete pref 2112",

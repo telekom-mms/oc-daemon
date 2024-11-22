@@ -27,6 +27,7 @@ func addExclude(ctx context.Context, address netip.Prefix) {
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("SplitRouting could not run add exclude command")
 		}
 	}
@@ -34,6 +35,9 @@ func addExclude(ctx context.Context, address netip.Prefix) {
 
 // setExcludes resets the excludes to addresses in netfilter.
 func setExcludes(ctx context.Context, addresses []netip.Prefix) {
+	// TODO: pass config to this function and use it as data? create custom
+	// type with embedded config.Config and excludes?
+
 	data := addresses
 	cmds, err := cmdtmpl.GetCmds("SplitRoutingSetExcludes", data)
 	if err != nil {
@@ -48,6 +52,7 @@ func setExcludes(ctx context.Context, addresses []netip.Prefix) {
 				"stdin":     c.Stdin,
 				"stdout":    string(stdout),
 				"stderr":    string(stderr),
+				"error":     err,
 			}).Error("SplitRouting could not run set excludes command")
 		}
 	}

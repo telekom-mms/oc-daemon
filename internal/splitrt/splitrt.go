@@ -61,34 +61,34 @@ type SplitRouting struct {
 	closed   chan struct{}
 }
 
-// getTemplateData returns template data.
-// TODO: remove?
-func (s *SplitRouting) getTemplateData() map[string]string {
-	ipv4 := ""
-	if s.config.VPNConfig.IPv4.IsValid() {
-		ipv4 = s.config.VPNConfig.IPv4.String()
-	}
-	ipv6 := ""
-	if s.config.VPNConfig.IPv6.IsValid() {
-		ipv4 = s.config.VPNConfig.IPv6.String()
-	}
-	// TODO: change names to full names like FirewallMark?
-	return map[string]string{
-		"Device":      s.config.VPNConfig.Device.Name,
-		"IPv4Address": ipv4,
-		"IPv6Address": ipv6,
-		"FWMark":      s.config.SplitRouting.FirewallMark,
-		"RTTable":     s.config.SplitRouting.RoutingTable,
-		"RulePrio1":   s.config.SplitRouting.RulePriority1,
-		"RulePrio2":   s.config.SplitRouting.RulePriority2,
-	}
-}
+//// getTemplateData returns template data.
+//// TODO: remove?
+//func (s *SplitRouting) getTemplateData() map[string]string {
+//	ipv4 := ""
+//	if s.config.VPNConfig.IPv4.IsValid() {
+//		ipv4 = s.config.VPNConfig.IPv4.String()
+//	}
+//	ipv6 := ""
+//	if s.config.VPNConfig.IPv6.IsValid() {
+//		ipv4 = s.config.VPNConfig.IPv6.String()
+//	}
+//	// TODO: change names to full names like FirewallMark?
+//	return map[string]string{
+//		"Device":      s.config.VPNConfig.Device.Name,
+//		"IPv4Address": ipv4,
+//		"IPv6Address": ipv6,
+//		"FWMark":      s.config.SplitRouting.FirewallMark,
+//		"RTTable":     s.config.SplitRouting.RoutingTable,
+//		"RulePrio1":   s.config.SplitRouting.RulePriority1,
+//		"RulePrio2":   s.config.SplitRouting.RulePriority2,
+//	}
+//}
 
 // setupRouting sets up routing using config.
 func (s *SplitRouting) setupRouting(ctx context.Context) {
 	// set up routing
 	// TODO: move this to VPNSetup?
-	data := s.getTemplateData()
+	data := s.config
 	cmds, err := cmdtmpl.GetCmds("SplitRoutingSetupRouting", data)
 	if err != nil {
 		log.WithError(err).Error("SplitRouting could not get setup routing commands")
@@ -137,7 +137,7 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 func (s *SplitRouting) teardownRouting(ctx context.Context) {
 	// tear down routing
 	// TODO: move this to VPNSetup?
-	data := s.getTemplateData()
+	data := s.config
 	cmds, err := cmdtmpl.GetCmds("SplitRoutingTeardownRouting", data)
 	if err != nil {
 		log.WithError(err).Error("SplitRouting could not get teardown routing commands")
@@ -359,12 +359,13 @@ func NewSplitRouting(config *config.Config) *SplitRouting {
 
 // Cleanup cleans up old configuration after a failed shutdown.
 // TODO: use *config.Config?
-func Cleanup(ctx context.Context, config *config.SplitRouting) {
-	data := map[string]string{
-		"RTTable":   config.RoutingTable,
-		"RulePrio1": config.RulePriority1,
-		"RulePrio2": config.RulePriority2,
-	}
+func Cleanup(ctx context.Context, config *config.Config) {
+	//data := map[string]string{
+	//	"RTTable":   config.RoutingTable,
+	//	"RulePrio1": config.RulePriority1,
+	//	"RulePrio2": config.RulePriority2,
+	//}
+	data := config
 	cmds, err := cmdtmpl.GetCmds("SplitRoutingCleanup", data)
 	if err != nil {
 		log.WithError(err).Error("SplitRouting could not get cleanup commands")

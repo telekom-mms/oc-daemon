@@ -637,5 +637,5 @@ func Cleanup(ctx context.Context, config *config.Config) {
 			}).Warn("VPNSetup cleaned up configuration")
 		}
 	}
-	splitrt.Cleanup(ctx, config.SplitRouting)
+	splitrt.Cleanup(ctx, config)
 }
