@@ -385,7 +385,7 @@ table inet oc-daemon-filter {
                 ct state established,related counter accept
 
                 # accept split exclude traffic
-                iifname @allowdevs ct mark {{.FirewallMark}} counter accept
+                iifname @allowdevs ct mark {{.SplitRouting.FirewallMark}} counter accept
 
                 # accept traffic on allowed devices
                 iifname @allowdevs oifname @allowdevs counter accept
@@ -402,7 +402,7 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f -", Stdin: `{{template "TrafPolRules" .}}`},
+				{Line: "{{.Executables.Nft}} -f -", Stdin: `{{template "TrafPolRules" .}}`},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}

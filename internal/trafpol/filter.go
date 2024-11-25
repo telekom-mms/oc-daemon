@@ -13,9 +13,8 @@ import (
 )
 
 // setFilterRules sets the filter rules.
-func setFilterRules(ctx context.Context, config *config.TrafficPolicing) {
-	data := config // TODO: change?
-	cmds, err := cmdtmpl.GetCmds("TrafPolSetFilterRules", data)
+func setFilterRules(ctx context.Context, config *config.Config) {
+	cmds, err := cmdtmpl.GetCmds("TrafPolSetFilterRules", config)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get set filter rules commands")
 	}

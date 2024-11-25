@@ -22,7 +22,6 @@ const (
 
 // State is the internal TrafPol state.
 type State struct {
-	Config           *config.TrafficPolicing // TODO: remove
 	CaptivePortal    bool
 	AllowedDevices   []string
 	AllowedAddresses []netip.Prefix
@@ -40,7 +39,7 @@ type trafPolCmd struct {
 
 // TrafPol is a traffic policing component.
 type TrafPol struct {
-	config *config.TrafficPolicing
+	config *config.Config
 	devmon *devmon.DevMon
 	dnsmon *dnsmon.DNSMon
 	cpd    *cpd.CPD
@@ -97,7 +96,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 			t.resolver.Resolve()
 
 			// remove ports from allowed ports
-			removePortalPorts(ctx, t.config.PortalPorts)
+			removePortalPorts(ctx, t.config.TrafficPolicing.PortalPorts)
 			t.capPortal = false
 			log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
 		}
@@ -106,7 +105,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 
 	// add ports to allowed ports
 	if !t.capPortal {
-		addPortalPorts(ctx, t.config.PortalPorts)
+		addPortalPorts(ctx, t.config.TrafficPolicing.PortalPorts)
 		t.capPortal = true
 		log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
 	}
@@ -176,7 +175,6 @@ func (t *TrafPol) handleAddressCommand(ctx context.Context, cmd *trafPolCmd) {
 func (t *TrafPol) handleGetStateCommand(cmd *trafPolCmd) {
 	// set state
 	cmd.state = &State{
-		Config:           t.config,
 		CaptivePortal:    t.capPortal,
 		AllowedDevices:   t.allowDevs.List(),
 		AllowedAddresses: t.allowAddrs.List(),
@@ -364,12 +362,12 @@ func parseAllowedHosts(hosts []string) (addrs []netip.Prefix, names []string) {
 }
 
 // NewTrafPol returns a new traffic policing component.
-func NewTrafPol(conf *config.TrafficPolicing) *TrafPol {
+func NewTrafPol(conf *config.Config) *TrafPol {
 	// create cpd
 	c := cpd.NewCPD(config.NewCPD())
 
 	// get allowed addrs and names
-	hosts := append(conf.AllowedHosts, c.Hosts()...)
+	hosts := append(conf.TrafficPolicing.AllowedHosts, c.Hosts()...)
 	a, n := parseAllowedHosts(hosts)
 
 	// create allowed addrs and names
@@ -396,7 +394,7 @@ func NewTrafPol(conf *config.TrafficPolicing) *TrafPol {
 
 		allowAddrs: addrs,
 		allowNames: names,
-		resolver:   NewResolver(conf, n, resolvUp),
+		resolver:   NewResolver(conf.TrafficPolicing, n, resolvUp),
 		resolvUp:   resolvUp,
 
 		cmds: make(chan *trafPolCmd),

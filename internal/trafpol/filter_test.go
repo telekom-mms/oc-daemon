@@ -21,8 +21,8 @@ func TestFilterFunctionsErrors(_ *testing.T) {
 	ctx := context.Background()
 
 	// filter rules
-	conf := config.NewTrafficPolicing()
-	conf.FirewallMark = "123"
+	conf := config.NewConfig()
+	conf.TrafficPolicing.FirewallMark = "123"
 	setFilterRules(ctx, conf)
 	unsetFilterRules(ctx)
 

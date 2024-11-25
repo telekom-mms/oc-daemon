@@ -768,17 +768,18 @@ func (d *Daemon) startTrafPol() error {
 		return nil
 	}
 	log.Info("Daemon starting TrafPol")
-	c := config.NewTrafficPolicing()
-	c.AllowedHosts = append(c.AllowedHosts, d.getProfileAllowedHosts()...)
-	c.FirewallMark = d.config.SplitRouting.FirewallMark
-	d.trafpol = trafpol.NewTrafPol(c)
+	// TODO: check if this is ok!
+	c := *d.config
+	c.TrafficPolicing.AllowedHosts = append(c.TrafficPolicing.AllowedHosts, d.getProfileAllowedHosts()...)
+	c.TrafficPolicing.FirewallMark = d.config.SplitRouting.FirewallMark
+	d.trafpol = trafpol.NewTrafPol(&c)
 	if err := d.trafpol.Start(); err != nil {
 		return fmt.Errorf("Daemon could not start TrafPol: %w", err)
 	}
 
 	// update trafpol status
 	d.setStatusTrafPolState(vpnstatus.TrafPolStateActive)
-	d.setStatusAllowedHosts(c.AllowedHosts)
+	d.setStatusAllowedHosts(c.TrafficPolicing.AllowedHosts)
 
 	if d.serverIP.IsValid() {
 		// VPN connection active, allow server IP
