@@ -7,6 +7,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 )
 
 const (
@@ -23,6 +24,7 @@ type dynExclude struct {
 // Excludes contains split Excludes.
 type Excludes struct {
 	sync.Mutex
+	conf   *config.Config
 	s      map[string]netip.Prefix
 	d      map[netip.Addr]*dynExclude
 	done   chan struct{}
@@ -41,7 +43,7 @@ func (e *Excludes) setFilter(ctx context.Context) {
 		prefix := netip.PrefixFrom(k, k.BitLen())
 		addresses = append(addresses, prefix)
 	}
-	setExcludes(ctx, addresses)
+	setExcludes(ctx, e.conf, addresses)
 }
 
 // AddStatic adds a static entry to the split excludes.
@@ -80,7 +82,7 @@ func (e *Excludes) AddStatic(ctx context.Context, address netip.Prefix) {
 		return
 	}
 	// single new entry, add it
-	addExclude(ctx, address)
+	addExclude(ctx, e.conf, address)
 }
 
 // AddDynamic adds a dynamic entry to the split excludes.
@@ -121,7 +123,7 @@ func (e *Excludes) AddDynamic(ctx context.Context, address netip.Prefix, ttl uin
 	}
 
 	// add to netfilter
-	addExclude(ctx, address)
+	addExclude(ctx, e.conf, address)
 }
 
 // RemoveStatic removes a static entry from the split excludes.
@@ -213,8 +215,9 @@ func (e *Excludes) List() (static, dynamic []string) {
 }
 
 // NewExcludes returns new split excludes.
-func NewExcludes() *Excludes {
+func NewExcludes(conf *config.Config) *Excludes {
 	return &Excludes{
+		conf:   conf,
 		s:      make(map[string]netip.Prefix),
 		d:      make(map[netip.Addr]*dynExclude),
 		done:   make(chan struct{}),

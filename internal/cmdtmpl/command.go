@@ -196,12 +196,12 @@ func getCommandListSplitRouting(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f -",
+				{Line: "{{.Executables.Nft}} -f -",
 					Stdin: `
-				{{- if .Addr.Is6 -}}
-				add element inet oc-daemon-routing excludes6 { {{.}} }
+				{{- if .Address.Addr.Is6 -}}
+				add element inet oc-daemon-routing excludes6 { {{.Address}} }
 				{{- else -}}
-				add element inet oc-daemon-routing excludes4 { {{.}} }
+				add element inet oc-daemon-routing excludes4 { {{.Address}} }
 				{{- end}}`},
 			},
 			defaultTemplate: SplitRoutingDefaultTemplate,
@@ -213,10 +213,10 @@ func getCommandListSplitRouting(name string) *CommandList {
 			Commands: []*Command{
 				// flush existing entries
 				// add entries
-				{Line: "nft -f -",
+				{Line: "{{.Executables.Nft}} -f -",
 					Stdin: `flush set inet oc-daemon-routing excludes4
 flush set inet oc-daemon-routing excludes6
-{{range . -}}
+{{range .Addresses -}}
 {{if .Addr.Is6 -}}
 add element inet oc-daemon-routing excludes6 { {{.}} }
 {{else -}}

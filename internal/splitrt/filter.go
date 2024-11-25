@@ -6,14 +6,21 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
+	"github.com/telekom-mms/oc-daemon/internal/config"
 )
 
 // addExclude adds exclude address to netfilter.
 // TODO: remove and only use setExcludes?
-func addExclude(ctx context.Context, address netip.Prefix) {
+func addExclude(ctx context.Context, conf *config.Config, address netip.Prefix) {
 	log.WithField("address", address).Debug("SplitRouting adding exclude to netfilter")
 
-	data := address
+	data := &struct {
+		config.Config
+		Address netip.Prefix
+	}{
+		Config:  *conf,
+		Address: address,
+	}
 	cmds, err := cmdtmpl.GetCmds("SplitRoutingAddExclude", data)
 	if err != nil {
 		log.WithError(err).Error("SplitRouting could not get add exclude commands")
@@ -34,11 +41,14 @@ func addExclude(ctx context.Context, address netip.Prefix) {
 }
 
 // setExcludes resets the excludes to addresses in netfilter.
-func setExcludes(ctx context.Context, addresses []netip.Prefix) {
-	// TODO: pass config to this function and use it as data? create custom
-	// type with embedded config.Config and excludes?
-
-	data := addresses
+func setExcludes(ctx context.Context, conf *config.Config, addresses []netip.Prefix) {
+	data := &struct {
+		config.Config
+		Addresses []netip.Prefix
+	}{
+		Config:    *conf,
+		Addresses: addresses,
+	}
 	cmds, err := cmdtmpl.GetCmds("SplitRoutingSetExcludes", data)
 	if err != nil {
 		log.WithError(err).Error("SplitRouting could not get set excludes commands")

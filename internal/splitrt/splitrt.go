@@ -350,7 +350,7 @@ func NewSplitRouting(config *config.Config) *SplitRouting {
 		addrmon:  addrmon.NewAddrMon(),
 		devices:  NewDevices(),
 		addrs:    NewAddresses(),
-		excludes: NewExcludes(),
+		excludes: NewExcludes(config),
 		dnsreps:  make(chan *dnsproxy.Report),
 		done:     make(chan struct{}),
 		closed:   make(chan struct{}),
