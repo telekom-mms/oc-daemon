@@ -505,12 +505,12 @@ func getCommandListVPNSetup(name string) *CommandList {
 			Name: name,
 			Commands: []*Command{
 				// set mtu on device
-				{Line: "ip link set {{.Device.Name}} mtu {{.Device.MTU}}"},
+				{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} mtu {{.VPNConfig.Device.MTU}}"},
 				// set device up
-				{Line: "ip link set {{.Device.Name}} up"},
+				{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} up"},
 				// set ipv4 and ipv6 addresses on device
-				{Line: "{{if .IPv4.IsValid}}ip address add {{.IPv4}} dev {{.Device.Name}}{{end}}"},
-				{Line: "{{if .IPv6.IsValid}}ip address add {{.IPv6}} dev {{.Device.Name}}{{end}}"},
+				{Line: "{{if .VPNConfig.IPv4.IsValid}}{{.Executables.IP}} address add {{.VPNConfig.IPv4}} dev {{.VPNConfig.Device.Name}}{{end}}"},
+				{Line: "{{if .VPNConfig.IPv6.IsValid}}{{.Executables.IP}} address add {{.VPNConfig.IPv6}} dev {{.VPNConfig.Device.Name}}{{end}}"},
 			},
 			defaultTemplate: "",
 		}
@@ -519,7 +519,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "ip link set {{.Device.Name}} down"},
+				{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} down"},
 			},
 			defaultTemplate: "",
 		}
@@ -528,7 +528,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "resolvectl dns {{.Device.Name}} {{.DNS.ProxyAddress}}"},
+				{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
 			},
 			defaultTemplate: "",
 		}
@@ -537,7 +537,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "resolvectl domain {{.Device.Name}} {{.DNS.DefaultDomain}} ~."},
+				{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
 			},
 			defaultTemplate: "",
 		}
@@ -546,7 +546,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "resolvectl default-route {{Device}} yes"},
+				{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device}} yes"},
 			},
 			defaultTemplate: "",
 		}
@@ -558,11 +558,11 @@ func getCommandListVPNSetup(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "resolvectl dns {{.Device.Name}} {{.DNS.ProxyAddress}}"},
-				{Line: "resolvectl domain {{.Device.Name}} {{.DNS.DefaultDomain}} ~."},
-				{Line: "resolvectl default-route {{.Device.Name}} yes"},
-				{Line: "resolvectl flush-caches"},
-				{Line: "resolvectl reset-server-features"},
+				{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
+				{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
+				{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device.Name}} yes"},
+				{Line: "{{.Executables.Resolvectl}} flush-caches"},
+				{Line: "{{.Executables.Resolvectl}} reset-server-features"},
 			},
 			defaultTemplate: "",
 		}
@@ -571,9 +571,9 @@ func getCommandListVPNSetup(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "resolvectl revert {{.Device.Name}}"},
-				{Line: "resolvectl flush-caches"},
-				{Line: "resolvectl reset-server-features"},
+				{Line: "{{.Executables.Resolvectl}} revert {{.VPNConfig.Device.Name}}"},
+				{Line: "{{.Executables.Resolvectl}} flush-caches"},
+				{Line: "{{.Executables.Resolvectl}} reset-server-features"},
 			},
 			defaultTemplate: "",
 		}
@@ -583,7 +583,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 			Name: name,
 			Commands: []*Command{
 				// TODO: newer versions support json output, support that?
-				{Line: "resolvectl status {{.Device.Name}} --no-pager"},
+				{Line: "{{.Executables.Resolvectl}} status {{.VPNConfig.Device.Name}} --no-pager"},
 			},
 			defaultTemplate: "",
 		}
@@ -592,8 +592,9 @@ func getCommandListVPNSetup(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "resolvectl revert {{.}}"},
-				{Line: "ip link delete {{.}}"},
+				// TODO: OpenConnect.VPNDevice vs. VPNConfig.Device.Name
+				{Line: "{{.Executables.Resolvectl}} revert {{.OpenConnect.VPNDevice}}"},
+				{Line: "{{.Executables.IP}} link delete {{.OpenConnect.VPNDevice}}"},
 			},
 			defaultTemplate: "",
 		}

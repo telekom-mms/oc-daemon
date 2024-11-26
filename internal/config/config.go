@@ -506,6 +506,23 @@ type VPNDNS struct {
 	ServersIPv6   []netip.Addr
 }
 
+// Remotes returns a map of DNS remotes from the DNS configuration that maps
+// domain "." to the IPv4 and IPv6 DNS servers in the configuration including
+// port number 53.
+func (d *VPNDNS) Remotes() map[string][]string {
+	remotes := map[string][]string{}
+	for _, s := range d.ServersIPv4 {
+		server := s.String() + ":53"
+		remotes["."] = append(remotes["."], server)
+	}
+	for _, s := range d.ServersIPv6 {
+		server := "[" + s.String() + "]:53"
+		remotes["."] = append(remotes["."], server)
+	}
+
+	return remotes
+}
+
 // VPNSplit is a split routing configuration in VPNConfig.
 type VPNSplit struct {
 	ExcludeIPv4 []netip.Prefix
@@ -513,6 +530,18 @@ type VPNSplit struct {
 	ExcludeDNS  []string
 
 	ExcludeVirtualSubnetsOnlyIPv4 bool
+}
+
+// DNSExcludes returns a list of DNS-based split excludes from the
+// split routing configuration. The list contains domain names including the
+// trailing ".".
+func (s *VPNSplit) DNSExcludes() []string {
+	excludes := make([]string, len(s.ExcludeDNS))
+	for i, e := range s.ExcludeDNS {
+		excludes[i] = e + "."
+	}
+
+	return excludes
 }
 
 // VPNFlags are other configuration settings in VPNConfig.

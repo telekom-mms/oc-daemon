@@ -32,10 +32,10 @@ type State struct {
 
 // command is a VPNSetup command.
 type command struct {
-	cmd     uint8
-	vpnconf *vpnconfig.Config
-	state   *State
-	done    chan struct{}
+	cmd   uint8
+	conf  *config.Config
+	state *State
+	done  chan struct{}
 }
 
 // VPNSetup sets up the configuration of the vpn tunnel that belongs to the
@@ -121,8 +121,9 @@ func getTemplateData(c *vpnconfig.Config, dnsProxyAddress string) *intconfig {
 }
 
 // setupVPNDevice sets up the vpn device with config.
-func setupVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress string) {
-	data := getTemplateData(c, dnsProxyAddress) // TODO: change?
+func setupVPNDevice(ctx context.Context, conf *config.Config) {
+	//data := getTemplateData(c, dnsProxyAddress) // TODO: change?
+	data := conf
 	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupVPNDevice", data)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup VPN device commands")
@@ -135,6 +136,7 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress st
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("VPNSetup could not run setup VPN device command")
 			// TODO: return?
 		}
@@ -142,8 +144,9 @@ func setupVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress st
 }
 
 // teardownVPNDevice tears down the configured vpn device.
-func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress string) {
-	data := getTemplateData(c, dnsProxyAddress) // TODO: change?
+func teardownVPNDevice(ctx context.Context, conf *config.Config) {
+	//data := getTemplateData(c, dnsProxyAddress) // TODO: change?
+	data := conf
 	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownVPNDevice", data)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get teardown VPN device commands")
@@ -156,13 +159,15 @@ func teardownVPNDevice(ctx context.Context, c *vpnconfig.Config, dnsProxyAddress
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("VPNSetup could not run teardown VPN device command")
 		}
 	}
 }
 
 // setupRouting sets up routing using config.
-func (v *VPNSetup) setupRouting(vpnconf *vpnconfig.Config) {
+// TODO: remove parameter? update config in vpn setup? remove config from vpn setup?
+func (v *VPNSetup) setupRouting(conf *config.Config) {
 	if v.splitrt != nil {
 		return
 	}
@@ -182,8 +187,9 @@ func (v *VPNSetup) teardownRouting() {
 }
 
 // setupDNSServer sets the DNS server.
-func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config) {
-	data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+func (v *VPNSetup) setupDNSServer(ctx context.Context, conf *config.Config) {
+	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+	data := conf
 	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSServer", data)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS server commands")
@@ -196,14 +202,16 @@ func (v *VPNSetup) setupDNSServer(ctx context.Context, config *vpnconfig.Config)
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("VPNSetup could not run setup DNS server command")
 		}
 	}
 }
 
 // setupDNSDomains sets the DNS domains.
-func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config) {
-	data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+func (v *VPNSetup) setupDNSDomains(ctx context.Context, conf *config.Config) {
+	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+	data := conf
 	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDomains", data)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS domains commands")
@@ -216,14 +224,16 @@ func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *vpnconfig.Config
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("VPNSetup could not run setup DNS domains command")
 		}
 	}
 }
 
 // setupDNSDefaultRoute sets the DNS default route.
-func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.Config) {
-	data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, conf *config.Config) {
+	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+	data := conf
 	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDefaultRoute", data)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS default route commands")
@@ -236,26 +246,28 @@ func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *vpnconfig.C
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("VPNSetup could not run setup DNS default route command")
 		}
 	}
 }
 
 // setupDNS sets up DNS using config.
-func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
+func (v *VPNSetup) setupDNS(ctx context.Context, conf *config.Config) {
 	// configure dns proxy
 
 	// set remotes
-	remotes := config.DNS.Remotes()
+	remotes := conf.VPNConfig.DNS.Remotes()
 	v.dnsProxy.SetRemotes(remotes)
 
 	// set watches
-	excludes := config.Split.DNSExcludes()
+	excludes := conf.VPNConfig.Split.DNSExcludes()
 	log.WithField("excludes", excludes).Debug("Daemon setting DNS Split Excludes")
 	v.dnsProxy.SetWatches(excludes)
 
 	// update dns configuration of host
-	data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+	data := conf
 	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNS", data)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS commands")
@@ -268,13 +280,14 @@ func (v *VPNSetup) setupDNS(ctx context.Context, config *vpnconfig.Config) {
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("VPNSetup could not run setup DNS command")
 		}
 	}
 }
 
 // teardownDNS tears down the DNS configuration.
-func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
+func (v *VPNSetup) teardownDNS(ctx context.Context, conf *config.Config) {
 	// update dns proxy configuration
 
 	// reset remotes
@@ -285,7 +298,8 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 	v.dnsProxy.SetWatches([]string{})
 
 	// update dns configuration of host
-	data := getTemplateData(vpnconf, v.config.DNSProxy.Address) // TODO: change?
+	//data := getTemplateData(vpnconf, v.config.DNSProxy.Address) // TODO: change?
+	data := conf
 	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownDNS", data)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get teardown DNS commands")
@@ -298,6 +312,7 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, vpnconf *vpnconfig.Config) {
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("VPNSetup could not run teardown DNS command")
 		}
 	}
@@ -328,9 +343,9 @@ func (v *VPNSetup) checkDNSServers(servers []string) bool {
 }
 
 // checkDNSDomain checks the configured DNS domains.
-func (v *VPNSetup) checkDNSDomain(config *vpnconfig.Config, domains []string) bool {
+func (v *VPNSetup) checkDNSDomain(config *config.Config, domains []string) bool {
 	// get domains in config
-	inConfig := strings.Fields(config.DNS.DefaultDomain)
+	inConfig := strings.Fields(config.VPNConfig.DNS.DefaultDomain)
 	inConfig = append(inConfig, "~.")
 
 	// check domains in config
@@ -352,11 +367,12 @@ func (v *VPNSetup) checkDNSDomain(config *vpnconfig.Config, domains []string) bo
 }
 
 // ensureDNS ensures the DNS config.
-func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool {
+func (v *VPNSetup) ensureDNS(ctx context.Context, conf *config.Config) bool {
 	log.Debug("VPNSetup checking DNS settings")
 
 	// get dns settings
-	data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
+	data := conf
 	cmds, err := cmdtmpl.GetCmds("VPNSetupEnsureDNS", data)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get ensure DNS commands")
@@ -400,7 +416,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool
 			srvOK = v.checkDNSServers(f)
 
 		case "DNS Domain":
-			domOK = v.checkDNSDomain(config, f)
+			domOK = v.checkDNSDomain(conf, f)
 		}
 	}
 
@@ -411,7 +427,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool
 		log.Error("VPNSetup found invalid DNS protocols, trying to fix")
 
 		// reset default route for device
-		v.setupDNSDefaultRoute(ctx, config)
+		v.setupDNSDefaultRoute(ctx, conf)
 	}
 
 	if !srvOK {
@@ -419,7 +435,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool
 		log.Error("VPNSetup found invalid DNS servers, trying to fix")
 
 		// reset dns server
-		v.setupDNSServer(ctx, config)
+		v.setupDNSServer(ctx, conf)
 	}
 
 	if !domOK {
@@ -427,7 +443,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool
 		log.Error("VPNSetup found invalid DNS domains, trying to fix")
 
 		// reset domains for device
-		v.setupDNSDomains(ctx, config)
+		v.setupDNSDomains(ctx, conf)
 	}
 
 	// combine results
@@ -435,7 +451,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *vpnconfig.Config) bool
 }
 
 // ensureConfig ensured that the VPN config is and stays active.
-func (v *VPNSetup) ensureConfig(ctx context.Context, vpnconf *vpnconfig.Config) {
+func (v *VPNSetup) ensureConfig(ctx context.Context, conf *config.Config) {
 	defer close(v.ensureClosed)
 
 	timerInvalid := time.Second
@@ -447,7 +463,7 @@ func (v *VPNSetup) ensureConfig(ctx context.Context, vpnconf *vpnconfig.Config) 
 			log.Debug("VPNSetup checking VPN configuration")
 
 			// ensure DNS settings
-			if ok := v.ensureDNS(ctx, vpnconf); !ok {
+			if ok := v.ensureDNS(ctx, conf); !ok {
 				timer = timerInvalid
 				break
 			}
@@ -462,10 +478,10 @@ func (v *VPNSetup) ensureConfig(ctx context.Context, vpnconf *vpnconfig.Config) 
 }
 
 // startEnsure starts ensuring the VPN config.
-func (v *VPNSetup) startEnsure(ctx context.Context, vpnconf *vpnconfig.Config) {
+func (v *VPNSetup) startEnsure(ctx context.Context, conf *config.Config) {
 	v.ensureDone = make(chan struct{})
 	v.ensureClosed = make(chan struct{})
-	go v.ensureConfig(ctx, vpnconf)
+	go v.ensureConfig(ctx, conf)
 }
 
 // stopEnsure stops ensuring the VPN config.
@@ -475,25 +491,25 @@ func (v *VPNSetup) stopEnsure() {
 }
 
 // setup sets up the vpn configuration.
-func (v *VPNSetup) setup(ctx context.Context, vpnconf *vpnconfig.Config) {
+func (v *VPNSetup) setup(ctx context.Context, conf *config.Config) {
 	// setup device, routing, dns
-	setupVPNDevice(ctx, vpnconf, v.config.DNSProxy.Address)
-	v.setupRouting(vpnconf)
-	v.setupDNS(ctx, vpnconf)
+	setupVPNDevice(ctx, conf)
+	v.setupRouting(conf)
+	v.setupDNS(ctx, conf)
 
 	// ensure VPN config
-	v.startEnsure(ctx, vpnconf)
+	v.startEnsure(ctx, conf)
 }
 
 // teardown tears down the vpn configuration.
-func (v *VPNSetup) teardown(ctx context.Context, vpnconf *vpnconfig.Config) {
+func (v *VPNSetup) teardown(ctx context.Context, conf *config.Config) {
 	// stop ensuring VPN config
 	v.stopEnsure()
 
 	// tear down device, routing, dns
-	teardownVPNDevice(ctx, vpnconf, v.config.DNSProxy.Address)
+	teardownVPNDevice(ctx, conf)
 	v.teardownRouting()
-	v.teardownDNS(ctx, vpnconf)
+	v.teardownDNS(ctx, conf)
 }
 
 // getState gets the internal state.
@@ -514,9 +530,9 @@ func (v *VPNSetup) handleCommand(ctx context.Context, c *command) {
 
 	switch c.cmd {
 	case commandSetup:
-		v.setup(ctx, c.vpnconf)
+		v.setup(ctx, c.conf)
 	case commandTeardown:
-		v.teardown(ctx, c.vpnconf)
+		v.teardown(ctx, c.conf)
 	case commandGetState:
 		v.getState(c)
 	}
@@ -574,22 +590,22 @@ func (v *VPNSetup) Stop() {
 }
 
 // Setup sets the VPN config up.
-func (v *VPNSetup) Setup(vpnconfig *vpnconfig.Config) {
+func (v *VPNSetup) Setup(conf *config.Config) {
 	c := &command{
-		cmd:     commandSetup,
-		vpnconf: vpnconfig,
-		done:    make(chan struct{}),
+		cmd:  commandSetup,
+		conf: conf,
+		done: make(chan struct{}),
 	}
 	v.cmds <- c
 	<-c.done
 }
 
 // Teardown tears the VPN config down.
-func (v *VPNSetup) Teardown(vpnconfig *vpnconfig.Config) {
+func (v *VPNSetup) Teardown(conf *config.Config) {
 	c := &command{
-		cmd:     commandTeardown,
-		vpnconf: vpnconfig,
-		done:    make(chan struct{}),
+		cmd:  commandTeardown,
+		conf: conf,
+		done: make(chan struct{}),
 	}
 	v.cmds <- c
 	<-c.done
@@ -622,8 +638,7 @@ func NewVPNSetup(config *config.Config) *VPNSetup {
 func Cleanup(ctx context.Context, config *config.Config) {
 	// dns, device, split routing
 	vpnDevice := config.OpenConnect.VPNDevice
-	data := vpnDevice // TODO: change?
-	cmds, err := cmdtmpl.GetCmds("VPNSetupCleanup", data)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupCleanup", config)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get cleanup commands")
 	}

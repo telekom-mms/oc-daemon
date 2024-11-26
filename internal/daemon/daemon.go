@@ -372,7 +372,8 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 
 	// connecting, set up configuration
 	log.Info("Daemon setting up vpn configuration")
-	d.vpnsetup.Setup(config)
+	d.config.VPNConfig = getVPNConfig(config)
+	d.vpnsetup.Setup(d.config)
 
 	// set traffic policing setting from Disable Always On VPN setting
 	// in configuration
@@ -418,7 +419,7 @@ func (d *Daemon) updateVPNConfigDown() {
 	// disconnecting, tear down configuration
 	log.Info("Daemon tearing down vpn configuration")
 	if d.status.VPNConfig != nil {
-		d.vpnsetup.Teardown(d.status.VPNConfig)
+		d.vpnsetup.Teardown(d.config)
 	}
 
 	// save config

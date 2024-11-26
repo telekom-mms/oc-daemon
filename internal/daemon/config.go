@@ -2,9 +2,11 @@ package daemon
 
 import (
 	"encoding/json"
+	"net/netip"
 	"os"
 
 	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/telekom-mms/tnd/pkg/tnd"
 )
 
@@ -116,6 +118,15 @@ func (c *Config) GetConfig() *config.Config {
 		TND: c.TND,
 	}
 	return conf
+}
+
+func getVPNConfig(vpnconf *vpnconfig.Config) *config.VPNConfig {
+	return &config.VPNConfig{
+		Gateway: netip.MustParseAddr(vpnconf.Gateway.String()), // TODO: improve
+		PID:     vpnconf.PID,
+		Timeout: vpnconf.Timeout,
+		// TODO: fix
+	}
 }
 
 // NewConfig returns a new Config.
