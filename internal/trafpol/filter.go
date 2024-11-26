@@ -32,9 +32,8 @@ func setFilterRules(ctx context.Context, config *config.Config) {
 }
 
 // unsetFilterRules unsets the filter rules.
-func unsetFilterRules(ctx context.Context) {
-	data := "" // TODO: change?
-	cmds, err := cmdtmpl.GetCmds("TrafPolUnsetFilterRules", data)
+func unsetFilterRules(ctx context.Context, config *config.Config) {
+	cmds, err := cmdtmpl.GetCmds("TrafPolUnsetFilterRules", config)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get unset filter rules commands")
 	}
@@ -52,8 +51,14 @@ func unsetFilterRules(ctx context.Context) {
 }
 
 // addAllowedDevice adds device to the allowed devices.
-func addAllowedDevice(ctx context.Context, device string) {
-	data := device // TODO: change?
+func addAllowedDevice(ctx context.Context, conf *config.Config, device string) {
+	data := &struct {
+		config.Config
+		Device string
+	}{
+		Config: *conf,
+		Device: device,
+	}
 	cmds, err := cmdtmpl.GetCmds("TrafPolAddAllowedDevice", data)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get add allowed device commands")
@@ -73,8 +78,14 @@ func addAllowedDevice(ctx context.Context, device string) {
 }
 
 // removeAllowedDevice removes device from the allowed devices.
-func removeAllowedDevice(ctx context.Context, device string) {
-	data := device // TODO: change?
+func removeAllowedDevice(ctx context.Context, conf *config.Config, device string) {
+	data := &struct {
+		config.Config
+		Device string
+	}{
+		Config: *conf,
+		Device: device,
+	}
 	cmds, err := cmdtmpl.GetCmds("TrafPolRemoveAllowedDevice", data)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get remove allowed device commands")
@@ -94,15 +105,14 @@ func removeAllowedDevice(ctx context.Context, device string) {
 }
 
 // setAllowedIPs set the allowed hosts.
-func setAllowedIPs(ctx context.Context, ips []netip.Prefix) {
+func setAllowedIPs(ctx context.Context, conf *config.Config, ips []netip.Prefix) {
 	// we perform all nft commands separately here and not as one atomic
 	// operation to avoid issues where the whole update fails because nft
 	// runs into "file exists" errors even though we remove duplicates from
 	// ips before calling this function and we flush the existing entries
 
 	// flush allowed hosts
-	data := "" // TODO: change?
-	cmds, err := cmdtmpl.GetCmds("TrafPolFlushAllowedHosts", data)
+	cmds, err := cmdtmpl.GetCmds("TrafPolFlushAllowedHosts", conf)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get flush allowed hosts commands")
 	}
@@ -120,7 +130,13 @@ func setAllowedIPs(ctx context.Context, ips []netip.Prefix) {
 
 	// add allowed hosts
 	for _, ip := range ips {
-		data := ip // TODO: change?
+		data := &struct {
+			config.Config
+			AllowedIP netip.Prefix
+		}{
+			Config:    *conf,
+			AllowedIP: ip,
+		}
 		cmds, err := cmdtmpl.GetCmds("TrafPolAddAllowedHost", data)
 		if err != nil {
 			log.WithError(err).Error("TrafPol could not get add allowed host commands")
@@ -150,8 +166,14 @@ func portsToString(ports []uint16) string {
 }
 
 // addPortalPorts adds ports for a captive portal to the allowed ports.
-func addPortalPorts(ctx context.Context, ports []uint16) {
-	data := portsToString(ports) // TODO: change?
+func addPortalPorts(ctx context.Context, conf *config.Config, ports []uint16) {
+	data := &struct {
+		config.Config
+		Ports string
+	}{
+		Config: *conf,
+		Ports:  portsToString(ports), // TODO: change?
+	}
 	cmds, err := cmdtmpl.GetCmds("TrafPolAddPortalPorts", data)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get add portal ports commands")
@@ -171,8 +193,14 @@ func addPortalPorts(ctx context.Context, ports []uint16) {
 }
 
 // removePortalPorts removes ports for a captive portal from the allowed ports.
-func removePortalPorts(ctx context.Context, ports []uint16) {
-	data := portsToString(ports) // TODO: change?
+func removePortalPorts(ctx context.Context, conf *config.Config, ports []uint16) {
+	data := &struct {
+		config.Config
+		Ports string
+	}{
+		Config: *conf,
+		Ports:  portsToString(ports), // TODO: change?
+	}
 	cmds, err := cmdtmpl.GetCmds("TrafPolRemovePortalPorts", data)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get remove portal ports commands")
@@ -192,9 +220,8 @@ func removePortalPorts(ctx context.Context, ports []uint16) {
 }
 
 // cleanupFilterRules cleans up the filter rules after a failed shutdown.
-func cleanupFilterRules(ctx context.Context) {
-	data := "" // TODO: change?
-	cmds, err := cmdtmpl.GetCmds("TrafPolCleanup", data)
+func cleanupFilterRules(ctx context.Context, conf *config.Config) {
+	cmds, err := cmdtmpl.GetCmds("TrafPolCleanup", conf)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get cleanup commands")
 	}

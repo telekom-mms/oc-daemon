@@ -411,7 +411,7 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f - delete table inet oc-daemon-filter"},
+				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-filter"},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
@@ -420,7 +420,7 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f - add element inet oc-daemon-filter allowdevs { {{.}} }"},
+				{Line: "{{.Executables.Nft}} -f - add element inet oc-daemon-filter allowdevs { {{.Device}} }"},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
@@ -429,7 +429,7 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f - delete element inet oc-daemon-filter allowdevs { {{.}} }"},
+				{Line: "{{.Executables.Nft}} -f - delete element inet oc-daemon-filter allowdevs { {{.Device}} }"},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
@@ -438,8 +438,8 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f - flush set inet oc-daemon-filter allowhosts4"},
-				{Line: "nft -f - flush set inet oc-daemon-filter allowhosts6"},
+				{Line: "{{.Executables.Nft}} -f - flush set inet oc-daemon-filter allowhosts4"},
+				{Line: "{{.Executables.Nft}} -f - flush set inet oc-daemon-filter allowhosts6"},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
@@ -448,12 +448,12 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f -",
+				{Line: "{{.Executables.Nft}} -f -",
 					Stdin: `
-				{{if .Addr.Is4}}
-				add element inet oc-daemon-filter allowhosts4 { {{.}} }
+				{{if .AllowedIP.Addr.Is4}}
+				add element inet oc-daemon-filter allowhosts4 { {{.AllowedIP}} }
 				{{else}}
-				add element inet oc-daemon-filter allowhosts6 { {{.}} }
+				add element inet oc-daemon-filter allowhosts6 { {{.AllowedIP}} }
 				{{end}}
 				`,
 				},
@@ -465,7 +465,7 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f - add element inet oc-daemon-filter allowports { {{.}} }"},
+				{Line: "{{.Executables.Nft}} -f - add element inet oc-daemon-filter allowports { {{.Ports}} }"},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
@@ -474,7 +474,7 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f - delete element inet oc-daemon-filter allowports { {{.}} }"},
+				{Line: "{{.Executables.Nft}} -f - delete element inet oc-daemon-filter allowports { {{.Ports}} }"},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
@@ -483,7 +483,7 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "nft -f - delete table inet oc-daemon-filter"},
+				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-filter"},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}

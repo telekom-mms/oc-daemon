@@ -24,19 +24,19 @@ func TestFilterFunctionsErrors(_ *testing.T) {
 	conf := config.NewConfig()
 	conf.TrafficPolicing.FirewallMark = "123"
 	setFilterRules(ctx, conf)
-	unsetFilterRules(ctx)
+	unsetFilterRules(ctx, conf)
 
 	// allowed devices
-	addAllowedDevice(ctx, "eth0")
-	removeAllowedDevice(ctx, "eth0")
+	addAllowedDevice(ctx, conf, "eth0")
+	removeAllowedDevice(ctx, conf, "eth0")
 
 	// allowed IPs
-	setAllowedIPs(ctx, []netip.Prefix{
+	setAllowedIPs(ctx, conf, []netip.Prefix{
 		netip.MustParsePrefix("192.168.1.1/32"),
 		netip.MustParsePrefix("2000::1/128"),
 	})
 
 	// portal ports
-	addPortalPorts(ctx, []uint16{80, 443})
-	removePortalPorts(ctx, []uint16{80, 443})
+	addPortalPorts(ctx, conf, []uint16{80, 443})
+	removePortalPorts(ctx, conf, []uint16{80, 443})
 }

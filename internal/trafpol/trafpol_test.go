@@ -303,7 +303,7 @@ func TestCleanup(t *testing.T) {
 		got = append(got, cmd+" "+strings.Join(args, " "))
 		return nil, nil, nil
 	}
-	Cleanup(context.Background())
+	Cleanup(context.Background(), config.NewConfig())
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
