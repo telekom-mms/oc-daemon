@@ -121,11 +121,87 @@ func (c *Config) GetConfig() *config.Config {
 }
 
 func getVPNConfig(vpnconf *vpnconfig.Config) *config.VPNConfig {
+	// convert gateway
+	gateway := netip.Addr{}
+	if g, ok := netip.AddrFromSlice(vpnconf.Gateway); ok {
+		gateway = g
+	}
+
+	// convert ipv4 address
+	pre4 := netip.Prefix{}
+	if ipv4, ok := netip.AddrFromSlice(vpnconf.IPv4.Address.To4()); ok {
+		pre4len, _ := vpnconf.IPv4.Netmask.Size()
+		pre4 = netip.PrefixFrom(ipv4, pre4len)
+	}
+
+	// convert ipv6 address
+	pre6 := netip.Prefix{}
+	if ipv6, ok := netip.AddrFromSlice(vpnconf.IPv6.Address); ok {
+		pre6len, _ := vpnconf.IPv6.Netmask.Size()
+		pre6 = netip.PrefixFrom(ipv6, pre6len)
+	}
+
+	// convert ipv4 dns servers
+	var dns4 []netip.Addr
+	for _, a := range vpnconf.DNS.ServersIPv4 {
+		if d, ok := netip.AddrFromSlice(a.To4()); ok {
+			dns4 = append(dns4, d)
+		}
+	}
+
+	// convert ipv6 dns servers
+	var dns6 []netip.Addr
+	for _, a := range vpnconf.DNS.ServersIPv6 {
+		if d, ok := netip.AddrFromSlice(a); ok {
+			dns6 = append(dns6, d)
+		}
+	}
+
+	// convert ipv4 excludes
+	var excludes4 []netip.Prefix
+	for _, a := range vpnconf.Split.ExcludeIPv4 {
+		if ipv4, ok := netip.AddrFromSlice(a.IP.To4()); ok {
+			pre4len, _ := a.Mask.Size()
+			pre4 := netip.PrefixFrom(ipv4, pre4len)
+			excludes4 = append(excludes4, pre4)
+		}
+	}
+
+	// convert ipv6 excludes
+	var excludes6 []netip.Prefix
+	for _, a := range vpnconf.Split.ExcludeIPv6 {
+		if ipv6, ok := netip.AddrFromSlice(a.IP); ok {
+			pre6len, _ := a.Mask.Size()
+			pre6 = netip.PrefixFrom(ipv6, pre6len)
+			excludes6 = append(excludes6, pre6)
+		}
+	}
+
 	return &config.VPNConfig{
-		Gateway: netip.MustParseAddr(vpnconf.Gateway.String()), // TODO: improve
+		Gateway: gateway,
 		PID:     vpnconf.PID,
 		Timeout: vpnconf.Timeout,
-		// TODO: fix
+		Device: config.VPNDevice{
+			Name: vpnconf.Device.Name,
+			MTU:  vpnconf.Device.MTU,
+		},
+		IPv4: pre4,
+		IPv6: pre6,
+		DNS: config.VPNDNS{
+			DefaultDomain: vpnconf.DNS.DefaultDomain,
+			ServersIPv4:   dns4,
+			ServersIPv6:   dns6,
+		},
+		Split: config.VPNSplit{
+			ExcludeIPv4: excludes4,
+			ExcludeIPv6: excludes6,
+			ExcludeDNS:  vpnconf.Split.ExcludeDNS,
+
+			ExcludeVirtualSubnetsOnlyIPv4: vpnconf.Split.ExcludeVirtualSubnetsOnlyIPv4,
+		},
+		Flags: config.VPNFlags{
+			DisableAlwaysOnVPN: vpnconf.Flags.DisableAlwaysOnVPN,
+		},
 	}
 }
 
