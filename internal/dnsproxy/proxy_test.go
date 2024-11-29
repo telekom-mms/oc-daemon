@@ -291,7 +291,6 @@ func TestProxyGetState(t *testing.T) {
 
 	// check state
 	want := &State{
-		Config:      getTestConfig(),
 		Remotes:     getRemotes(),
 		Watches:     []string{"example.com."},
 		TempWatches: []string{"cname.example.com.", "dname.example.com."},

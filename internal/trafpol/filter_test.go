@@ -37,6 +37,7 @@ func TestFilterFunctionsErrors(_ *testing.T) {
 	})
 
 	// portal ports
-	addPortalPorts(ctx, conf, []uint16{80, 443})
-	removePortalPorts(ctx, conf, []uint16{80, 443})
+	conf.TrafficPolicing.PortalPorts = []uint16{80, 443}
+	addPortalPorts(ctx, conf)
+	removePortalPorts(ctx, conf)
 }

@@ -299,7 +299,6 @@ func TestSplitRoutingGetState(t *testing.T) {
 
 	// get and check state
 	want := &State{
-		Config:          config.NewConfig(),
 		Devices:         []*devmon.Update{dev},
 		Addresses:       []*addrmon.Update{addr},
 		LocalExcludes:   []string{"10.0.0.0/24"},

@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/netip"
-	"strconv"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
@@ -26,6 +24,7 @@ func setFilterRules(ctx context.Context, config *config.Config) {
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("TrafPol could not run set filter rules command")
 		}
 	}
@@ -45,6 +44,7 @@ func unsetFilterRules(ctx context.Context, config *config.Config) {
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("TrafPol could not run unset filter rules command")
 		}
 	}
@@ -72,6 +72,7 @@ func addAllowedDevice(ctx context.Context, conf *config.Config, device string) {
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("TrafPol could not run add allowed device command")
 		}
 	}
@@ -99,6 +100,7 @@ func removeAllowedDevice(ctx context.Context, conf *config.Config, device string
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("TrafPol could not run remove allowed device command")
 		}
 	}
@@ -124,6 +126,7 @@ func setAllowedIPs(ctx context.Context, conf *config.Config, ips []netip.Prefix)
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("TrafPol could not run flush allowed hosts command")
 		}
 	}
@@ -150,70 +153,50 @@ func setAllowedIPs(ctx context.Context, conf *config.Config, ips []netip.Prefix)
 					"stdin":   c.Stdin,
 					"stdout":  string(stdout),
 					"stderr":  string(stderr),
+					"error":   err,
 				}).Error("TrafPol could not run add allowed host command")
 			}
 		}
 	}
 }
 
-// portsToString returns ports as string.
-func portsToString(ports []uint16) string {
-	s := []string{}
-	for _, port := range ports {
-		s = append(s, strconv.FormatUint(uint64(port), 10))
-	}
-	return strings.Join(s, ", ")
-}
-
 // addPortalPorts adds ports for a captive portal to the allowed ports.
-func addPortalPorts(ctx context.Context, conf *config.Config, ports []uint16) {
-	data := &struct {
-		config.Config
-		Ports string
-	}{
-		Config: *conf,
-		Ports:  portsToString(ports), // TODO: change?
-	}
-	cmds, err := cmdtmpl.GetCmds("TrafPolAddPortalPorts", data)
+func addPortalPorts(ctx context.Context, conf *config.Config) {
+	cmds, err := cmdtmpl.GetCmds("TrafPolAddPortalPorts", conf)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get add portal ports commands")
 	}
 	for _, c := range cmds {
 		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			log.WithFields(log.Fields{
-				"ports":   ports,
+				"ports":   conf.TrafficPolicing.PortalPorts,
 				"command": c.Cmd,
 				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("TrafPol could not run add portal ports command")
 		}
 	}
 }
 
 // removePortalPorts removes ports for a captive portal from the allowed ports.
-func removePortalPorts(ctx context.Context, conf *config.Config, ports []uint16) {
-	data := &struct {
-		config.Config
-		Ports string
-	}{
-		Config: *conf,
-		Ports:  portsToString(ports), // TODO: change?
-	}
-	cmds, err := cmdtmpl.GetCmds("TrafPolRemovePortalPorts", data)
+func removePortalPorts(ctx context.Context, conf *config.Config) {
+	cmds, err := cmdtmpl.GetCmds("TrafPolRemovePortalPorts", conf)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get remove portal ports commands")
 	}
 	for _, c := range cmds {
 		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			log.WithFields(log.Fields{
-				"ports":   ports,
+				"ports":   conf.TrafficPolicing.PortalPorts,
 				"command": c.Cmd,
 				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
+				"error":   err,
 			}).Error("TrafPol could not run remove portal ports command")
 		}
 	}

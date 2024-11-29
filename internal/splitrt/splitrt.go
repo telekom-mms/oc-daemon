@@ -17,7 +17,6 @@ import (
 
 // State is the internal state.
 type State struct {
-	Config          *config.Config // TODO: remove?
 	Devices         []*devmon.Update
 	Addresses       []*addrmon.Update
 	LocalExcludes   []string
@@ -60,29 +59,6 @@ type SplitRouting struct {
 	done     chan struct{}
 	closed   chan struct{}
 }
-
-//// getTemplateData returns template data.
-//// TODO: remove?
-//func (s *SplitRouting) getTemplateData() map[string]string {
-//	ipv4 := ""
-//	if s.config.VPNConfig.IPv4.IsValid() {
-//		ipv4 = s.config.VPNConfig.IPv4.String()
-//	}
-//	ipv6 := ""
-//	if s.config.VPNConfig.IPv6.IsValid() {
-//		ipv4 = s.config.VPNConfig.IPv6.String()
-//	}
-//	// TODO: change names to full names like FirewallMark?
-//	return map[string]string{
-//		"Device":      s.config.VPNConfig.Device.Name,
-//		"IPv4Address": ipv4,
-//		"IPv6Address": ipv6,
-//		"FWMark":      s.config.SplitRouting.FirewallMark,
-//		"RTTable":     s.config.SplitRouting.RoutingTable,
-//		"RulePrio1":   s.config.SplitRouting.RulePriority1,
-//		"RulePrio2":   s.config.SplitRouting.RulePriority2,
-//	}
-//}
 
 // setupRouting sets up routing using config.
 func (s *SplitRouting) setupRouting(ctx context.Context) {
@@ -333,7 +309,6 @@ func (s *SplitRouting) GetState() *State {
 	}
 	static, dynamic := s.excludes.List()
 	return &State{
-		Config:          s.config,
 		Devices:         s.devices.List(),
 		Addresses:       s.addrs.List(),
 		LocalExcludes:   locals,
@@ -358,15 +333,8 @@ func NewSplitRouting(config *config.Config) *SplitRouting {
 }
 
 // Cleanup cleans up old configuration after a failed shutdown.
-// TODO: use *config.Config?
 func Cleanup(ctx context.Context, config *config.Config) {
-	//data := map[string]string{
-	//	"RTTable":   config.RoutingTable,
-	//	"RulePrio1": config.RulePriority1,
-	//	"RulePrio2": config.RulePriority2,
-	//}
-	data := config
-	cmds, err := cmdtmpl.GetCmds("SplitRoutingCleanup", data)
+	cmds, err := cmdtmpl.GetCmds("SplitRoutingCleanup", config)
 	if err != nil {
 		log.WithError(err).Error("SplitRouting could not get cleanup commands")
 	}

@@ -73,58 +73,9 @@ type intconfig struct {
 	Flags   vpnconfig.Flags
 }
 
-// getTemplateData returns vpnconfig.Config as template data.
-func getTemplateData(c *vpnconfig.Config, dnsProxyAddress string) *intconfig {
-	gw := netip.Addr{}
-	if g, ok := netip.AddrFromSlice(c.Gateway); ok {
-		gw = g
-	}
-	pre4 := netip.Prefix{}
-	if ipv4, ok := netip.AddrFromSlice(c.IPv4.Address.To4()); ok {
-		one4, _ := c.IPv4.Netmask.Size()
-		pre4 = netip.PrefixFrom(ipv4, one4)
-	}
-	pre6 := netip.Prefix{}
-	if ipv6, ok := netip.AddrFromSlice(c.IPv6.Address); ok {
-		one6, _ := c.IPv6.Netmask.Size()
-		pre6 = netip.PrefixFrom(ipv6, one6)
-	}
-	var dnsSrv4 []netip.Addr
-	for _, s := range c.DNS.ServersIPv4 {
-		if ipv4, ok := netip.AddrFromSlice(s.To4()); ok {
-			dnsSrv4 = append(dnsSrv4, ipv4)
-		}
-	}
-	var dnsSrv6 []netip.Addr
-	for _, s := range c.DNS.ServersIPv6 {
-		if ipv6, ok := netip.AddrFromSlice(s); ok {
-			dnsSrv6 = append(dnsSrv6, ipv6)
-		}
-	}
-
-	return &intconfig{
-		Gateway: gw,
-		PID:     c.PID,
-		Timeout: c.Timeout,
-		Device:  c.Device,
-		IPv4:    pre4,
-		IPv6:    pre6,
-		DNS: dns{
-			ProxyAddress:  dnsProxyAddress,
-			DefaultDomain: c.DNS.DefaultDomain,
-			ServersIPv4:   dnsSrv4,
-			ServersIPv6:   dnsSrv6,
-		}, // TODO: convert DNS to netip
-		Split: c.Split, // TODO: convert Split to netip
-		Flags: c.Flags,
-	}
-}
-
 // setupVPNDevice sets up the vpn device with config.
 func setupVPNDevice(ctx context.Context, conf *config.Config) {
-	//data := getTemplateData(c, dnsProxyAddress) // TODO: change?
-	data := conf
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupVPNDevice", data)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupVPNDevice", conf)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup VPN device commands")
 	}
@@ -145,9 +96,7 @@ func setupVPNDevice(ctx context.Context, conf *config.Config) {
 
 // teardownVPNDevice tears down the configured vpn device.
 func teardownVPNDevice(ctx context.Context, conf *config.Config) {
-	//data := getTemplateData(c, dnsProxyAddress) // TODO: change?
-	data := conf
-	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownVPNDevice", data)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownVPNDevice", conf)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get teardown VPN device commands")
 	}
@@ -188,9 +137,7 @@ func (v *VPNSetup) teardownRouting() {
 
 // setupDNSServer sets the DNS server.
 func (v *VPNSetup) setupDNSServer(ctx context.Context, conf *config.Config) {
-	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
-	data := conf
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSServer", data)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSServer", conf)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS server commands")
 	}
@@ -210,9 +157,7 @@ func (v *VPNSetup) setupDNSServer(ctx context.Context, conf *config.Config) {
 
 // setupDNSDomains sets the DNS domains.
 func (v *VPNSetup) setupDNSDomains(ctx context.Context, conf *config.Config) {
-	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
-	data := conf
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDomains", data)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDomains", conf)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS domains commands")
 	}
@@ -232,9 +177,7 @@ func (v *VPNSetup) setupDNSDomains(ctx context.Context, conf *config.Config) {
 
 // setupDNSDefaultRoute sets the DNS default route.
 func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, conf *config.Config) {
-	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
-	data := conf
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDefaultRoute", data)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDefaultRoute", conf)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS default route commands")
 	}
@@ -266,9 +209,7 @@ func (v *VPNSetup) setupDNS(ctx context.Context, conf *config.Config) {
 	v.dnsProxy.SetWatches(excludes)
 
 	// update dns configuration of host
-	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
-	data := conf
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNS", data)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNS", conf)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS commands")
 	}
@@ -298,9 +239,7 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, conf *config.Config) {
 	v.dnsProxy.SetWatches([]string{})
 
 	// update dns configuration of host
-	//data := getTemplateData(vpnconf, v.config.DNSProxy.Address) // TODO: change?
-	data := conf
-	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownDNS", data)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownDNS", conf)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get teardown DNS commands")
 	}
@@ -371,9 +310,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, conf *config.Config) bool {
 	log.Debug("VPNSetup checking DNS settings")
 
 	// get dns settings
-	//data := getTemplateData(config, v.config.DNSProxy.Address) // TODO: change?
-	data := conf
-	cmds, err := cmdtmpl.GetCmds("VPNSetupEnsureDNS", data)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupEnsureDNS", conf)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get ensure DNS commands")
 	}

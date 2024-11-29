@@ -465,7 +465,7 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f - add element inet oc-daemon-filter allowports { {{.Ports}} }"},
+				{Line: "{{.Executables.Nft}} -f - add element inet oc-daemon-filter allowports { {{range $i, $port := .TrafficPolicing.PortalPorts}}{{if $i}}, {{end}}{{$port}}{{end}} }"},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
@@ -474,7 +474,7 @@ func getCommandListTrafPol(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f - delete element inet oc-daemon-filter allowports { {{.Ports}} }"},
+				{Line: "{{.Executables.Nft}} -f - delete element inet oc-daemon-filter allowports { {{range $i, $port := .TrafficPolicing.PortalPorts}}{{if $i}}, {{end}}{{$port}}{{end}} }"},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
