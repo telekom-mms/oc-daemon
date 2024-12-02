@@ -219,21 +219,22 @@ func TestVPNSetupCheckDNSProtocols(t *testing.T) {
 
 // TestVPNSetupCheckDNSServers tests checkDNSServers of VPNSetup.
 func TestVPNSetupCheckDNSServers(t *testing.T) {
-	v := NewVPNSetup(config.NewConfig())
+	conf := config.NewConfig()
+	v := NewVPNSetup(conf)
 
 	// test invalid
 	for _, invalid := range [][]string{
 		{},
 		{"x", "y", "z"},
 	} {
-		if ok := v.checkDNSServers(invalid); ok {
+		if ok := v.checkDNSServers(conf, invalid); ok {
 			t.Errorf("dns check should fail with %v", invalid)
 		}
 	}
 
 	// test valid
-	proxy := []string{v.config.DNSProxy.Address}
-	if ok := v.checkDNSServers(proxy); !ok {
+	proxy := []string{conf.DNSProxy.Address}
+	if ok := v.checkDNSServers(conf, proxy); !ok {
 		t.Errorf("dns check should not fail with %v", proxy)
 	}
 }
@@ -432,7 +433,6 @@ func TestNewVPNSetup(t *testing.T) {
 
 	v := NewVPNSetup(cfg)
 	if v == nil ||
-		v.config != cfg ||
 		v.cmds == nil ||
 		v.done == nil ||
 		v.closed == nil {

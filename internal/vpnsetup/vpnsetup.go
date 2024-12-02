@@ -4,7 +4,6 @@ package vpnsetup
 import (
 	"context"
 	"errors"
-	"net/netip"
 	"slices"
 	"strings"
 	"time"
@@ -14,7 +13,6 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/splitrt"
-	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
 // command types.
@@ -41,7 +39,6 @@ type command struct {
 // VPNSetup sets up the configuration of the vpn tunnel that belongs to the
 // current VPN connection.
 type VPNSetup struct {
-	config   *config.Config
 	splitrt  *splitrt.SplitRouting
 	dnsProxy *dnsproxy.Proxy
 
@@ -51,26 +48,6 @@ type VPNSetup struct {
 	cmds   chan *command
 	done   chan struct{}
 	closed chan struct{}
-}
-
-type dns struct {
-	ProxyAddress  string
-	DefaultDomain string
-	ServersIPv4   []netip.Addr
-	ServersIPv6   []netip.Addr
-}
-
-// intconfig is an internal version of the vpnconfig.Config with netip.
-type intconfig struct {
-	Gateway netip.Addr
-	PID     int
-	Timeout int
-	Device  vpnconfig.Device
-	IPv4    netip.Prefix
-	IPv6    netip.Prefix
-	DNS     dns
-	Split   vpnconfig.Split
-	Flags   vpnconfig.Flags
 }
 
 // setupVPNDevice sets up the vpn device with config.
@@ -120,7 +97,7 @@ func (v *VPNSetup) setupRouting(conf *config.Config) {
 	if v.splitrt != nil {
 		return
 	}
-	v.splitrt = splitrt.NewSplitRouting(v.config)
+	v.splitrt = splitrt.NewSplitRouting(conf)
 	if err := v.splitrt.Start(); err != nil {
 		log.WithError(err).Error("VPNSetup error setting split routing")
 	}
@@ -271,9 +248,9 @@ func (v *VPNSetup) checkDNSProtocols(protocols []string) bool {
 }
 
 // checkDNSServers checks the configured DNS servers.
-func (v *VPNSetup) checkDNSServers(servers []string) bool {
+func (v *VPNSetup) checkDNSServers(conf *config.Config, servers []string) bool {
 	// check dns server ip
-	if len(servers) != 1 || servers[0] != v.config.DNSProxy.Address {
+	if len(servers) != 1 || servers[0] != conf.DNSProxy.Address {
 		// server not correct
 		return false
 	}
@@ -350,7 +327,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, conf *config.Config) bool {
 			protOK = v.checkDNSProtocols(f)
 
 		case "DNS Servers":
-			srvOK = v.checkDNSServers(f)
+			srvOK = v.checkDNSServers(conf, f)
 
 		case "DNS Domain":
 			domOK = v.checkDNSDomain(conf, f)
@@ -560,9 +537,9 @@ func (v *VPNSetup) GetState() *State {
 }
 
 // NewVPNSetup returns a new VPNSetup.
+// TODO: replace config parameter with dnsproxy parameter?
 func NewVPNSetup(config *config.Config) *VPNSetup {
 	return &VPNSetup{
-		config:   config,
 		dnsProxy: dnsproxy.NewProxy(config.DNSProxy),
 
 		cmds:   make(chan *command),
