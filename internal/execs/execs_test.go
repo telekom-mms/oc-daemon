@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // TestRunCmd tests RunCmd.
@@ -225,10 +227,10 @@ func TestRunResolvectl(t *testing.T) {
 
 // TestSetExecutables tests SetExecutables.
 func TestSetExecutables(t *testing.T) {
-	old := NewConfig()
+	old := daemoncfg.NewExecutables()
 	defer SetExecutables(old)
 
-	config := &Config{
+	config := &daemoncfg.Executables{
 		IP:         "/test/ip",
 		Sysctl:     "/test/sysctl",
 		Nft:        "/test/nft",

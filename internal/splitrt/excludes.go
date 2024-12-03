@@ -7,6 +7,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 const (
@@ -23,6 +24,7 @@ type dynExclude struct {
 // Excludes contains split Excludes.
 type Excludes struct {
 	sync.Mutex
+	conf   *daemoncfg.Config
 	s      map[string]netip.Prefix
 	d      map[netip.Addr]*dynExclude
 	done   chan struct{}
@@ -213,8 +215,9 @@ func (e *Excludes) List() (static, dynamic []string) {
 }
 
 // NewExcludes returns new split excludes.
-func NewExcludes() *Excludes {
+func NewExcludes(conf *daemoncfg.Config) *Excludes {
 	return &Excludes{
+		conf:   conf,
 		s:      make(map[string]netip.Prefix),
 		d:      make(map[netip.Addr]*dynExclude),
 		done:   make(chan struct{}),

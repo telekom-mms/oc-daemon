@@ -7,11 +7,11 @@ import (
 
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // State is the internal state of the DNS Proxy.
 type State struct {
-	Config      *Config
 	Remotes     map[string][]string
 	Watches     []string
 	TempWatches []string
@@ -19,7 +19,7 @@ type State struct {
 
 // Proxy is a DNS proxy.
 type Proxy struct {
-	config  *Config
+	config  *daemoncfg.DNSProxy
 	udp     *dns.Server
 	tcp     *dns.Server
 	remotes *Remotes
@@ -259,7 +259,6 @@ func (p *Proxy) SetWatches(watches []string) {
 func (p *Proxy) GetState() *State {
 	watches, tempWatches := p.watches.List()
 	return &State{
-		Config:      p.config,
 		Remotes:     p.remotes.List(),
 		Watches:     watches,
 		TempWatches: tempWatches,
@@ -267,7 +266,7 @@ func (p *Proxy) GetState() *State {
 }
 
 // NewProxy returns a new Proxy that listens on address.
-func NewProxy(config *Config) *Proxy {
+func NewProxy(config *daemoncfg.DNSProxy) *Proxy {
 	var udp *dns.Server
 	if config.ListenUDP {
 		udp = &dns.Server{

@@ -4,11 +4,13 @@ import (
 	"net/netip"
 	"testing"
 	"time"
+
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // TestResolverStartStop tests Start and Stop of Resolver.
 func TestResolverStartStop(_ *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewTrafficPolicing()
 	names := []string{}
 	updates := make(chan *ResolvedName)
 	r := NewResolver(config, names, updates)
@@ -18,7 +20,7 @@ func TestResolverStartStop(_ *testing.T) {
 
 // TestResolverResolve tests Resolve of Resolver.
 func TestResolverResolve(_ *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewTrafficPolicing()
 	config.ResolveTriesSleep = 0
 	config.ResolveTimer = 0
 	names := []string{"does not exist...", "example.com"}
@@ -58,7 +60,7 @@ func TestResolverResolve(_ *testing.T) {
 
 // TestNewResolver tests NewResolver.
 func TestNewResolver(t *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewTrafficPolicing()
 	names := []string{"test.example.com"}
 	updates := make(chan *ResolvedName)
 	r := NewResolver(config, names, updates)

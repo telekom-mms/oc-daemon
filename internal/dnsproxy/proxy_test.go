@@ -9,11 +9,12 @@ import (
 
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // getTestConfig returns a config for testing.
-func getTestConfig() *Config {
-	return &Config{
+func getTestConfig() *daemoncfg.DNSProxy {
+	return &daemoncfg.DNSProxy{
 		Address:   "127.0.0.1:4254",
 		ListenUDP: true,
 		ListenTCP: true,
@@ -263,7 +264,7 @@ func TestProxySetRemotes(_ *testing.T) {
 
 // TestProxySetWatches tests SetWatches of Proxy.
 func TestProxySetWatches(_ *testing.T) {
-	config := &Config{
+	config := &daemoncfg.DNSProxy{
 		Address:   "127.0.0.1:4254",
 		ListenUDP: true,
 		ListenTCP: true,
@@ -290,7 +291,6 @@ func TestProxyGetState(t *testing.T) {
 
 	// check state
 	want := &State{
-		Config:      getTestConfig(),
 		Remotes:     getRemotes(),
 		Watches:     []string{"example.com."},
 		TempWatches: []string{"cname.example.com.", "dname.example.com."},

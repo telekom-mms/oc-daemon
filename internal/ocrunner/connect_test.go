@@ -6,15 +6,15 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"reflect"
 	"testing"
 
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
 )
 
 // TestConnectStartStop tests Start and Stop of Connect.
 func TestConnectStartStop(_ *testing.T) {
-	c := NewConnect(NewConfig())
+	c := NewConnect()
 	c.Start()
 	c.Stop()
 }
@@ -29,12 +29,12 @@ func TestConnectSavePidFile(t *testing.T) {
 		osChown = os.Chown
 	}()
 
-	conf := NewConfig()
-	conf.PIDFile = t.TempDir() + "pidfile"
+	conf := daemoncfg.NewConfig()
+	conf.OpenConnect.PIDFile = t.TempDir() + "pidfile"
 
 	// no process
-	c := NewConnect(conf)
-	c.savePidFile()
+	c := NewConnect()
+	c.savePidFile(conf)
 
 	// with chown error
 	userLookup = func(string) (*user.User, error) {
@@ -47,13 +47,13 @@ func TestConnectSavePidFile(t *testing.T) {
 		return errors.New("test error")
 	}
 
-	conf.PIDFile = t.TempDir() + "pidfile"
-	conf.PIDOwner = "test"
-	conf.PIDGroup = "test"
+	conf.OpenConnect.PIDFile = t.TempDir() + "pidfile"
+	conf.OpenConnect.PIDOwner = "test"
+	conf.OpenConnect.PIDGroup = "test"
 
-	c = NewConnect(conf)
+	c = NewConnect()
 	c.command = &exec.Cmd{Process: &os.Process{Pid: 123}}
-	c.savePidFile()
+	c.savePidFile(conf)
 
 	// with invalid uid/gid
 	userLookup = func(string) (*user.User, error) {
@@ -63,9 +63,9 @@ func TestConnectSavePidFile(t *testing.T) {
 		return &user.Group{Gid: "invalid"}, nil
 	}
 
-	c = NewConnect(conf)
+	c = NewConnect()
 	c.command = &exec.Cmd{Process: &os.Process{Pid: 123}}
-	c.savePidFile()
+	c.savePidFile(conf)
 
 	// with user/group lookup error
 	userLookup = func(string) (*user.User, error) {
@@ -75,25 +75,25 @@ func TestConnectSavePidFile(t *testing.T) {
 		return nil, errors.New("test error")
 	}
 
-	c = NewConnect(conf)
+	c = NewConnect()
 	c.command = &exec.Cmd{Process: &os.Process{Pid: 123}}
-	c.savePidFile()
+	c.savePidFile(conf)
 
 	// with write error
 	osWriteFile = func(string, []byte, fs.FileMode) error {
 		return errors.New("test error")
 	}
 
-	c = NewConnect(conf)
+	c = NewConnect()
 	c.command = &exec.Cmd{Process: &os.Process{Pid: 123}}
-	c.savePidFile()
+	c.savePidFile(conf)
 
 	// with invalid permissions
-	conf.PIDPermissions = "invalid"
+	conf.OpenConnect.PIDPermissions = "invalid"
 
-	c = NewConnect(conf)
+	c = NewConnect()
 	c.command = &exec.Cmd{Process: &os.Process{Pid: 123}}
-	c.savePidFile()
+	c.savePidFile(conf)
 }
 
 // TestConnectConnect tests Connect of Connect.
@@ -101,7 +101,9 @@ func TestConnectConnect(t *testing.T) {
 	// clean up after tests
 	defer func() { execCommand = exec.Command }()
 
-	login := &logininfo.LoginInfo{
+	conf := daemoncfg.NewConfig()
+	conf.OpenConnect.PIDFile = t.TempDir() + "pidfile"
+	conf.LoginInfo = &logininfo.LoginInfo{
 		Server:      "vpnserver.example.com",
 		Cookie:      "3311180634@13561856@1339425499@B315A0E29D16C6FD92EE...",
 		Host:        "10.0.0.1",
@@ -109,17 +111,15 @@ func TestConnectConnect(t *testing.T) {
 		Fingerprint: "469bb424ec8835944d30bc77c77e8fc1d8e23a42",
 		Resolve:     "vpnserver.example.com:10.0.0.1",
 	}
-	conf := NewConfig()
-	conf.PIDFile = t.TempDir() + "pidfile"
 
 	// test with exec error
 	execCommand = func(string, ...string) *exec.Cmd {
 		return exec.Command("")
 	}
 
-	c := NewConnect(conf)
+	c := NewConnect()
 	c.Start()
-	c.Connect(login, nil)
+	c.Connect(conf, nil)
 	c.Stop()
 
 	// test without exec error
@@ -127,13 +127,13 @@ func TestConnectConnect(t *testing.T) {
 		return exec.Command("sleep", "10")
 	}
 
-	c = NewConnect(conf)
+	c = NewConnect()
 	c.Start()
-	c.Connect(login, nil)
+	c.Connect(conf, nil)
 	<-c.Events()
 
 	// test double connect
-	c.Connect(login, nil)
+	c.Connect(conf, nil)
 
 	c.Stop()
 }
@@ -148,21 +148,21 @@ func TestConnectDisconnect(t *testing.T) {
 	}()
 
 	// without connection
-	c := NewConnect(NewConfig())
+	c := NewConnect()
 	c.Start()
 	c.Disconnect()
 	c.Stop()
 
 	// with connection
-	conf := NewConfig()
+	conf := daemoncfg.NewOpenConnect()
 	conf.PIDFile = t.TempDir() + "pidfile"
 
 	execCommand = func(string, ...string) *exec.Cmd {
 		return exec.Command("sleep", "10")
 	}
-	c = NewConnect(NewConfig())
+	c = NewConnect()
 	c.Start()
-	c.Connect(&logininfo.LoginInfo{}, nil)
+	c.Connect(daemoncfg.NewConfig(), nil)
 	<-c.Events()
 	c.Disconnect()
 	<-c.Events()
@@ -172,14 +172,14 @@ func TestConnectDisconnect(t *testing.T) {
 	processSignal = func(*os.Process, os.Signal) error {
 		return errors.New("test error")
 	}
-	c = NewConnect(NewConfig())
+	c = NewConnect()
 	c.command = &exec.Cmd{Process: &os.Process{}}
 	c.handleDisconnect()
 }
 
 // TestConnectEvents tests Events of Connect.
 func TestConnectEvents(t *testing.T) {
-	c := NewConnect(NewConfig())
+	c := NewConnect()
 
 	want := c.events
 	got := c.Events()
@@ -190,14 +190,8 @@ func TestConnectEvents(t *testing.T) {
 
 // TestNewConnect tests NewConnect.
 func TestNewConnect(t *testing.T) {
-	config := NewConfig()
-	config.XMLProfile = "/some/profile/file"
-	config.VPNCScript = "/some/vpnc/script"
-	config.VPNDevice = "tun999"
-	c := NewConnect(config)
-	if !reflect.DeepEqual(c.config, config) {
-		t.Errorf("got %v, want %v", c.config, config)
-	}
+	c := NewConnect()
+
 	if c.exits == nil ||
 		c.commands == nil ||
 		c.done == nil ||
@@ -223,14 +217,14 @@ func TestCleanupConnect(_ *testing.T) {
 		return nil, errors.New("test error")
 	}
 
-	CleanupConnect(NewConfig())
+	CleanupConnect(daemoncfg.NewOpenConnect())
 
 	// PID file contains garbage
 	osReadFile = func(string) ([]byte, error) {
 		return []byte("garbage"), nil
 	}
 
-	CleanupConnect(NewConfig())
+	CleanupConnect(daemoncfg.NewOpenConnect())
 
 	// cannot read process cmdline
 	reads := 0
@@ -242,7 +236,7 @@ func TestCleanupConnect(_ *testing.T) {
 		return []byte("123"), nil
 	}
 
-	CleanupConnect(NewConfig())
+	CleanupConnect(daemoncfg.NewOpenConnect())
 
 	// process cmdline does not contain openconnect (other process)
 	reads = 0
@@ -254,7 +248,7 @@ func TestCleanupConnect(_ *testing.T) {
 		return []byte("123"), nil
 	}
 
-	CleanupConnect(NewConfig())
+	CleanupConnect(daemoncfg.NewOpenConnect())
 
 	// cannot find process (process already terminated)
 	reads = 0
@@ -269,7 +263,7 @@ func TestCleanupConnect(_ *testing.T) {
 		return nil, errors.New("test error")
 	}
 
-	CleanupConnect(NewConfig())
+	CleanupConnect(daemoncfg.NewOpenConnect())
 
 	// stop process
 	reads = 0
@@ -280,5 +274,5 @@ func TestCleanupConnect(_ *testing.T) {
 		return nil
 	}
 
-	CleanupConnect(NewConfig())
+	CleanupConnect(daemoncfg.NewOpenConnect())
 }

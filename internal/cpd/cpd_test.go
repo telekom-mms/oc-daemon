@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // TestCPDProbeCheck tests probe and check of CPD.
@@ -16,7 +18,7 @@ func TestCPDProbeCheck(t *testing.T) {
 			w.WriteHeader(http.StatusBadRequest)
 		}))
 		defer ts.Close()
-		c := NewCPD(NewConfig())
+		c := NewCPD(daemoncfg.NewCPD())
 		c.config.Host = ts.Listener.Addr().String()
 		c.config.ProbeWait = 0
 		close(c.done)
@@ -29,7 +31,7 @@ func TestCPDProbeCheck(t *testing.T) {
 			w.WriteHeader(http.StatusFound)
 		}))
 		defer ts.Close()
-		c := NewCPD(NewConfig())
+		c := NewCPD(daemoncfg.NewCPD())
 		c.config.Host = ts.Listener.Addr().String()
 		c.config.ProbeWait = 0
 
@@ -41,7 +43,7 @@ func TestCPDProbeCheck(t *testing.T) {
 
 	// check with invalid server address
 	t.Run("invalid server", func(t *testing.T) {
-		c := NewCPD(NewConfig())
+		c := NewCPD(daemoncfg.NewCPD())
 		c.config.Host = ""
 		c.config.ProbeWait = 0
 
@@ -58,7 +60,7 @@ func TestCPDProbeCheck(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer ts.Close()
-		c := NewCPD(NewConfig())
+		c := NewCPD(daemoncfg.NewCPD())
 		c.config.Host = ts.Listener.Addr().String()
 		c.config.ProbeWait = 0
 
@@ -71,7 +73,7 @@ func TestCPDProbeCheck(t *testing.T) {
 
 // TestCPDHandleProbeRequest tests handleProbeRequest of CPD.
 func TestCPDHandleProbeRequest(t *testing.T) {
-	c := NewCPD(NewConfig())
+	c := NewCPD(daemoncfg.NewCPD())
 	close(c.done)
 
 	c.handleProbeRequest()
@@ -88,7 +90,7 @@ func TestCPDHandleProbeRequest(t *testing.T) {
 
 // TestCPDHandleProbeReport tests handleProbeReport of CPD.
 func TestCPDHandleProbeReport(t *testing.T) {
-	c := NewCPD(NewConfig())
+	c := NewCPD(daemoncfg.NewCPD())
 
 	// - send a probe request
 	// - read report
@@ -118,7 +120,7 @@ func TestCPDHandleTimer(t *testing.T) {
 		false,
 		true,
 	} {
-		c := NewCPD(NewConfig())
+		c := NewCPD(daemoncfg.NewCPD())
 		c.timer = time.NewTimer(0)
 		c.detected = detected
 		c.handleTimer()
@@ -132,12 +134,12 @@ func TestCPDHandleTimer(t *testing.T) {
 // TestCPDStartStop tests Start and Stop of CPD.
 func TestCPDStartStop(t *testing.T) {
 	// start and stop immediately
-	c := NewCPD(NewConfig())
+	c := NewCPD(daemoncfg.NewCPD())
 	c.Start()
 	c.Stop()
 
 	// start and stop with timer event, probe result
-	conf := NewConfig()
+	conf := daemoncfg.NewCPD()
 	conf.Host = ""
 	conf.ProbeTimer = 0
 	conf.ProbeWait = 0
@@ -153,7 +155,7 @@ func TestCPDStartStop(t *testing.T) {
 
 // TestCPDHosts tests Hosts of CPD.
 func TestCPDHosts(t *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewCPD()
 	config.Host = "test"
 	c := NewCPD(config)
 	want := []string{"test"}
@@ -171,7 +173,7 @@ func TestCPDProbe(t *testing.T) {
 			w.WriteHeader(http.StatusNoContent)
 		}))
 		defer ts.Close()
-		c := NewCPD(NewConfig())
+		c := NewCPD(daemoncfg.NewCPD())
 		c.config.Host = ts.Listener.Addr().String()
 		c.config.ProbeWait = 0
 		c.Start()
@@ -189,7 +191,7 @@ func TestCPDProbe(t *testing.T) {
 			http.Redirect(w, r, "http://example.com", http.StatusFound)
 		}))
 		defer ts.Close()
-		c := NewCPD(NewConfig())
+		c := NewCPD(daemoncfg.NewCPD())
 		c.config.Host = ts.Listener.Addr().String()
 		c.config.ProbeWait = 0
 		c.Start()
@@ -204,7 +206,7 @@ func TestCPDProbe(t *testing.T) {
 
 // TestCPDResults tests Results of CPD.
 func TestCPDResults(t *testing.T) {
-	c := NewCPD(NewConfig())
+	c := NewCPD(daemoncfg.NewCPD())
 	want := c.reports
 	got := c.Results()
 	if got != want {
@@ -214,7 +216,7 @@ func TestCPDResults(t *testing.T) {
 
 // TestNewCPD tests NewCPD.
 func TestNewCPD(t *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewCPD()
 	c := NewCPD(config)
 	if !reflect.DeepEqual(c.config, config) {
 		t.Errorf("got %v, want %v", c.config, config)

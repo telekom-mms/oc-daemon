@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 )
 
@@ -71,7 +72,7 @@ func parseCommandLine() {
 func main() {
 	log.SetLevel(log.DebugLevel)
 	parseCommandLine()
-	c := dnsproxy.NewConfig()
+	c := daemoncfg.NewDNSProxy()
 	c.Address = address
 	c.ListenUDP = true
 	c.ListenTCP = true

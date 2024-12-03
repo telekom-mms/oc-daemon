@@ -5,14 +5,16 @@ import (
 	"bytes"
 	"context"
 	"os/exec"
+
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // executables.
 var (
-	ip         = IP
-	sysctl     = Sysctl
-	nft        = Nft
-	resolvectl = Resolvectl
+	ip         = daemoncfg.ExecutablesIP
+	sysctl     = daemoncfg.ExecutablesSysctl
+	nft        = daemoncfg.ExecutablesNft
+	resolvectl = daemoncfg.ExecutablesResolvectl
 )
 
 // RunCmd runs the cmd with args and sets stdin to s, returns stdout and stderr.
@@ -87,7 +89,7 @@ func RunResolvectl(ctx context.Context, arg ...string) (stdout, stderr []byte, e
 }
 
 // SetExecutables configures all executables from config.
-func SetExecutables(config *Config) {
+func SetExecutables(config *daemoncfg.Executables) {
 	ip = config.IP
 	sysctl = config.Sysctl
 	nft = config.Nft

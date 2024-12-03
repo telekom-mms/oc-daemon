@@ -8,6 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsmon"
 )
@@ -21,7 +22,6 @@ const (
 
 // State is the internal TrafPol state.
 type State struct {
-	Config           *Config
 	CaptivePortal    bool
 	AllowedDevices   []string
 	AllowedAddresses []netip.Prefix
@@ -39,7 +39,7 @@ type trafPolCmd struct {
 
 // TrafPol is a traffic policing component.
 type TrafPol struct {
-	config *Config
+	config *daemoncfg.Config
 	devmon *devmon.DevMon
 	dnsmon *dnsmon.DNSMon
 	cpd    *cpd.CPD
@@ -96,7 +96,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 			t.resolver.Resolve()
 
 			// remove ports from allowed ports
-			removePortalPorts(ctx, t.config.PortalPorts)
+			removePortalPorts(ctx, t.config.TrafficPolicing.PortalPorts)
 			t.capPortal = false
 			log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
 		}
@@ -105,7 +105,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 
 	// add ports to allowed ports
 	if !t.capPortal {
-		addPortalPorts(ctx, t.config.PortalPorts)
+		addPortalPorts(ctx, t.config.TrafficPolicing.PortalPorts)
 		t.capPortal = true
 		log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
 	}
@@ -175,7 +175,6 @@ func (t *TrafPol) handleAddressCommand(ctx context.Context, cmd *trafPolCmd) {
 func (t *TrafPol) handleGetStateCommand(cmd *trafPolCmd) {
 	// set state
 	cmd.state = &State{
-		Config:           t.config,
 		CaptivePortal:    t.capPortal,
 		AllowedDevices:   t.allowDevs.List(),
 		AllowedAddresses: t.allowAddrs.List(),
@@ -247,7 +246,7 @@ func (t *TrafPol) Start() error {
 	ctx := context.Background()
 
 	// set firewall config
-	setFilterRules(ctx, t.config.FirewallMark)
+	setFilterRules(ctx, t.config.SplitRouting.FirewallMark)
 
 	// set filter rules
 	setAllowedIPs(ctx, t.getAllowedHostsIPs())
@@ -363,12 +362,12 @@ func parseAllowedHosts(hosts []string) (addrs []netip.Prefix, names []string) {
 }
 
 // NewTrafPol returns a new traffic policing component.
-func NewTrafPol(config *Config) *TrafPol {
+func NewTrafPol(config *daemoncfg.Config) *TrafPol {
 	// create cpd
-	c := cpd.NewCPD(cpd.NewConfig())
+	c := cpd.NewCPD(daemoncfg.NewCPD())
 
 	// get allowed addrs and names
-	hosts := append(config.AllowedHosts, c.Hosts()...)
+	hosts := append(config.TrafficPolicing.AllowedHosts, c.Hosts()...)
 	a, n := parseAllowedHosts(hosts)
 
 	// create allowed addrs and names
@@ -395,7 +394,7 @@ func NewTrafPol(config *Config) *TrafPol {
 
 		allowAddrs: addrs,
 		allowNames: names,
-		resolver:   NewResolver(config, n, resolvUp),
+		resolver:   NewResolver(config.TrafficPolicing, n, resolvUp),
 		resolvUp:   resolvUp,
 
 		cmds: make(chan *trafPolCmd),
