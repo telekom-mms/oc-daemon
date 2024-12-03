@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
@@ -64,7 +64,7 @@ func getTestDynamicExcludes(t *testing.T) []netip.Prefix {
 // TestExcludesAddStatic tests AddStatic of Excludes.
 func TestExcludesAddStatic(t *testing.T) {
 	ctx := context.Background()
-	e := NewExcludes(config.NewConfig())
+	e := NewExcludes(daemoncfg.NewConfig())
 	excludes := getTestStaticExcludes(t)
 
 	// set testing runNft function
@@ -95,7 +95,7 @@ func TestExcludesAddStatic(t *testing.T) {
 	}
 
 	// test adding overlapping excludes
-	e = NewExcludes(config.NewConfig())
+	e = NewExcludes(daemoncfg.NewConfig())
 	for _, exclude := range getTestStaticExcludesOverlap(t) {
 		e.AddStatic(ctx, exclude)
 	}
@@ -109,7 +109,7 @@ func TestExcludesAddStatic(t *testing.T) {
 // TestExcludesAddDynamic tests AddDynamic of Excludes.
 func TestExcludesAddDynamic(t *testing.T) {
 	ctx := context.Background()
-	e := NewExcludes(config.NewConfig())
+	e := NewExcludes(daemoncfg.NewConfig())
 	excludes := getTestDynamicExcludes(t)
 
 	// set testing runNft function
@@ -142,7 +142,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 
 	// test adding excludes with existing static excludes,
 	// should only add new excludes
-	e = NewExcludes(config.NewConfig())
+	e = NewExcludes(daemoncfg.NewConfig())
 	for _, exclude := range getTestStaticExcludes(t) {
 		e.AddStatic(ctx, exclude)
 	}
@@ -158,7 +158,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 	}
 
 	// test adding invalid excludes (static as dynamic)
-	e = NewExcludes(config.NewConfig())
+	e = NewExcludes(daemoncfg.NewConfig())
 	got = []string{}
 	want = []string{}
 	for _, exclude := range getTestStaticExcludes(t) {
@@ -172,7 +172,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 // TestExcludesRemoveStatic tests RemoveStatic of Excludes.
 func TestExcludesRemove(t *testing.T) {
 	ctx := context.Background()
-	e := NewExcludes(config.NewConfig())
+	e := NewExcludes(daemoncfg.NewConfig())
 	excludes := getTestStaticExcludes(t)
 
 	// set testing runNft function
@@ -266,7 +266,7 @@ func TestExcludesRemove(t *testing.T) {
 // TestExcludesCleanup tests cleanup of Excludes.
 func TestExcludesCleanup(t *testing.T) {
 	ctx := context.Background()
-	e := NewExcludes(config.NewConfig())
+	e := NewExcludes(daemoncfg.NewConfig())
 
 	// set testing runNft function
 	got := []string{}
@@ -318,14 +318,14 @@ func TestExcludesCleanup(t *testing.T) {
 
 // TestExcludesStartStop tests Start and Stop of Excludes.
 func TestExcludesStartStop(_ *testing.T) {
-	e := NewExcludes(config.NewConfig())
+	e := NewExcludes(daemoncfg.NewConfig())
 	e.Start()
 	e.Stop()
 }
 
 // TestNewExcludes tests NewExcludes.
 func TestNewExcludes(t *testing.T) {
-	conf := config.NewConfig()
+	conf := daemoncfg.NewConfig()
 	e := NewExcludes(conf)
 	if e == nil ||
 		e.conf != conf ||

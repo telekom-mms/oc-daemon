@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
@@ -23,7 +23,7 @@ func TestSetupVPNDevice(t *testing.T) {
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	c := config.NewConfig()
+	c := daemoncfg.NewConfig()
 	c.DNSProxy.Address = "127.0.0.1:4253"
 	c.VPNConfig.Device.Name = "tun0"
 	c.VPNConfig.Device.MTU = 1300
@@ -83,7 +83,7 @@ func TestTeardownVPNDevice(t *testing.T) {
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	c := config.NewConfig()
+	c := daemoncfg.NewConfig()
 	c.DNSProxy.Address = "127.0.0.1:4253"
 	c.VPNConfig.Device.Name = "tun0"
 
@@ -116,7 +116,7 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	c := config.NewConfig()
+	c := daemoncfg.NewConfig()
 	c.VPNConfig.Device.Name = "tun0"
 	c.VPNConfig.DNS.DefaultDomain = "mycompany.com"
 
@@ -125,7 +125,7 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 		got = append(got, strings.Join(arg, " "))
 		return nil, nil, nil
 	}
-	v := NewVPNSetup(config.NewConfig())
+	v := NewVPNSetup(daemoncfg.NewConfig())
 	v.setupDNS(context.Background(), c)
 
 	want := []string{
@@ -158,7 +158,7 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	c := config.NewConfig()
+	c := daemoncfg.NewConfig()
 	c.VPNConfig.Device.Name = "tun0"
 
 	got := []string{}
@@ -167,7 +167,7 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 		return nil, nil, nil
 	}
 
-	v := NewVPNSetup(config.NewConfig())
+	v := NewVPNSetup(daemoncfg.NewConfig())
 	v.teardownDNS(context.Background(), c)
 
 	want := []string{
@@ -194,7 +194,7 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 
 // TestVPNSetupCheckDNSProtocols tests checkDNSProtocols of VPNSetup.
 func TestVPNSetupCheckDNSProtocols(t *testing.T) {
-	v := NewVPNSetup(config.NewConfig())
+	v := NewVPNSetup(daemoncfg.NewConfig())
 
 	// test invalid
 	for _, invalid := range [][]string{
@@ -219,7 +219,7 @@ func TestVPNSetupCheckDNSProtocols(t *testing.T) {
 
 // TestVPNSetupCheckDNSServers tests checkDNSServers of VPNSetup.
 func TestVPNSetupCheckDNSServers(t *testing.T) {
-	conf := config.NewConfig()
+	conf := daemoncfg.NewConfig()
 	v := NewVPNSetup(conf)
 
 	// test invalid
@@ -241,7 +241,7 @@ func TestVPNSetupCheckDNSServers(t *testing.T) {
 
 // TestVPNSetupCheckDNSDomain tests checkDNSDomain of VPNSetup.
 func TestVPNSetupCheckDNSDomain(t *testing.T) {
-	conf := config.NewConfig()
+	conf := daemoncfg.NewConfig()
 	conf.VPNConfig.DNS.DefaultDomain = "test.example.com"
 	v := NewVPNSetup(conf)
 
@@ -274,7 +274,7 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test settings
-	conf := config.NewConfig()
+	conf := daemoncfg.NewConfig()
 	conf.DNSProxy.Address = "127.0.0.1:4253"
 	conf.VPNConfig.DNS.DefaultDomain = "test.example.com"
 
@@ -326,7 +326,7 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 
 // TestVPNSetupStartStop tests Start and Stop of VPNSetup.
 func TestVPNSetupStartStop(_ *testing.T) {
-	v := NewVPNSetup(config.NewConfig())
+	v := NewVPNSetup(daemoncfg.NewConfig())
 	v.Start()
 	v.Stop()
 }
@@ -353,7 +353,7 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	// start vpn setup, prepare config
-	conf := config.NewConfig()
+	conf := daemoncfg.NewConfig()
 	v := NewVPNSetup(conf)
 	v.Start()
 
@@ -399,7 +399,7 @@ func TestVPNSetupGetState(t *testing.T) {
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	// start vpn setup
-	conf := config.NewConfig()
+	conf := daemoncfg.NewConfig()
 	v := NewVPNSetup(conf)
 	v.Start()
 
@@ -429,7 +429,7 @@ func TestVPNSetupGetState(t *testing.T) {
 
 // TestNewVPNSetup tests NewVPNSetup.
 func TestNewVPNSetup(t *testing.T) {
-	cfg := config.NewConfig()
+	cfg := daemoncfg.NewConfig()
 
 	v := NewVPNSetup(cfg)
 	if v == nil ||
@@ -451,7 +451,7 @@ func TestCleanup(t *testing.T) {
 		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
 		return nil, nil, nil
 	}
-	cfg := config.NewConfig()
+	cfg := daemoncfg.NewConfig()
 	cfg.OpenConnect.VPNDevice = "tun0"
 	Cleanup(context.Background(), cfg)
 	want := []string{

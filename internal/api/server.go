@@ -10,7 +10,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 
 // Server is a Daemon API server.
 type Server struct {
-	config   *config.SocketServer
+	config   *daemoncfg.SocketServer
 	listen   net.Listener
 	requests chan *Request
 	shutdown chan struct{}
@@ -240,7 +240,7 @@ func (s *Server) Requests() chan *Request {
 }
 
 // NewServer returns a new API server.
-func NewServer(config *config.SocketServer) *Server {
+func NewServer(config *daemoncfg.SocketServer) *Server {
 	return &Server{
 		config:   config,
 		requests: make(chan *Request),

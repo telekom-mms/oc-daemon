@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 )
@@ -48,7 +48,7 @@ func (l *locals) set(locals []netip.Prefix) {
 
 // SplitRouting is a split routing configuration.
 type SplitRouting struct {
-	config   *config.Config
+	config   *daemoncfg.Config
 	devmon   *devmon.DevMon
 	addrmon  *addrmon.AddrMon
 	devices  *Devices
@@ -318,7 +318,7 @@ func (s *SplitRouting) GetState() *State {
 }
 
 // NewSplitRouting returns a new SplitRouting.
-func NewSplitRouting(config *config.Config) *SplitRouting {
+func NewSplitRouting(config *daemoncfg.Config) *SplitRouting {
 	return &SplitRouting{
 		config:   config,
 		devmon:   devmon.NewDevMon(),
@@ -333,7 +333,7 @@ func NewSplitRouting(config *config.Config) *SplitRouting {
 }
 
 // Cleanup cleans up old configuration after a failed shutdown.
-func Cleanup(ctx context.Context, config *config.Config) {
+func Cleanup(ctx context.Context, config *daemoncfg.Config) {
 	cmds, err := cmdtmpl.GetCmds("SplitRoutingCleanup", config)
 	if err != nil {
 		log.WithError(err).Error("SplitRouting could not get cleanup commands")

@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/vishvananda/netlink"
@@ -19,7 +19,7 @@ import (
 
 // TestTrafPolHandleDeviceUpdate tests handleDeviceUpdate of TrafPol.
 func TestTrafPolHandleDeviceUpdate(_ *testing.T) {
-	tp := NewTrafPol(config.NewConfig())
+	tp := NewTrafPol(daemoncfg.NewConfig())
 	ctx := context.Background()
 
 	// test adding
@@ -35,7 +35,7 @@ func TestTrafPolHandleDeviceUpdate(_ *testing.T) {
 
 // TestTrafPolHandleDNSUpdate tests handleDNSUpdate of TrafPol.
 func TestTrafPolHandleDNSUpdate(_ *testing.T) {
-	tp := NewTrafPol(config.NewConfig())
+	tp := NewTrafPol(daemoncfg.NewConfig())
 
 	tp.resolver.Start()
 	defer tp.resolver.Stop()
@@ -47,7 +47,7 @@ func TestTrafPolHandleDNSUpdate(_ *testing.T) {
 
 // TestTrafPolHandleCPDReport tests handleCPDReport of TrafPol.
 func TestTrafPolHandleCPDReport(t *testing.T) {
-	tp := NewTrafPol(config.NewConfig())
+	tp := NewTrafPol(daemoncfg.NewConfig())
 	ctx := context.Background()
 
 	tp.resolver.Start()
@@ -115,7 +115,7 @@ func TestTrafPolStartEvents(t *testing.T) {
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
-	tp := NewTrafPol(config.NewConfig())
+	tp := NewTrafPol(daemoncfg.NewConfig())
 	if err := tp.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestTrafPolStartEvents(t *testing.T) {
 // TestTrafPolGetAllowedHostsIPs tests getAllowedHostsIPs of TrafPol.
 func TestTrafPolGetAllowedHostsIPs(t *testing.T) {
 	// create trafpol with allowed addresses
-	c := config.NewConfig()
+	c := daemoncfg.NewConfig()
 	c.TrafficPolicing.AllowedHosts = append(c.TrafficPolicing.AllowedHosts, "192.168.2.0/24")
 	c.TrafficPolicing.AllowedHosts = append(c.TrafficPolicing.AllowedHosts, "2001:DB8:2::/64")
 	tp := NewTrafPol(c)
@@ -178,7 +178,7 @@ func TestTrafPolStartStop(t *testing.T) {
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
-	tp := NewTrafPol(config.NewConfig())
+	tp := NewTrafPol(daemoncfg.NewConfig())
 	if err := tp.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func TestTrafPolAddRemoveAllowedAddr(t *testing.T) {
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
-	tp := NewTrafPol(config.NewConfig())
+	tp := NewTrafPol(daemoncfg.NewConfig())
 	if err := tp.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestTrafPolGetState(t *testing.T) {
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	// start trafpol
-	tp := NewTrafPol(config.NewConfig())
+	tp := NewTrafPol(daemoncfg.NewConfig())
 	if err := tp.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -270,7 +270,7 @@ func TestTrafPolGetState(t *testing.T) {
 
 // TestNewTrafPol tests NewTrafPol.
 func TestNewTrafPol(t *testing.T) {
-	c := config.NewConfig()
+	c := daemoncfg.NewConfig()
 	c.TrafficPolicing.AllowedHosts = append(c.TrafficPolicing.AllowedHosts, "192.168.1.1")
 	c.TrafficPolicing.AllowedHosts = append(c.TrafficPolicing.AllowedHosts, "192.168.2.0/24")
 	c.TrafficPolicing.AllowedHosts = append(c.TrafficPolicing.AllowedHosts, "2001:DB8:1::1")
@@ -303,7 +303,7 @@ func TestCleanup(t *testing.T) {
 		got = append(got, cmd+" "+strings.Join(args, " "))
 		return nil, nil, nil
 	}
-	Cleanup(context.Background(), config.NewConfig())
+	Cleanup(context.Background(), daemoncfg.NewConfig())
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}

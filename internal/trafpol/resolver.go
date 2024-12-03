@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // ResolvedName is a resolved DNS name.
@@ -20,7 +20,7 @@ type ResolvedName struct {
 }
 
 // sleepResolveTry is used to sleep before resolve (re)tries, can be canceled.
-func (r *ResolvedName) sleepResolveTry(ctx context.Context, config *config.TrafficPolicing) {
+func (r *ResolvedName) sleepResolveTry(ctx context.Context, config *daemoncfg.TrafficPolicing) {
 	timer := time.NewTimer(config.ResolveTriesSleep)
 	select {
 	case <-timer.C:
@@ -33,7 +33,7 @@ func (r *ResolvedName) sleepResolveTry(ctx context.Context, config *config.Traff
 }
 
 // resolve resolves the DNS name to its IP addresses.
-func (r *ResolvedName) resolve(ctx context.Context, config *config.TrafficPolicing, updates chan *ResolvedName) {
+func (r *ResolvedName) resolve(ctx context.Context, config *daemoncfg.TrafficPolicing, updates chan *ResolvedName) {
 	// try to resolve ip addresses of host
 	resolver := &net.Resolver{}
 	tries := 0
@@ -106,7 +106,7 @@ func (r *ResolvedName) resolve(ctx context.Context, config *config.TrafficPolici
 
 // Resolver is a DNS resolver that resolves names to their IP addresses.
 type Resolver struct {
-	config  *config.TrafficPolicing
+	config  *daemoncfg.TrafficPolicing
 	names   map[string]*ResolvedName
 	updates chan *ResolvedName
 	cmds    chan struct{}
@@ -235,7 +235,7 @@ func (r *Resolver) Resolve() {
 }
 
 // NewResolver returns a new Resolver.
-func NewResolver(config *config.TrafficPolicing, names []string, updates chan *ResolvedName) *Resolver {
+func NewResolver(config *daemoncfg.TrafficPolicing, names []string, updates chan *ResolvedName) *Resolver {
 	n := make(map[string]*ResolvedName)
 	for _, name := range names {
 		n[name] = &ResolvedName{Name: name}

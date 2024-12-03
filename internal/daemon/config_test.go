@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/tnd/pkg/tnd"
 )
 
@@ -168,13 +168,13 @@ func TestConfigLoad(t *testing.T) {
 		want := &Config{
 			Config:          valid.Name(),
 			Verbose:         true,
-			SocketServer:    config.NewSocketServer(),
-			CPD:             config.NewCPD(),
-			DNSProxy:        config.NewDNSProxy(),
-			OpenConnect:     config.NewOpenConnect(),
-			Executables:     config.NewExecutables(),
-			SplitRouting:    config.NewSplitRouting(),
-			TrafficPolicing: config.NewTrafficPolicing(),
+			SocketServer:    daemoncfg.NewSocketServer(),
+			CPD:             daemoncfg.NewCPD(),
+			DNSProxy:        daemoncfg.NewDNSProxy(),
+			OpenConnect:     daemoncfg.NewOpenConnect(),
+			Executables:     daemoncfg.NewExecutables(),
+			SplitRouting:    daemoncfg.NewSplitRouting(),
+			TrafficPolicing: daemoncfg.NewTrafficPolicing(),
 			TND:             tnd.NewConfig(),
 		}
 		if !reflect.DeepEqual(want.DNSProxy, conf.DNSProxy) {
@@ -206,13 +206,13 @@ func TestNewConfig(t *testing.T) {
 	want := &Config{
 		Config:          "/var/lib/oc-daemon/oc-daemon.json",
 		Verbose:         false,
-		SocketServer:    config.NewSocketServer(),
-		CPD:             config.NewCPD(),
-		DNSProxy:        config.NewDNSProxy(),
-		OpenConnect:     config.NewOpenConnect(),
-		Executables:     config.NewExecutables(),
-		SplitRouting:    config.NewSplitRouting(),
-		TrafficPolicing: config.NewTrafficPolicing(),
+		SocketServer:    daemoncfg.NewSocketServer(),
+		CPD:             daemoncfg.NewCPD(),
+		DNSProxy:        daemoncfg.NewDNSProxy(),
+		OpenConnect:     daemoncfg.NewOpenConnect(),
+		Executables:     daemoncfg.NewExecutables(),
+		SplitRouting:    daemoncfg.NewSplitRouting(),
+		TrafficPolicing: daemoncfg.NewTrafficPolicing(),
 		TND:             tnd.NewConfig(),
 	}
 	got := NewConfig()

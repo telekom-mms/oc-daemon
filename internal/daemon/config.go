@@ -5,7 +5,7 @@ import (
 	"net/netip"
 	"os"
 
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/telekom-mms/tnd/pkg/tnd"
 )
@@ -31,13 +31,13 @@ type Config struct {
 	Config  string `json:"-"`
 	Verbose bool
 
-	SocketServer    *config.SocketServer
-	CPD             *config.CPD
-	DNSProxy        *config.DNSProxy
-	OpenConnect     *config.OpenConnect
-	Executables     *config.Executables
-	SplitRouting    *config.SplitRouting
-	TrafficPolicing *config.TrafficPolicing
+	SocketServer    *daemoncfg.SocketServer
+	CPD             *daemoncfg.CPD
+	DNSProxy        *daemoncfg.DNSProxy
+	OpenConnect     *daemoncfg.OpenConnect
+	Executables     *daemoncfg.Executables
+	SplitRouting    *daemoncfg.SplitRouting
+	TrafficPolicing *daemoncfg.TrafficPolicing
 	TND             *tnd.Config
 }
 
@@ -80,8 +80,9 @@ func (c *Config) Load() error {
 	return nil
 }
 
-func (c *Config) GetConfig() *config.Config {
-	conf := &config.Config{
+// GetConfig converts Config to daemoncfg.Config
+func (c *Config) GetConfig() *daemoncfg.Config {
+	conf := &daemoncfg.Config{
 		Verbose: c.Verbose,
 
 		// Socket Server
@@ -103,7 +104,7 @@ func (c *Config) GetConfig() *config.Config {
 		SplitRouting: c.SplitRouting,
 
 		// TrafficPolicing
-		TrafficPolicing: &config.TrafficPolicing{
+		TrafficPolicing: &daemoncfg.TrafficPolicing{
 			AllowedHosts:      c.TrafficPolicing.AllowedHosts,
 			PortalPorts:       c.TrafficPolicing.PortalPorts,
 			FirewallMark:      c.TrafficPolicing.FirewallMark,
@@ -120,7 +121,7 @@ func (c *Config) GetConfig() *config.Config {
 	return conf
 }
 
-func getVPNConfig(vpnconf *vpnconfig.Config) *config.VPNConfig {
+func getVPNConfig(vpnconf *vpnconfig.Config) *daemoncfg.VPNConfig {
 	// convert gateway
 	gateway := netip.Addr{}
 	if g, ok := netip.AddrFromSlice(vpnconf.Gateway); ok {
@@ -177,29 +178,29 @@ func getVPNConfig(vpnconf *vpnconfig.Config) *config.VPNConfig {
 		}
 	}
 
-	return &config.VPNConfig{
+	return &daemoncfg.VPNConfig{
 		Gateway: gateway,
 		PID:     vpnconf.PID,
 		Timeout: vpnconf.Timeout,
-		Device: config.VPNDevice{
+		Device: daemoncfg.VPNDevice{
 			Name: vpnconf.Device.Name,
 			MTU:  vpnconf.Device.MTU,
 		},
 		IPv4: pre4,
 		IPv6: pre6,
-		DNS: config.VPNDNS{
+		DNS: daemoncfg.VPNDNS{
 			DefaultDomain: vpnconf.DNS.DefaultDomain,
 			ServersIPv4:   dns4,
 			ServersIPv6:   dns6,
 		},
-		Split: config.VPNSplit{
+		Split: daemoncfg.VPNSplit{
 			ExcludeIPv4: excludes4,
 			ExcludeIPv6: excludes6,
 			ExcludeDNS:  vpnconf.Split.ExcludeDNS,
 
 			ExcludeVirtualSubnetsOnlyIPv4: vpnconf.Split.ExcludeVirtualSubnetsOnlyIPv4,
 		},
-		Flags: config.VPNFlags{
+		Flags: daemoncfg.VPNFlags{
 			DisableAlwaysOnVPN: vpnconf.Flags.DisableAlwaysOnVPN,
 		},
 	}
@@ -211,13 +212,13 @@ func NewConfig() *Config {
 		Config:  ConfigFile,
 		Verbose: false,
 
-		SocketServer:    config.NewSocketServer(),
-		CPD:             config.NewCPD(),
-		DNSProxy:        config.NewDNSProxy(),
-		OpenConnect:     config.NewOpenConnect(),
-		Executables:     config.NewExecutables(),
-		SplitRouting:    config.NewSplitRouting(),
-		TrafficPolicing: config.NewTrafficPolicing(),
+		SocketServer:    daemoncfg.NewSocketServer(),
+		CPD:             daemoncfg.NewCPD(),
+		DNSProxy:        daemoncfg.NewDNSProxy(),
+		OpenConnect:     daemoncfg.NewOpenConnect(),
+		Executables:     daemoncfg.NewExecutables(),
+		SplitRouting:    daemoncfg.NewSplitRouting(),
+		TrafficPolicing: daemoncfg.NewTrafficPolicing(),
 		TND:             tnd.NewConfig(),
 	}
 }

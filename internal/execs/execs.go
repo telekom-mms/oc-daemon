@@ -6,15 +6,15 @@ import (
 	"context"
 	"os/exec"
 
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // executables.
 var (
-	ip         = config.ExecutablesIP
-	sysctl     = config.ExecutablesSysctl
-	nft        = config.ExecutablesNft
-	resolvectl = config.ExecutablesResolvectl
+	ip         = daemoncfg.ExecutablesIP
+	sysctl     = daemoncfg.ExecutablesSysctl
+	nft        = daemoncfg.ExecutablesNft
+	resolvectl = daemoncfg.ExecutablesResolvectl
 )
 
 // RunCmd runs the cmd with args and sets stdin to s, returns stdout and stderr.
@@ -33,7 +33,7 @@ var RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) (std
 }
 
 // SetExecutables configures all executables from config.
-func SetExecutables(config *config.Executables) {
+func SetExecutables(config *daemoncfg.Executables) {
 	ip = config.IP
 	sysctl = config.Sysctl
 	nft = config.Nft

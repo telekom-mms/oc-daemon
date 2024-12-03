@@ -1,5 +1,5 @@
-// Package config contains the internal daemon configuration.
-package config
+// Package daemoncfg contains the internal daemon configuration.
+package daemoncfg
 
 import (
 	"net/netip"
@@ -58,7 +58,7 @@ func (c *SocketServer) Valid() bool {
 	return true
 }
 
-// NewConfig returns a new server configuration.
+// NewSocketServer returns a new server configuration.
 func NewSocketServer() *SocketServer {
 	return &SocketServer{
 		SocketFile:        SocketServerSocketFile,

@@ -6,16 +6,16 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // addExclude adds exclude address to netfilter.
 // TODO: remove and only use setExcludes?
-func addExclude(ctx context.Context, conf *config.Config, address netip.Prefix) {
+func addExclude(ctx context.Context, conf *daemoncfg.Config, address netip.Prefix) {
 	log.WithField("address", address).Debug("SplitRouting adding exclude to netfilter")
 
 	data := &struct {
-		config.Config
+		daemoncfg.Config
 		Address netip.Prefix
 	}{
 		Config:  *conf,
@@ -41,9 +41,9 @@ func addExclude(ctx context.Context, conf *config.Config, address netip.Prefix) 
 }
 
 // setExcludes resets the excludes to addresses in netfilter.
-func setExcludes(ctx context.Context, conf *config.Config, addresses []netip.Prefix) {
+func setExcludes(ctx context.Context, conf *daemoncfg.Config, addresses []netip.Prefix) {
 	data := &struct {
-		config.Config
+		daemoncfg.Config
 		Addresses []netip.Prefix
 	}{
 		Config:    *conf,

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // TestRunCmd tests RunCmd.
@@ -43,10 +43,10 @@ func TestRunCmd(t *testing.T) {
 
 // TestSetExecutables tests SetExecutables.
 func TestSetExecutables(t *testing.T) {
-	old := config.NewExecutables()
+	old := daemoncfg.NewExecutables()
 	defer SetExecutables(old)
 
-	config := &config.Executables{
+	config := &daemoncfg.Executables{
 		IP:         "/test/ip",
 		Sysctl:     "/test/sysctl",
 		Nft:        "/test/nft",

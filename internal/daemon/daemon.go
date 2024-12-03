@@ -15,7 +15,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/api"
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
@@ -33,7 +33,7 @@ import (
 
 // Daemon is used to run the daemon.
 type Daemon struct {
-	config *config.Config
+	config *daemoncfg.Config
 
 	server *api.Server
 	dbus   *dbusapi.Service
@@ -987,7 +987,7 @@ func (d *Daemon) Errors() chan error {
 }
 
 // NewDaemon returns a new Daemon.
-func NewDaemon(config *config.Config) *Daemon {
+func NewDaemon(config *daemoncfg.Config) *Daemon {
 	return &Daemon{
 		config: config,
 

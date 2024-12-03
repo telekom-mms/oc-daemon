@@ -7,8 +7,8 @@ import (
 	"net/netip"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/telekom-mms/oc-daemon/internal/config"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsmon"
 )
@@ -39,7 +39,7 @@ type trafPolCmd struct {
 
 // TrafPol is a traffic policing component.
 type TrafPol struct {
-	config *config.Config
+	config *daemoncfg.Config
 	devmon *devmon.DevMon
 	dnsmon *dnsmon.DNSMon
 	cpd    *cpd.CPD
@@ -366,9 +366,9 @@ func parseAllowedHosts(hosts []string) (addrs []netip.Prefix, names []string) {
 }
 
 // NewTrafPol returns a new traffic policing component.
-func NewTrafPol(conf *config.Config) *TrafPol {
+func NewTrafPol(conf *daemoncfg.Config) *TrafPol {
 	// create cpd
-	c := cpd.NewCPD(config.NewCPD())
+	c := cpd.NewCPD(daemoncfg.NewCPD())
 
 	// get allowed addrs and names
 	hosts := append(conf.TrafficPolicing.AllowedHosts, c.Hosts()...)
@@ -409,6 +409,6 @@ func NewTrafPol(conf *config.Config) *TrafPol {
 }
 
 // Cleanup cleans up old configuration after a failed shutdown.
-func Cleanup(ctx context.Context, conf *config.Config) {
+func Cleanup(ctx context.Context, conf *daemoncfg.Config) {
 	cleanupFilterRules(ctx, conf)
 }

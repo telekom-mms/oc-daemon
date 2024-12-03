@@ -7,11 +7,11 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // setFilterRules sets the filter rules.
-func setFilterRules(ctx context.Context, config *config.Config) {
+func setFilterRules(ctx context.Context, config *daemoncfg.Config) {
 	cmds, err := cmdtmpl.GetCmds("TrafPolSetFilterRules", config)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get set filter rules commands")
@@ -31,7 +31,7 @@ func setFilterRules(ctx context.Context, config *config.Config) {
 }
 
 // unsetFilterRules unsets the filter rules.
-func unsetFilterRules(ctx context.Context, config *config.Config) {
+func unsetFilterRules(ctx context.Context, config *daemoncfg.Config) {
 	cmds, err := cmdtmpl.GetCmds("TrafPolUnsetFilterRules", config)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get unset filter rules commands")
@@ -51,9 +51,9 @@ func unsetFilterRules(ctx context.Context, config *config.Config) {
 }
 
 // addAllowedDevice adds device to the allowed devices.
-func addAllowedDevice(ctx context.Context, conf *config.Config, device string) {
+func addAllowedDevice(ctx context.Context, conf *daemoncfg.Config, device string) {
 	data := &struct {
-		config.Config
+		daemoncfg.Config
 		Device string
 	}{
 		Config: *conf,
@@ -79,9 +79,9 @@ func addAllowedDevice(ctx context.Context, conf *config.Config, device string) {
 }
 
 // removeAllowedDevice removes device from the allowed devices.
-func removeAllowedDevice(ctx context.Context, conf *config.Config, device string) {
+func removeAllowedDevice(ctx context.Context, conf *daemoncfg.Config, device string) {
 	data := &struct {
-		config.Config
+		daemoncfg.Config
 		Device string
 	}{
 		Config: *conf,
@@ -107,7 +107,7 @@ func removeAllowedDevice(ctx context.Context, conf *config.Config, device string
 }
 
 // setAllowedIPs set the allowed hosts.
-func setAllowedIPs(ctx context.Context, conf *config.Config, ips []netip.Prefix) {
+func setAllowedIPs(ctx context.Context, conf *daemoncfg.Config, ips []netip.Prefix) {
 	// we perform all nft commands separately here and not as one atomic
 	// operation to avoid issues where the whole update fails because nft
 	// runs into "file exists" errors even though we remove duplicates from
@@ -134,7 +134,7 @@ func setAllowedIPs(ctx context.Context, conf *config.Config, ips []netip.Prefix)
 	// add allowed hosts
 	for _, ip := range ips {
 		data := &struct {
-			config.Config
+			daemoncfg.Config
 			AllowedIP netip.Prefix
 		}{
 			Config:    *conf,
@@ -161,7 +161,7 @@ func setAllowedIPs(ctx context.Context, conf *config.Config, ips []netip.Prefix)
 }
 
 // addPortalPorts adds ports for a captive portal to the allowed ports.
-func addPortalPorts(ctx context.Context, conf *config.Config) {
+func addPortalPorts(ctx context.Context, conf *daemoncfg.Config) {
 	cmds, err := cmdtmpl.GetCmds("TrafPolAddPortalPorts", conf)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get add portal ports commands")
@@ -182,7 +182,7 @@ func addPortalPorts(ctx context.Context, conf *config.Config) {
 }
 
 // removePortalPorts removes ports for a captive portal from the allowed ports.
-func removePortalPorts(ctx context.Context, conf *config.Config) {
+func removePortalPorts(ctx context.Context, conf *daemoncfg.Config) {
 	cmds, err := cmdtmpl.GetCmds("TrafPolRemovePortalPorts", conf)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get remove portal ports commands")
@@ -203,7 +203,7 @@ func removePortalPorts(ctx context.Context, conf *config.Config) {
 }
 
 // cleanupFilterRules cleans up the filter rules after a failed shutdown.
-func cleanupFilterRules(ctx context.Context, conf *config.Config) {
+func cleanupFilterRules(ctx context.Context, conf *daemoncfg.Config) {
 	cmds, err := cmdtmpl.GetCmds("TrafPolCleanup", conf)
 	if err != nil {
 		log.WithError(err).Error("TrafPol could not get cleanup commands")

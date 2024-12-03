@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
@@ -19,7 +19,7 @@ import (
 // TestSplitRoutingHandleDeviceUpdate tests handleDeviceUpdate of SplitRouting.
 func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
 	ctx := context.Background()
-	s := NewSplitRouting(config.NewConfig())
+	s := NewSplitRouting(daemoncfg.NewConfig())
 
 	want := []string{"nothing else"}
 	got := []string{"nothing else"}
@@ -67,7 +67,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	ctx := context.Background()
 
 	// test with exclude
-	conf := config.NewConfig()
+	conf := daemoncfg.NewConfig()
 	conf.VPNConfig.Split.ExcludeIPv4 = []netip.Prefix{
 		netip.MustParsePrefix("0.0.0.0/32"),
 	}
@@ -105,7 +105,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 	}
 
 	// test with exclude and virtual
-	conf = config.NewConfig()
+	conf = daemoncfg.NewConfig()
 	conf.VPNConfig.Split.ExcludeIPv4 = []netip.Prefix{
 		netip.MustParsePrefix("0.0.0.0/32"),
 	}
@@ -149,7 +149,7 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 // TestSplitRoutingHandleDNSReport tests handleDNSReport of SplitRouting.
 func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	ctx := context.Background()
-	s := NewSplitRouting(config.NewConfig())
+	s := NewSplitRouting(daemoncfg.NewConfig())
 
 	got := []string{}
 	oldRunCmd := execs.RunCmd
@@ -200,14 +200,14 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	// test with new configs
-	s := NewSplitRouting(config.NewConfig())
+	s := NewSplitRouting(daemoncfg.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
 	s.Stop()
 
 	// test with excludes
-	conf := config.NewConfig()
+	conf := daemoncfg.NewConfig()
 	conf.VPNConfig.Split.ExcludeIPv4 = []netip.Prefix{
 		netip.MustParsePrefix("0.0.0.0/32"),
 		netip.MustParsePrefix("192.168.1.1/32"),
@@ -223,16 +223,16 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	s.Stop()
 
 	// test with vpn address
-	conf = config.NewConfig()
+	conf = daemoncfg.NewConfig()
 	conf.VPNConfig.IPv4 = netip.MustParsePrefix("192.168.1.1/24")
-	s = NewSplitRouting(config.NewConfig())
+	s = NewSplitRouting(daemoncfg.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
 	s.Stop()
 
 	// test with events
-	s = NewSplitRouting(config.NewConfig())
+	s = NewSplitRouting(daemoncfg.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
@@ -247,7 +247,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("test error")
 	}
-	s = NewSplitRouting(config.NewConfig())
+	s = NewSplitRouting(daemoncfg.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
@@ -256,7 +256,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 
 // TestSplitRoutingDNSReports tests DNSReports of SplitRouting.
 func TestSplitRoutingDNSReports(t *testing.T) {
-	s := NewSplitRouting(config.NewConfig())
+	s := NewSplitRouting(daemoncfg.NewConfig())
 	want := s.dnsreps
 	got := s.DNSReports()
 	if got != want {
@@ -266,7 +266,7 @@ func TestSplitRoutingDNSReports(t *testing.T) {
 
 // TestSplitRoutingGetState tests GetState of SplitRouting.
 func TestSplitRoutingGetState(t *testing.T) {
-	s := NewSplitRouting(config.NewConfig())
+	s := NewSplitRouting(daemoncfg.NewConfig())
 
 	// set devices
 	dev := &devmon.Update{
@@ -313,7 +313,7 @@ func TestSplitRoutingGetState(t *testing.T) {
 
 // TestNewSplitRouting tests NewSplitRouting.
 func TestNewSplitRouting(t *testing.T) {
-	config := config.NewConfig()
+	config := daemoncfg.NewConfig()
 	s := NewSplitRouting(config)
 	if s.config != config {
 		t.Errorf("got %p, want %p", s.config, config)
@@ -346,7 +346,7 @@ func TestCleanup(t *testing.T) {
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	Cleanup(context.Background(), config.NewConfig())
+	Cleanup(context.Background(), daemoncfg.NewConfig())
 	want := []string{
 		"ip -4 rule delete pref 2111",
 		"ip -4 rule delete pref 2112",

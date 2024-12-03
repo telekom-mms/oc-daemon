@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
@@ -30,7 +30,7 @@ func TestAllowDevsAdd(t *testing.T) {
 	}
 	if a.Add("eth3") {
 		// TODO: only check bool, and add new test for addAllowedDevice()
-		addAllowedDevice(ctx, config.NewConfig(), "eth3")
+		addAllowedDevice(ctx, daemoncfg.NewConfig(), "eth3")
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -40,7 +40,7 @@ func TestAllowDevsAdd(t *testing.T) {
 	// should not change anything
 	if a.Add("eth3") {
 		// TODO: only check bool, and add new test for addAllowedDevice()
-		addAllowedDevice(ctx, config.NewConfig(), "eth3")
+		addAllowedDevice(ctx, daemoncfg.NewConfig(), "eth3")
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -68,7 +68,7 @@ func TestAllowDevsRemove(t *testing.T) {
 	got = []string{}
 	if a.Remove("eth3") {
 		// TODO: only check bool, and add new test for removeAllowedDevice()
-		removeAllowedDevice(ctx, config.NewConfig(), "eth3")
+		removeAllowedDevice(ctx, daemoncfg.NewConfig(), "eth3")
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -78,7 +78,7 @@ func TestAllowDevsRemove(t *testing.T) {
 	// should not change anything
 	if a.Remove("eth3") {
 		// TODO: only check bool, and add new test for removeAllowedDevice()
-		removeAllowedDevice(ctx, config.NewConfig(), "eth3")
+		removeAllowedDevice(ctx, daemoncfg.NewConfig(), "eth3")
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)

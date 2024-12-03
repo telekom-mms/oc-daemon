@@ -8,7 +8,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/telekom-mms/oc-daemon/internal/config"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/pkg/client"
 )
@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// connect client
-	ocrConf := &config.OpenConnect{}
+	ocrConf := &daemoncfg.OpenConnect{}
 	ocrConf.XMLProfile = *profile
 	ocrConf.VPNCScript = *script
 	c := ocrunner.NewConnect(ocrConf)
