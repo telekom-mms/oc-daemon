@@ -10,6 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
@@ -62,23 +63,23 @@ type SplitRouting struct {
 
 // setupRouting sets up routing using config.
 func (s *SplitRouting) setupRouting(ctx context.Context) {
-	// prepare netfilter and excludes
-	setRoutingRules(ctx, s.config.SplitRouting.FirewallMark)
-
-	// filter non-local traffic to vpn addresses
-	addLocalAddressesIPv4(ctx,
-		s.config.VPNConfig.Device.Name,
-		[]netip.Prefix{s.config.VPNConfig.IPv4})
-	addLocalAddressesIPv6(ctx,
-		s.config.VPNConfig.Device.Name,
-		[]netip.Prefix{s.config.VPNConfig.IPv6})
-
-	// reject unsupported ip versions on vpn
-	if !s.config.VPNConfig.IPv6.IsValid() {
-		rejectIPv6(ctx, s.config.VPNConfig.Device.Name)
+	// set up routing
+	data := s.config
+	cmds, err := cmdtmpl.GetCmds("SplitRoutingSetupRouting", data)
+	if err != nil {
+		log.WithError(err).Error("SplitRouting could not get setup routing commands")
 	}
-	if !s.config.VPNConfig.IPv4.IsValid() {
-		rejectIPv4(ctx, s.config.VPNConfig.Device.Name)
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+				"error":   err,
+			}).Error("SplitRouting could not run setup routing command")
+		}
 	}
 
 	// add gateway to static excludes
@@ -86,7 +87,7 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 		gateway := netip.PrefixFrom(s.config.VPNConfig.Gateway,
 			s.config.VPNConfig.Gateway.BitLen())
 		if s.excludes.AddStatic(gateway) {
-			setExcludes(ctx, s.excludes.GetPrefixes())
+			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
 		}
 	}
 
@@ -96,7 +97,7 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 			continue
 		}
 		if s.excludes.AddStatic(e) {
-			setExcludes(ctx, s.excludes.GetPrefixes())
+			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
 		}
 	}
 
@@ -107,34 +108,31 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 			continue
 		}
 		if s.excludes.AddStatic(e) {
-			setExcludes(ctx, s.excludes.GetPrefixes())
+			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
 		}
 	}
-
-	// setup routing
-	addDefaultRouteIPv4(ctx,
-		s.config.VPNConfig.Device.Name,
-		s.config.SplitRouting.RoutingTable,
-		s.config.SplitRouting.RulePriority1,
-		s.config.SplitRouting.FirewallMark,
-		s.config.SplitRouting.RulePriority2)
-	addDefaultRouteIPv6(ctx,
-		s.config.VPNConfig.Device.Name,
-		s.config.SplitRouting.RoutingTable,
-		s.config.SplitRouting.RulePriority1,
-		s.config.SplitRouting.FirewallMark,
-		s.config.SplitRouting.RulePriority2)
 }
 
 // teardownRouting tears down the routing configuration.
 func (s *SplitRouting) teardownRouting(ctx context.Context) {
-	deleteDefaultRouteIPv4(ctx,
-		s.config.VPNConfig.Device.Name,
-		s.config.SplitRouting.RoutingTable)
-	deleteDefaultRouteIPv6(ctx,
-		s.config.VPNConfig.Device.Name,
-		s.config.SplitRouting.RoutingTable)
-	unsetRoutingRules(ctx)
+	// tear down routing
+	data := s.config
+	cmds, err := cmdtmpl.GetCmds("SplitRoutingTeardownRouting", data)
+	if err != nil {
+		log.WithError(err).Error("SplitRouting could not get teardown routing commands")
+	}
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+				"error":   err,
+			}).Error("SplitRouting could not run teardown routing command")
+		}
+	}
 }
 
 // excludeSettings returns whether local (virtual) networks should be excluded.
@@ -186,7 +184,7 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	for _, e := range excludes {
 		if !isIn(e, s.locals.get()) {
 			if s.excludes.AddStatic(e) {
-				setExcludes(ctx, s.excludes.GetPrefixes())
+				setExcludes(ctx, s.config, s.excludes.GetPrefixes())
 			}
 		}
 	}
@@ -195,7 +193,7 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	for _, l := range s.locals.get() {
 		if !isIn(l, excludes) {
 			if s.excludes.RemoveStatic(l) {
-				setExcludes(ctx, s.excludes.GetPrefixes())
+				setExcludes(ctx, s.config, s.excludes.GetPrefixes())
 			}
 		}
 	}
@@ -245,7 +243,7 @@ func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) 
 
 	exclude := netip.PrefixFrom(r.IP, r.IP.BitLen())
 	if s.excludes.AddDynamic(exclude, r.TTL) {
-		setExcludes(ctx, s.excludes.GetPrefixes())
+		setExcludes(ctx, s.config, s.excludes.GetPrefixes())
 	}
 }
 
@@ -350,9 +348,17 @@ func NewSplitRouting(config *daemoncfg.Config) *SplitRouting {
 
 // Cleanup cleans up old configuration after a failed shutdown.
 func Cleanup(ctx context.Context, config *daemoncfg.Config) {
-	cleanupRouting(ctx,
-		config.SplitRouting.RoutingTable,
-		config.SplitRouting.RulePriority1,
-		config.SplitRouting.RulePriority2)
-	cleanupRoutingRules(ctx)
+	cmds, err := cmdtmpl.GetCmds("SplitRoutingCleanup", config)
+	if err != nil {
+		log.WithError(err).Error("SplitRouting could not get cleanup commands")
+	}
+	for _, c := range cmds {
+		if _, _, err := c.Run(ctx); err == nil {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
+				"stdin":   c.Stdin,
+			}).Debug("SplitRouting cleaned up configuration")
+		}
+	}
 }
