@@ -652,7 +652,7 @@ func (d *Daemon) handleProfileUpdate() error {
 func (d *Daemon) cleanup(ctx context.Context) {
 	ocrunner.CleanupConnect(d.config.OpenConnect)
 	vpnsetup.Cleanup(ctx, d.config)
-	trafpol.Cleanup(ctx)
+	trafpol.Cleanup(ctx, d.config)
 }
 
 // initToken creates the daemon token for client authentication.
