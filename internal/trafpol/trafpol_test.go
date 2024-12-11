@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"testing"
 
@@ -56,10 +57,10 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	var nftMutex sync.Mutex
 	nftCmds := []string{}
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, cmd string, _ string, args ...string) ([]byte, []byte, error) {
 		nftMutex.Lock()
 		defer nftMutex.Unlock()
-		nftCmds = append(nftCmds, s)
+		nftCmds = append(nftCmds, cmd+" "+strings.Join(args, " "))
 		return nil, nil, nil
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
@@ -85,7 +86,7 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	tp.handleCPDReport(ctx, report)
 
 	want = []string{
-		"add element inet oc-daemon-filter allowports { 80, 443 }",
+		"nft -f - add element inet oc-daemon-filter allowports { 80, 443 }",
 	}
 	got = getNftCmds()
 	if !reflect.DeepEqual(got, want) {
@@ -97,8 +98,8 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	tp.handleCPDReport(ctx, report)
 
 	want = []string{
-		"add element inet oc-daemon-filter allowports { 80, 443 }",
-		"delete element inet oc-daemon-filter allowports { 80, 443 }",
+		"nft -f - add element inet oc-daemon-filter allowports { 80, 443 }",
+		"nft -f - delete element inet oc-daemon-filter allowports { 80, 443 }",
 	}
 	got = getNftCmds()
 	if !reflect.DeepEqual(got, want) {
@@ -295,14 +296,14 @@ func TestNewTrafPol(t *testing.T) {
 // TestCleanup tests Cleanup.
 func TestCleanup(t *testing.T) {
 	want := []string{
-		"delete table inet oc-daemon-filter",
+		"nft -f - delete table inet oc-daemon-filter",
 	}
 	got := []string{}
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
+	execs.RunCmd = func(_ context.Context, cmd string, _ string, args ...string) ([]byte, []byte, error) {
+		got = append(got, cmd+" "+strings.Join(args, " "))
 		return nil, nil, nil
 	}
-	Cleanup(context.Background())
+	Cleanup(context.Background(), daemoncfg.NewConfig())
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
