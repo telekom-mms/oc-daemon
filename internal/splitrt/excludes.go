@@ -43,7 +43,7 @@ func (e *Excludes) setFilter(ctx context.Context) {
 		prefix := netip.PrefixFrom(k, k.BitLen())
 		addresses = append(addresses, prefix)
 	}
-	setExcludes(ctx, addresses)
+	setExcludes(ctx, e.conf, addresses)
 }
 
 // AddStatic adds a static entry to the split excludes.
@@ -82,7 +82,7 @@ func (e *Excludes) AddStatic(ctx context.Context, address netip.Prefix) {
 		return
 	}
 	// single new entry, add it
-	addExclude(ctx, address)
+	addExclude(ctx, e.conf, address)
 }
 
 // AddDynamic adds a dynamic entry to the split excludes.
@@ -123,7 +123,7 @@ func (e *Excludes) AddDynamic(ctx context.Context, address netip.Prefix, ttl uin
 	}
 
 	// add to netfilter
-	addExclude(ctx, address)
+	addExclude(ctx, e.conf, address)
 }
 
 // RemoveStatic removes a static entry from the split excludes.
