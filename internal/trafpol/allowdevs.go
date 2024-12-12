@@ -1,26 +1,26 @@
 package trafpol
 
-import "context"
-
 // AllowDevs contains allowed devices.
 type AllowDevs struct {
 	m map[string]string
 }
 
 // Add adds device to the allowed devices.
-func (a *AllowDevs) Add(ctx context.Context, device string) {
+func (a *AllowDevs) Add(device string) bool {
 	if a.m[device] != device {
 		a.m[device] = device
-		addAllowedDevice(ctx, device)
+		return true
 	}
+	return false
 }
 
 // Remove removes device from the allowed devices.
-func (a *AllowDevs) Remove(ctx context.Context, device string) {
+func (a *AllowDevs) Remove(device string) bool {
 	if a.m[device] == device {
 		delete(a.m, device)
-		removeAllowedDevice(ctx, device)
+		return true
 	}
+	return false
 }
 
 // List returns a slice of all allowed devices.

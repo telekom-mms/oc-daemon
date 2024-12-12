@@ -23,7 +23,8 @@ func TestTrafPolHandleDeviceUpdate(_ *testing.T) {
 
 	// test adding
 	update := &devmon.Update{
-		Add: true,
+		Device: "test0",
+		Add:    true,
 	}
 	tp.handleDeviceUpdate(ctx, update)
 
