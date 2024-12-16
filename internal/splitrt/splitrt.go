@@ -9,15 +9,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
-	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 )
 
 // State is the internal state.
 type State struct {
-	Config          *Config
-	VPNConfig       *vpnconfig.Config
 	Devices         []*devmon.Update
 	Addresses       []*addrmon.Update
 	LocalExcludes   []string
@@ -49,89 +47,89 @@ func (l *locals) set(locals []netip.Prefix) {
 
 // SplitRouting is a split routing configuration.
 type SplitRouting struct {
-	config    *Config
-	vpnconfig *vpnconfig.Config
-	devmon    *devmon.DevMon
-	addrmon   *addrmon.AddrMon
-	devices   *Devices
-	addrs     *Addresses
-	locals    locals
-	excludes  *Excludes
-	dnsreps   chan *dnsproxy.Report
-	done      chan struct{}
-	closed    chan struct{}
+	config   *daemoncfg.Config
+	devmon   *devmon.DevMon
+	addrmon  *addrmon.AddrMon
+	devices  *Devices
+	addrs    *Addresses
+	locals   locals
+	excludes *Excludes
+	dnsreps  chan *dnsproxy.Report
+	done     chan struct{}
+	closed   chan struct{}
 }
 
 // setupRouting sets up routing using config.
 func (s *SplitRouting) setupRouting(ctx context.Context) {
 	// prepare netfilter and excludes
-	setRoutingRules(ctx, s.config.FirewallMark)
-
-	// convert to netip
-	pre4 := netip.Prefix{}
-	if ipv4, ok := netip.AddrFromSlice(s.vpnconfig.IPv4.Address.To4()); ok {
-		one4, _ := s.vpnconfig.IPv4.Netmask.Size()
-		pre4 = netip.PrefixFrom(ipv4, one4)
-	}
-	pre6 := netip.Prefix{}
-	if ipv6, ok := netip.AddrFromSlice(s.vpnconfig.IPv6.Address); ok {
-		one6, _ := s.vpnconfig.IPv6.Netmask.Size()
-		pre6 = netip.PrefixFrom(ipv6, one6)
-	}
+	setRoutingRules(ctx, s.config.SplitRouting.FirewallMark)
 
 	// filter non-local traffic to vpn addresses
-	addLocalAddressesIPv4(ctx, s.vpnconfig.Device.Name, []netip.Prefix{pre4})
-	addLocalAddressesIPv6(ctx, s.vpnconfig.Device.Name, []netip.Prefix{pre6})
+	addLocalAddressesIPv4(ctx,
+		s.config.VPNConfig.Device.Name,
+		[]netip.Prefix{s.config.VPNConfig.IPv4})
+	addLocalAddressesIPv6(ctx,
+		s.config.VPNConfig.Device.Name,
+		[]netip.Prefix{s.config.VPNConfig.IPv6})
 
 	// reject unsupported ip versions on vpn
-	if !pre6.IsValid() {
-		rejectIPv6(ctx, s.vpnconfig.Device.Name)
+	if !s.config.VPNConfig.IPv6.IsValid() {
+		rejectIPv6(ctx, s.config.VPNConfig.Device.Name)
 	}
-	if !pre4.IsValid() {
-		rejectIPv4(ctx, s.vpnconfig.Device.Name)
+	if !s.config.VPNConfig.IPv4.IsValid() {
+		rejectIPv4(ctx, s.config.VPNConfig.Device.Name)
 	}
 
 	// add excludes
 	s.excludes.Start()
 
 	// add gateway to static excludes
-	if s.vpnconfig.Gateway != nil {
-		g := netip.MustParseAddr(s.vpnconfig.Gateway.String())
-		gateway := netip.PrefixFrom(g, g.BitLen())
+	if s.config.VPNConfig.Gateway.IsValid() {
+		gateway := netip.PrefixFrom(s.config.VPNConfig.Gateway,
+			s.config.VPNConfig.Gateway.BitLen())
 		s.excludes.AddStatic(ctx, gateway)
 	}
 
 	// add static IPv4 excludes
-	for _, e := range s.vpnconfig.Split.ExcludeIPv4 {
+	for _, e := range s.config.VPNConfig.Split.ExcludeIPv4 {
 		if e.String() == "0.0.0.0/32" {
 			continue
 		}
-		p := netip.MustParsePrefix(e.String())
-		s.excludes.AddStatic(ctx, p)
+		s.excludes.AddStatic(ctx, e)
 	}
 
 	// add static IPv6 excludes
-	for _, e := range s.vpnconfig.Split.ExcludeIPv6 {
+	for _, e := range s.config.VPNConfig.Split.ExcludeIPv6 {
 		// TODO: does ::/128 exist?
 		if e.String() == "::/128" {
 			continue
 		}
-		p := netip.MustParsePrefix(e.String())
-		s.excludes.AddStatic(ctx, p)
+		s.excludes.AddStatic(ctx, e)
 	}
 
 	// setup routing
-	addDefaultRouteIPv4(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable,
-		s.config.RulePriority1, s.config.FirewallMark, s.config.RulePriority2)
-	addDefaultRouteIPv6(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable,
-		s.config.RulePriority1, s.config.FirewallMark, s.config.RulePriority2)
-
+	addDefaultRouteIPv4(ctx,
+		s.config.VPNConfig.Device.Name,
+		s.config.SplitRouting.RoutingTable,
+		s.config.SplitRouting.RulePriority1,
+		s.config.SplitRouting.FirewallMark,
+		s.config.SplitRouting.RulePriority2)
+	addDefaultRouteIPv6(ctx,
+		s.config.VPNConfig.Device.Name,
+		s.config.SplitRouting.RoutingTable,
+		s.config.SplitRouting.RulePriority1,
+		s.config.SplitRouting.FirewallMark,
+		s.config.SplitRouting.RulePriority2)
 }
 
 // teardownRouting tears down the routing configuration.
 func (s *SplitRouting) teardownRouting(ctx context.Context) {
-	deleteDefaultRouteIPv4(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable)
-	deleteDefaultRouteIPv6(ctx, s.vpnconfig.Device.Name, s.config.RoutingTable)
+	deleteDefaultRouteIPv4(ctx,
+		s.config.VPNConfig.Device.Name,
+		s.config.SplitRouting.RoutingTable)
+	deleteDefaultRouteIPv6(ctx,
+		s.config.VPNConfig.Device.Name,
+		s.config.SplitRouting.RoutingTable)
 	unsetRoutingRules(ctx)
 
 	// remove excludes
@@ -140,12 +138,12 @@ func (s *SplitRouting) teardownRouting(ctx context.Context) {
 
 // excludeSettings returns whether local (virtual) networks should be excluded.
 func (s *SplitRouting) excludeLocalNetworks() (exclude bool, virtual bool) {
-	for _, e := range s.vpnconfig.Split.ExcludeIPv4 {
+	for _, e := range s.config.VPNConfig.Split.ExcludeIPv4 {
 		if e.String() == "0.0.0.0/32" {
 			exclude = true
 		}
 	}
-	if s.vpnconfig.Split.ExcludeVirtualSubnetsOnlyIPv4 {
+	if s.config.VPNConfig.Split.ExcludeVirtualSubnetsOnlyIPv4 {
 		virtual = true
 	}
 	return
@@ -211,7 +209,7 @@ func (s *SplitRouting) handleDeviceUpdate(ctx context.Context, u *devmon.Update)
 			// skip loopback devices
 			return
 		}
-		if u.Device == s.vpnconfig.Device.Name {
+		if u.Device == s.config.VPNConfig.Device.Name {
 			// skip vpn tunnel device, so we do not use it for
 			// split excludes
 			return
@@ -312,8 +310,6 @@ func (s *SplitRouting) GetState() *State {
 	}
 	static, dynamic := s.excludes.List()
 	return &State{
-		Config:          s.config,
-		VPNConfig:       s.vpnconfig,
 		Devices:         s.devices.List(),
 		Addresses:       s.addrs.List(),
 		LocalExcludes:   locals,
@@ -323,24 +319,25 @@ func (s *SplitRouting) GetState() *State {
 }
 
 // NewSplitRouting returns a new SplitRouting.
-func NewSplitRouting(config *Config, vpnconfig *vpnconfig.Config) *SplitRouting {
+func NewSplitRouting(config *daemoncfg.Config) *SplitRouting {
 	return &SplitRouting{
-		config:    config,
-		vpnconfig: vpnconfig,
-		devmon:    devmon.NewDevMon(),
-		addrmon:   addrmon.NewAddrMon(),
-		devices:   NewDevices(),
-		addrs:     NewAddresses(),
-		excludes:  NewExcludes(),
-		dnsreps:   make(chan *dnsproxy.Report),
-		done:      make(chan struct{}),
-		closed:    make(chan struct{}),
+		config:   config,
+		devmon:   devmon.NewDevMon(),
+		addrmon:  addrmon.NewAddrMon(),
+		devices:  NewDevices(),
+		addrs:    NewAddresses(),
+		excludes: NewExcludes(config),
+		dnsreps:  make(chan *dnsproxy.Report),
+		done:     make(chan struct{}),
+		closed:   make(chan struct{}),
 	}
 }
 
 // Cleanup cleans up old configuration after a failed shutdown.
-func Cleanup(ctx context.Context, config *Config) {
-	cleanupRouting(ctx, config.RoutingTable, config.RulePriority1,
-		config.RulePriority2)
+func Cleanup(ctx context.Context, config *daemoncfg.Config) {
+	cleanupRouting(ctx,
+		config.SplitRouting.RoutingTable,
+		config.SplitRouting.RulePriority1,
+		config.SplitRouting.RulePriority2)
 	cleanupRoutingRules(ctx)
 }

@@ -4,11 +4,13 @@ import (
 	"net"
 	"reflect"
 	"testing"
+
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // TestServerHandleRequest tests handleRequest of Server.
 func TestServerHandleRequest(t *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewSocketServer()
 	server := NewServer(config)
 
 	// connection closed
@@ -77,7 +79,7 @@ func TestServerHandleRequest(t *testing.T) {
 
 // TestServerSetSocketOwner tests setSocketOwner of Server.
 func TestServerSetSocketOwner(_ *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewSocketServer()
 	server := NewServer(config)
 
 	// no changes
@@ -95,7 +97,7 @@ func TestServerSetSocketOwner(_ *testing.T) {
 
 // TestServerSetSocketGroup tests setSocketGroup of Server.
 func TestServerSetSocketGroup(_ *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewSocketServer()
 	server := NewServer(config)
 
 	// no changes
@@ -113,7 +115,7 @@ func TestServerSetSocketGroup(_ *testing.T) {
 
 // TestServerSetSocketPermissions tests setSocketPermissions of Server.
 func TestServerSetSocketPermissions(_ *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewSocketServer()
 	server := NewServer(config)
 
 	// socket file does not exist
@@ -131,7 +133,7 @@ func TestServerSetSocketPermissions(_ *testing.T) {
 
 // TestServerStartStop tests Start and Stop of Server.
 func TestServerStartStop(t *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewSocketServer()
 	config.SocketFile = "test.sock"
 	server := NewServer(config)
 	if err := server.Start(); err != nil {
@@ -143,7 +145,7 @@ func TestServerStartStop(t *testing.T) {
 
 // TestServerRequests tests Requests of Server.
 func TestServerRequests(t *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewSocketServer()
 	config.SocketFile = "test.sock"
 	server := NewServer(config)
 	if server.Requests() != server.requests {
@@ -153,7 +155,7 @@ func TestServerRequests(t *testing.T) {
 
 // TestNewServer tests NewServer.
 func TestNewServer(t *testing.T) {
-	config := NewConfig()
+	config := daemoncfg.NewSocketServer()
 	server := NewServer(config)
 
 	if server == nil ||

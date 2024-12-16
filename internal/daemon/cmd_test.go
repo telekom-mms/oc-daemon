@@ -8,13 +8,15 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // TestPrepareFolders tests prepareFolders.
 func TestPrepareFolders(t *testing.T) {
 	// create temp dir and config
 	dir := t.TempDir()
-	cfg := NewConfig()
+	cfg := daemoncfg.NewConfig()
 
 	// set files: config, socket, xml-profile, pid file
 	conf := filepath.Join(dir, "conf")

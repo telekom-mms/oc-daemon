@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/telekom-mms/oc-daemon/pkg/logininfo"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // ConnectEvent is a connect runner event.
@@ -24,8 +24,8 @@ type ConnectEvent struct {
 	// PID is the process ID of the running openconnect process
 	PID uint32
 
-	// login info for connect
-	login *logininfo.LoginInfo
+	// config is the daemon configuration.
+	config *daemoncfg.Config
 
 	// Env are extra environment variables set during execution
 	env []string
@@ -33,9 +33,6 @@ type ConnectEvent struct {
 
 // Connect is a openconnect connection runner.
 type Connect struct {
-	// connection runner configuration
-	config *Config
-
 	// openconnect command
 	command *exec.Cmd
 
@@ -74,13 +71,13 @@ func (c *Connect) sendEvent(event *ConnectEvent) {
 }
 
 // setPIDOwner sets the owner of the pid file.
-func (c *Connect) setPIDOwner() {
-	if c.config.PIDOwner == "" {
+func (c *Connect) setPIDOwner(config *daemoncfg.Config) {
+	if config.OpenConnect.PIDOwner == "" {
 		// do not change owner
 		return
 	}
 
-	user, err := userLookup(c.config.PIDOwner)
+	user, err := userLookup(config.OpenConnect.PIDOwner)
 	if err != nil {
 		log.WithError(err).Error("OC-Runner could not get UID of pid file owner")
 		return
@@ -92,19 +89,19 @@ func (c *Connect) setPIDOwner() {
 		return
 	}
 
-	if err := osChown(c.config.PIDFile, uid, -1); err != nil {
+	if err := osChown(config.OpenConnect.PIDFile, uid, -1); err != nil {
 		log.WithError(err).Error("OC-Runner could not change owner of pid file")
 	}
 }
 
 // setPIDGroup sets the group of the pid file.
-func (c *Connect) setPIDGroup() {
-	if c.config.PIDGroup == "" {
+func (c *Connect) setPIDGroup(config *daemoncfg.Config) {
+	if config.OpenConnect.PIDGroup == "" {
 		// do not change group
 		return
 	}
 
-	group, err := userLookupGroup(c.config.PIDGroup)
+	group, err := userLookupGroup(config.OpenConnect.PIDGroup)
 	if err != nil {
 		log.WithError(err).Error("OC-Runner could not get GID of pid file group")
 		return
@@ -116,13 +113,13 @@ func (c *Connect) setPIDGroup() {
 		return
 	}
 
-	if err := osChown(c.config.PIDFile, -1, gid); err != nil {
+	if err := osChown(config.OpenConnect.PIDFile, -1, gid); err != nil {
 		log.WithError(err).Error("OC-Runner could not change group of pid file")
 	}
 }
 
 // savePidFile saves the running command to pid file.
-func (c *Connect) savePidFile() {
+func (c *Connect) savePidFile(config *daemoncfg.Config) {
 	if c.command == nil || c.command.Process == nil {
 		return
 	}
@@ -131,22 +128,22 @@ func (c *Connect) savePidFile() {
 	pid := fmt.Sprintf("%d\n", c.command.Process.Pid)
 
 	// convert permissions
-	perm, err := strconv.ParseUint(c.config.PIDPermissions, 8, 32)
+	perm, err := strconv.ParseUint(config.OpenConnect.PIDPermissions, 8, 32)
 	if err != nil {
 		log.WithError(err).Error("OC-Runner could not convert permissions of pid file to uint")
 		return
 	}
 
 	// write pid to file with permissions
-	err = osWriteFile(c.config.PIDFile, []byte(pid), os.FileMode(perm))
+	err = osWriteFile(config.OpenConnect.PIDFile, []byte(pid), os.FileMode(perm))
 	if err != nil {
 		log.WithError(err).Error("OC-Runner writing pid error")
 		return
 	}
 
 	// set owner and group
-	c.setPIDOwner()
-	c.setPIDGroup()
+	c.setPIDOwner(config)
+	c.setPIDGroup(config)
 }
 
 // getPID returns the PID of the running command.
@@ -171,12 +168,12 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 	//
 	// openconnect --cookie-on-stdin $HOST --servercert $FINGERPRINT
 	//
-	serverCert := fmt.Sprintf("--servercert=%s", e.login.Fingerprint)
-	xmlConfig := fmt.Sprintf("--xmlconfig=%s", c.config.XMLProfile)
-	script := fmt.Sprintf("--script=%s", c.config.VPNCScript)
-	host := e.login.Host
-	if e.login.ConnectURL != "" {
-		host = e.login.ConnectURL
+	serverCert := fmt.Sprintf("--servercert=%s", e.config.LoginInfo.Fingerprint)
+	xmlConfig := fmt.Sprintf("--xmlconfig=%s", e.config.OpenConnect.XMLProfile)
+	script := fmt.Sprintf("--script=%s", e.config.OpenConnect.VPNCScript)
+	host := e.config.LoginInfo.Host
+	if e.config.LoginInfo.ConnectURL != "" {
+		host = e.config.LoginInfo.ConnectURL
 	}
 	parameters := []string{
 		xmlConfig,
@@ -185,30 +182,30 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 		host,
 		serverCert,
 	}
-	if c.config.NoProxy {
+	if e.config.OpenConnect.NoProxy {
 		parameters = append(parameters, "--no-proxy")
 	}
-	if e.login.Resolve != "" {
-		resolve := fmt.Sprintf("--resolve=%s", e.login.Resolve)
+	if e.config.LoginInfo.Resolve != "" {
+		resolve := fmt.Sprintf("--resolve=%s", e.config.LoginInfo.Resolve)
 		parameters = append(parameters, resolve)
 	}
-	if c.config.VPNDevice != "" {
-		device := fmt.Sprintf("--interface=%s", c.config.VPNDevice)
+	if e.config.OpenConnect.VPNDevice != "" {
+		device := fmt.Sprintf("--interface=%s", e.config.OpenConnect.VPNDevice)
 		parameters = append(parameters, device)
 	}
-	parameters = append(parameters, c.config.ExtraArgs...)
-	c.command = execCommand(c.config.OpenConnect, parameters...)
+	parameters = append(parameters, e.config.OpenConnect.ExtraArgs...)
+	c.command = execCommand(e.config.OpenConnect.OpenConnect, parameters...)
 
 	// run command in own process group so it is not canceled by interrupt
 	// signal sent to daemon
 	c.command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	// run command, pass login info to stdin
-	b := bytes.NewBufferString(e.login.Cookie)
+	b := bytes.NewBufferString(e.config.LoginInfo.Cookie)
 	c.command.Stdin = b
 	c.command.Stdout = os.Stdout
 	c.command.Stderr = os.Stderr
-	c.command.Env = append(os.Environ(), c.config.ExtraEnv...)
+	c.command.Env = append(os.Environ(), e.config.OpenConnect.ExtraEnv...)
 	c.command.Env = append(c.command.Env, e.env...)
 
 	if err := c.command.Start(); err != nil {
@@ -219,7 +216,7 @@ func (c *Connect) handleConnect(e *ConnectEvent) {
 	}
 
 	// save pid and cmd line
-	c.savePidFile()
+	c.savePidFile(e.config)
 
 	// signal connect to user
 	c.sendEvent(&ConnectEvent{
@@ -305,10 +302,10 @@ func (c *Connect) Stop() {
 }
 
 // Connect connects the vpn by starting openconnect.
-func (c *Connect) Connect(login *logininfo.LoginInfo, env []string) {
+func (c *Connect) Connect(config *daemoncfg.Config, env []string) {
 	e := &ConnectEvent{
 		Connect: true,
-		login:   login,
+		config:  config,
 		env:     env,
 	}
 	c.commands <- e
@@ -326,10 +323,8 @@ func (c *Connect) Events() chan *ConnectEvent {
 }
 
 // NewConnect returns a new Connect.
-func NewConnect(config *Config) *Connect {
+func NewConnect() *Connect {
 	return &Connect{
-		config: config,
-
 		exits: make(chan struct{}),
 
 		commands: make(chan *ConnectEvent),
@@ -341,7 +336,7 @@ func NewConnect(config *Config) *Connect {
 }
 
 // CleanupConnect cleans up connect after a failed shutdown.
-func CleanupConnect(config *Config) {
+func CleanupConnect(config *daemoncfg.OpenConnect) {
 	// get pid from file
 	b, err := osReadFile(config.PIDFile)
 	if err != nil {

@@ -3,12 +3,14 @@ package daemon
 import (
 	"path/filepath"
 	"testing"
+
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // TestDaemonErrors tests Errors of Daemon.
 func TestDaemonErrors(t *testing.T) {
 	// create daemon
-	c := NewConfig()
+	c := daemoncfg.NewConfig()
 	c.OpenConnect.XMLProfile = filepath.Join(t.TempDir(), "does-not-exist")
 	d := NewDaemon(c)
 
@@ -20,7 +22,7 @@ func TestDaemonErrors(t *testing.T) {
 // TestNewDaemon tests NewDaemon.
 func TestNewDaemon(t *testing.T) {
 	// create daemon
-	c := NewConfig()
+	c := daemoncfg.NewConfig()
 	c.OpenConnect.XMLProfile = filepath.Join(t.TempDir(), "does-not-exist")
 	d := NewDaemon(c)
 

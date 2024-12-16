@@ -15,7 +15,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/api"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
+	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/profilemon"
@@ -32,7 +34,7 @@ import (
 
 // Daemon is used to run the daemon.
 type Daemon struct {
-	config *Config
+	config *daemoncfg.Config
 
 	server *api.Server
 	dbus   *dbusapi.Service
@@ -323,13 +325,14 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 		d.serverIPAllowed = d.trafpol.AddAllowedAddr(d.serverIP)
 	}
 
-	// connect using runner
+	// save login and connect using runner
+	d.config.LoginInfo = login
 	env := []string{
 		"oc_daemon_token=" + d.token,
 		"oc_daemon_socket_file=" + d.config.SocketServer.SocketFile,
 		"oc_daemon_verbose=" + strconv.FormatBool(d.config.Verbose),
 	}
-	d.runner.Connect(login, env)
+	d.runner.Connect(d.config.Copy(), env)
 }
 
 // disconnectVPN disconnects from the VPN.
@@ -371,7 +374,8 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 
 	// connecting, set up configuration
 	log.Info("Daemon setting up vpn configuration")
-	d.vpnsetup.Setup(config)
+	d.config.VPNConfig = daemoncfg.GetVPNConfig(config)
+	d.vpnsetup.Setup(d.config.Copy())
 
 	// set traffic policing setting from Disable Always On VPN setting
 	// in configuration
@@ -380,11 +384,11 @@ func (d *Daemon) updateVPNConfigUp(config *vpnconfig.Config) {
 	// save config
 	d.setStatusVPNConfig(config)
 	ip := ""
-	for _, addr := range []net.IP{config.IPv4.Address, config.IPv6.Address} {
+	for _, p := range []netip.Prefix{d.config.VPNConfig.IPv4, d.config.VPNConfig.IPv6} {
 		// this assumes either a single IPv4 or a single IPv6 address
 		// is configured on a vpn device
-		if addr != nil {
-			ip = addr.String()
+		if p.IsValid() {
+			ip = p.Addr().String()
 		}
 	}
 	d.setStatusIP(ip)
@@ -417,8 +421,12 @@ func (d *Daemon) updateVPNConfigDown() {
 	// disconnecting, tear down configuration
 	log.Info("Daemon tearing down vpn configuration")
 	if d.status.VPNConfig != nil {
-		d.vpnsetup.Teardown(d.status.VPNConfig)
+		d.vpnsetup.Teardown(d.config)
 	}
+
+	// remove login and VPN config
+	d.config.LoginInfo = &logininfo.LoginInfo{}
+	d.config.VPNConfig = &daemoncfg.VPNConfig{}
 
 	// save config
 	d.setStatusVPNConfig(nil)
@@ -477,12 +485,17 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 func (d *Daemon) dumpState() string {
 	// define state type
 	type State struct {
+		DaemonConfig    *daemoncfg.Config
 		TrafficPolicing *trafpol.State
 		VPNSetup        *vpnsetup.State
 	}
 
 	// collect internal state
-	state := State{}
+	c := d.config.Copy()
+	c.LoginInfo.Cookie = "HIDDEN" // hide cookie
+	state := State{
+		DaemonConfig: c,
+	}
 	if d.trafpol != nil {
 		state.TrafficPolicing = d.trafpol.GetState()
 	}
@@ -638,7 +651,7 @@ func (d *Daemon) handleProfileUpdate() error {
 // cleanup cleans up after a failed shutdown.
 func (d *Daemon) cleanup(ctx context.Context) {
 	ocrunner.CleanupConnect(d.config.OpenConnect)
-	vpnsetup.Cleanup(ctx, d.config.OpenConnect.VPNDevice, d.config.SplitRouting)
+	vpnsetup.Cleanup(ctx, d.config)
 	trafpol.Cleanup(ctx)
 }
 
@@ -767,9 +780,8 @@ func (d *Daemon) startTrafPol() error {
 		return nil
 	}
 	log.Info("Daemon starting TrafPol")
-	c := trafpol.NewConfig()
-	c.AllowedHosts = append(c.AllowedHosts, d.getProfileAllowedHosts()...)
-	c.FirewallMark = d.config.SplitRouting.FirewallMark
+	c := d.config.Copy()
+	c.TrafficPolicing.AllowedHosts = append(c.TrafficPolicing.AllowedHosts, d.getProfileAllowedHosts()...)
 	d.trafpol = trafpol.NewTrafPol(c)
 	if err := d.trafpol.Start(); err != nil {
 		return fmt.Errorf("Daemon could not start TrafPol: %w", err)
@@ -777,7 +789,7 @@ func (d *Daemon) startTrafPol() error {
 
 	// update trafpol status
 	d.setStatusTrafPolState(vpnstatus.TrafPolStateActive)
-	d.setStatusAllowedHosts(c.AllowedHosts)
+	d.setStatusAllowedHosts(c.TrafficPolicing.AllowedHosts)
 
 	if d.serverIP.IsValid() {
 		// VPN connection active, allow server IP
@@ -984,7 +996,7 @@ func (d *Daemon) Errors() chan error {
 }
 
 // NewDaemon returns a new Daemon.
-func NewDaemon(config *Config) *Daemon {
+func NewDaemon(config *daemoncfg.Config) *Daemon {
 	return &Daemon{
 		config: config,
 
@@ -993,10 +1005,9 @@ func NewDaemon(config *Config) *Daemon {
 
 		sleepmon: sleepmon.NewSleepMon(),
 
-		vpnsetup: vpnsetup.NewVPNSetup(config.DNSProxy,
-			config.SplitRouting),
+		vpnsetup: vpnsetup.NewVPNSetup(dnsproxy.NewProxy(config.DNSProxy)),
 
-		runner: ocrunner.NewConnect(config.OpenConnect),
+		runner: ocrunner.NewConnect(),
 
 		status: vpnstatus.New(),
 

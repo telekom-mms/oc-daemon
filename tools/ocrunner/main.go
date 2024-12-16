@@ -8,6 +8,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/pkg/client"
 )
@@ -57,10 +58,7 @@ func main() {
 	}
 
 	// connect client
-	ocrConf := ocrunner.NewConfig()
-	ocrConf.XMLProfile = *profile
-	ocrConf.VPNCScript = *script
-	c := ocrunner.NewConnect(ocrConf)
+	c := ocrunner.NewConnect()
 	done := make(chan struct{})
 	go c.Start()
 	go func() {
@@ -73,7 +71,11 @@ func main() {
 		done <- struct{}{}
 	}()
 	if *connect {
-		c.Connect(a.GetLogin(), []string{})
+		dconf := daemoncfg.NewConfig()
+		dconf.OpenConnect.XMLProfile = *profile
+		dconf.OpenConnect.VPNCScript = *script
+		dconf.LoginInfo = a.GetLogin()
+		c.Connect(dconf, []string{})
 	}
 
 	// disconnect client

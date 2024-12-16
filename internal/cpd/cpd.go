@@ -7,6 +7,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // Report is a captive portal detection report.
@@ -17,7 +18,7 @@ type Report struct {
 
 // CPD is a captive portal detection instance.
 type CPD struct {
-	config  *Config
+	config  *daemoncfg.CPD
 	reports chan *Report
 	probes  chan struct{}
 	done    chan struct{}
@@ -211,7 +212,7 @@ func (c *CPD) Results() chan *Report {
 }
 
 // NewCPD returns a new CPD.
-func NewCPD(config *Config) *CPD {
+func NewCPD(config *daemoncfg.CPD) *CPD {
 	return &CPD{
 		config:  config,
 		reports: make(chan *Report),

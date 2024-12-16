@@ -3,7 +3,6 @@ package vpnsetup
 import (
 	"context"
 	"errors"
-	"net"
 	"net/netip"
 	"reflect"
 	"strings"
@@ -11,11 +10,10 @@ import (
 	"time"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
 	"github.com/telekom-mms/oc-daemon/internal/execs"
-	"github.com/telekom-mms/oc-daemon/internal/splitrt"
-	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/vishvananda/netlink"
 )
 
@@ -25,13 +23,12 @@ func TestSetupVPNDevice(t *testing.T) {
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	c := vpnconfig.New()
-	c.Device.Name = "tun0"
-	c.Device.MTU = 1300
-	c.IPv4.Address = net.IPv4(192, 168, 0, 123)
-	c.IPv4.Netmask = net.IPv4Mask(255, 255, 255, 0)
-	c.IPv6.Address = net.ParseIP("2001::1")
-	c.IPv6.Netmask = net.CIDRMask(64, 128)
+	c := daemoncfg.NewConfig()
+	c.DNSProxy.Address = "127.0.0.1:4253"
+	c.VPNConfig.Device.Name = "tun0"
+	c.VPNConfig.Device.MTU = 1300
+	c.VPNConfig.IPv4 = netip.MustParsePrefix("192.168.0.123/24")
+	c.VPNConfig.IPv6 = netip.MustParsePrefix("2001::1/64")
 
 	// overwrite RunCmd
 	want := []string{
@@ -86,8 +83,9 @@ func TestTeardownVPNDevice(t *testing.T) {
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	c := vpnconfig.New()
-	c.Device.Name = "tun0"
+	c := daemoncfg.NewConfig()
+	c.DNSProxy.Address = "127.0.0.1:4253"
+	c.VPNConfig.Device.Name = "tun0"
 
 	// overwrite RunCmd
 	want := []string{
@@ -118,16 +116,16 @@ func TestVPNSetupSetupDNS(t *testing.T) {
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	c := vpnconfig.New()
-	c.Device.Name = "tun0"
-	c.DNS.DefaultDomain = "mycompany.com"
+	c := daemoncfg.NewConfig()
+	c.VPNConfig.Device.Name = "tun0"
+	c.VPNConfig.DNS.DefaultDomain = "mycompany.com"
 
 	got := []string{}
 	execs.RunCmd = func(_ context.Context, _ string, _ string, arg ...string) ([]byte, []byte, error) {
 		got = append(got, strings.Join(arg, " "))
 		return nil, nil, nil
 	}
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v := NewVPNSetup(dnsproxy.NewProxy(daemoncfg.NewDNSProxy()))
 	v.setupDNS(context.Background(), c)
 
 	want := []string{
@@ -160,8 +158,8 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	c := vpnconfig.New()
-	c.Device.Name = "tun0"
+	c := daemoncfg.NewConfig()
+	c.VPNConfig.Device.Name = "tun0"
 
 	got := []string{}
 	execs.RunCmd = func(_ context.Context, _ string, _ string, arg ...string) ([]byte, []byte, error) {
@@ -169,7 +167,7 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 		return nil, nil, nil
 	}
 
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v := NewVPNSetup(dnsproxy.NewProxy(daemoncfg.NewDNSProxy()))
 	v.teardownDNS(context.Background(), c)
 
 	want := []string{
@@ -196,7 +194,7 @@ func TestVPNSetupTeardownDNS(t *testing.T) {
 
 // TestVPNSetupCheckDNSProtocols tests checkDNSProtocols of VPNSetup.
 func TestVPNSetupCheckDNSProtocols(t *testing.T) {
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v := NewVPNSetup(dnsproxy.NewProxy(daemoncfg.NewDNSProxy()))
 
 	// test invalid
 	for _, invalid := range [][]string{
@@ -221,48 +219,49 @@ func TestVPNSetupCheckDNSProtocols(t *testing.T) {
 
 // TestVPNSetupCheckDNSServers tests checkDNSServers of VPNSetup.
 func TestVPNSetupCheckDNSServers(t *testing.T) {
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	conf := daemoncfg.NewConfig()
+	v := NewVPNSetup(dnsproxy.NewProxy(conf.DNSProxy))
 
 	// test invalid
 	for _, invalid := range [][]string{
 		{},
 		{"x", "y", "z"},
 	} {
-		if ok := v.checkDNSServers(invalid); ok {
+		if ok := v.checkDNSServers(conf, invalid); ok {
 			t.Errorf("dns check should fail with %v", invalid)
 		}
 	}
 
 	// test valid
-	proxy := []string{v.dnsProxyConf.Address}
-	if ok := v.checkDNSServers(proxy); !ok {
+	proxy := []string{conf.DNSProxy.Address}
+	if ok := v.checkDNSServers(conf, proxy); !ok {
 		t.Errorf("dns check should not fail with %v", proxy)
 	}
 }
 
 // TestVPNSetupCheckDNSDomain tests checkDNSDomain of VPNSetup.
 func TestVPNSetupCheckDNSDomain(t *testing.T) {
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
-	vpnconf := vpnconfig.New()
-	vpnconf.DNS.DefaultDomain = "test.example.com"
+	conf := daemoncfg.NewConfig()
+	conf.VPNConfig.DNS.DefaultDomain = "test.example.com"
+	v := NewVPNSetup(dnsproxy.NewProxy(conf.DNSProxy))
 
 	// test invalid
 	for _, invalid := range [][]string{
 		{},
 		{"x", "y", "z"},
-		{vpnconf.DNS.DefaultDomain},
+		{conf.VPNConfig.DNS.DefaultDomain},
 	} {
-		if ok := v.checkDNSDomain(vpnconf, invalid); ok {
+		if ok := v.checkDNSDomain(conf, invalid); ok {
 			t.Errorf("dns check should fail with %v", invalid)
 		}
 	}
 
 	// test valid
 	for _, valid := range [][]string{
-		{"~.", vpnconf.DNS.DefaultDomain},
-		{vpnconf.DNS.DefaultDomain, "~."},
+		{"~.", conf.VPNConfig.DNS.DefaultDomain},
+		{conf.VPNConfig.DNS.DefaultDomain, "~."},
 	} {
-		if ok := v.checkDNSDomain(vpnconf, valid); !ok {
+		if ok := v.checkDNSDomain(conf, valid); !ok {
 			t.Errorf("dns check should not fail with %v", valid)
 		}
 	}
@@ -274,20 +273,20 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 	oldRunCmd := execs.RunCmd
 	defer func() { execs.RunCmd = oldRunCmd }()
 
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
-	ctx := context.Background()
-	vpnconf := vpnconfig.New()
-
 	// test settings
-	v.dnsProxyConf.Address = "127.0.0.1:4253"
-	vpnconf.DNS.DefaultDomain = "test.example.com"
+	conf := daemoncfg.NewConfig()
+	conf.DNSProxy.Address = "127.0.0.1:4253"
+	conf.VPNConfig.DNS.DefaultDomain = "test.example.com"
+
+	v := NewVPNSetup(dnsproxy.NewProxy(conf.DNSProxy))
+	ctx := context.Background()
 
 	// test resolvectl error
 	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("test error")
 	}
 
-	if ok := v.ensureDNS(ctx, vpnconf); ok {
+	if ok := v.ensureDNS(ctx, conf); ok {
 		t.Errorf("ensure dns should fail with resolvectl error")
 	}
 
@@ -304,7 +303,7 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 			return invalid, nil, nil
 		}
 
-		if ok := v.ensureDNS(ctx, vpnconf); ok {
+		if ok := v.ensureDNS(ctx, conf); ok {
 			t.Errorf("ensure dns should fail with %v", invalid)
 		}
 	}
@@ -319,7 +318,7 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 			return valid, nil, nil
 		}
 
-		if ok := v.ensureDNS(ctx, vpnconf); !ok {
+		if ok := v.ensureDNS(ctx, conf); !ok {
 			t.Errorf("ensure dns should not fail with %v", valid)
 		}
 	}
@@ -327,7 +326,7 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 
 // TestVPNSetupStartStop tests Start and Stop of VPNSetup.
 func TestVPNSetupStartStop(_ *testing.T) {
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	v := NewVPNSetup(dnsproxy.NewProxy(daemoncfg.NewDNSProxy()))
 	v.Start()
 	v.Stop()
 }
@@ -354,12 +353,12 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	// start vpn setup, prepare config
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	conf := daemoncfg.NewConfig()
+	v := NewVPNSetup(dnsproxy.NewProxy(conf.DNSProxy))
 	v.Start()
-	vpnconf := vpnconfig.New()
 
 	// setup config
-	v.Setup(vpnconf)
+	v.Setup(conf)
 
 	// send dns report while config is active
 	report := dnsproxy.NewReport("example.com", netip.Addr{}, 300)
@@ -369,7 +368,7 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	// teardown config
-	v.Teardown(vpnconf)
+	v.Teardown(conf)
 
 	// send dns report while config is not active
 	v.dnsProxy.Reports() <- dnsproxy.NewReport("example.com", netip.Addr{}, 300)
@@ -400,7 +399,8 @@ func TestVPNSetupGetState(t *testing.T) {
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	// start vpn setup
-	v := NewVPNSetup(dnsproxy.NewConfig(), splitrt.NewConfig())
+	conf := daemoncfg.NewConfig()
+	v := NewVPNSetup(dnsproxy.NewProxy(conf.DNSProxy))
 	v.Start()
 
 	// without vpn config
@@ -412,8 +412,7 @@ func TestVPNSetupGetState(t *testing.T) {
 	}
 
 	// with vpn config
-	vpnconf := vpnconfig.New()
-	v.Setup(vpnconf)
+	v.Setup(conf)
 
 	got = v.GetState()
 	if got == nil ||
@@ -423,20 +422,17 @@ func TestVPNSetupGetState(t *testing.T) {
 	}
 
 	// teardown config
-	v.Teardown(vpnconf)
+	v.Teardown(conf)
 
 	v.Stop()
 }
 
 // TestNewVPNSetup tests NewVPNSetup.
 func TestNewVPNSetup(t *testing.T) {
-	dnsConfig := dnsproxy.NewConfig()
-	splitrtConfig := splitrt.NewConfig()
-
-	v := NewVPNSetup(dnsConfig, splitrtConfig)
+	dnsProxy := dnsproxy.NewProxy(daemoncfg.NewDNSProxy())
+	v := NewVPNSetup(dnsProxy)
 	if v == nil ||
-		v.dnsProxyConf != dnsConfig ||
-		v.splitrtConf != splitrtConfig ||
+		v.dnsProxy != dnsProxy ||
 		v.cmds == nil ||
 		v.done == nil ||
 		v.closed == nil {
@@ -455,7 +451,9 @@ func TestCleanup(t *testing.T) {
 		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
 		return nil, nil, nil
 	}
-	Cleanup(context.Background(), "tun0", splitrt.NewConfig())
+	cfg := daemoncfg.NewConfig()
+	cfg.OpenConnect.VPNDevice = "tun0"
+	Cleanup(context.Background(), cfg)
 	want := []string{
 		"resolvectl revert tun0",
 		"ip link delete tun0",

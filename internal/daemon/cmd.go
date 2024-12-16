@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 var (
@@ -26,7 +27,7 @@ const (
 var osMkdirAll = os.MkdirAll
 
 // prepareFolders prepares directories used by the daemon.
-func prepareFolders(config *Config) error {
+func prepareFolders(config *daemoncfg.Config) error {
 	for _, file := range []string{
 		config.Config,
 		config.SocketServer.SocketFile,
@@ -56,7 +57,7 @@ func flagIsSet(flags *flag.FlagSet, name string) bool {
 // run is the main entry point for the daemon.
 func run(args []string) error {
 	// parse command line arguments
-	defaults := NewConfig()
+	defaults := daemoncfg.NewConfig()
 	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	cfgFile := flags.String(argConfig, defaults.Config, "set config `file`")
 	verbose := flags.Bool(argVerbose, defaults.Verbose, "enable verbose output")
@@ -75,7 +76,7 @@ func run(args []string) error {
 	log.WithField("version", Version).Info("Starting Daemon")
 
 	// load config
-	config := NewConfig()
+	config := daemoncfg.NewConfig()
 	if flagIsSet(flags, argConfig) {
 		config.Config = *cfgFile
 	}
@@ -83,7 +84,7 @@ func run(args []string) error {
 		log.WithError(err).Warn("Daemon could not load config, using default config")
 	}
 	if !config.Valid() {
-		config = NewConfig()
+		config = daemoncfg.NewConfig()
 		log.Warn("Daemon loaded invalid config, using default config")
 	}
 
