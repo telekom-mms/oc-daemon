@@ -70,10 +70,14 @@ func (t *TrafPol) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
 	// we cannot be sure about the type when removing devices, so do not
 	// skip when removing devices.
 	if u.Add && u.Type != "device" {
-		t.allowDevs.Add(ctx, u.Device)
+		if t.allowDevs.Add(u.Device) {
+			addAllowedDevice(ctx, u.Device)
+		}
 		return
 	}
-	t.allowDevs.Remove(ctx, u.Device)
+	if t.allowDevs.Remove(u.Device) {
+		removeAllowedDevice(ctx, u.Device)
+	}
 }
 
 // handleDNSUpdate handles a dns config update.
