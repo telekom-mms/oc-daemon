@@ -88,7 +88,9 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 	if s.config.VPNConfig.Gateway.IsValid() {
 		gateway := netip.PrefixFrom(s.config.VPNConfig.Gateway,
 			s.config.VPNConfig.Gateway.BitLen())
-		s.excludes.AddStatic(ctx, gateway)
+		if s.excludes.AddStatic(gateway) {
+			// TODO: setFilter
+		}
 	}
 
 	// add static IPv4 excludes
@@ -96,7 +98,9 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 		if e.String() == "0.0.0.0/32" {
 			continue
 		}
-		s.excludes.AddStatic(ctx, e)
+		if s.excludes.AddStatic(e) {
+			// TODO: setFilter
+		}
 	}
 
 	// add static IPv6 excludes
@@ -105,7 +109,9 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 		if e.String() == "::/128" {
 			continue
 		}
-		s.excludes.AddStatic(ctx, e)
+		if s.excludes.AddStatic(e) {
+			// TODO: setFilter
+		}
 	}
 }
 
@@ -182,14 +188,18 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	// add new excludes
 	for _, e := range excludes {
 		if !isIn(e, s.locals.get()) {
-			s.excludes.AddStatic(ctx, e)
+			if s.excludes.AddStatic(e) {
+				// TODO: setFilter
+			}
 		}
 	}
 
 	// remove old excludes
 	for _, l := range s.locals.get() {
 		if !isIn(l, excludes) {
-			s.excludes.RemoveStatic(ctx, l)
+			if s.excludes.RemoveStatic(l) {
+				// TODO: setFilter
+			}
 		}
 	}
 
@@ -236,7 +246,9 @@ func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) 
 	defer r.Close()
 	log.WithField("report", r).Debug("SplitRouting handling DNS report")
 
-	s.excludes.AddDynamic(ctx, netip.PrefixFrom(r.IP, r.IP.BitLen()), r.TTL)
+	if s.excludes.AddDynamic(netip.PrefixFrom(r.IP, r.IP.BitLen()), r.TTL) {
+		// TODO: setFilter
+	}
 }
 
 // start starts split routing.

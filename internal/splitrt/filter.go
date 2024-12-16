@@ -9,36 +9,6 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
-// addExclude adds exclude address to netfilter.
-func addExclude(ctx context.Context, conf *daemoncfg.Config, address netip.Prefix) {
-	log.WithField("address", address).Debug("SplitRouting adding exclude to netfilter")
-
-	data := &struct {
-		daemoncfg.Config
-		Address netip.Prefix
-	}{
-		Config:  *conf,
-		Address: address,
-	}
-	cmds, err := cmdtmpl.GetCmds("SplitRoutingAddExclude", data)
-	if err != nil {
-		log.WithError(err).Error("SplitRouting could not get add exclude commands")
-	}
-	for _, c := range cmds {
-		if stdout, stderr, err := c.Run(ctx); err != nil {
-			log.WithFields(log.Fields{
-				"address": address,
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-				"error":   err,
-			}).Error("SplitRouting could not run add exclude command")
-		}
-	}
-}
-
 // setExcludes resets the excludes to addresses in netfilter.
 func setExcludes(ctx context.Context, conf *daemoncfg.Config, addresses []netip.Prefix) {
 	data := &struct {

@@ -191,21 +191,6 @@ func getCommandListSplitRouting(name string) *CommandList {
 			},
 			defaultTemplate: SplitRoutingDefaultTemplate,
 		}
-	case "SplitRoutingAddExclude":
-		// Add Exclude
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f -",
-					Stdin: `
-				{{- if .Address.Addr.Is6 -}}
-				add element inet oc-daemon-routing excludes6 { {{.Address}} }
-				{{- else -}}
-				add element inet oc-daemon-routing excludes4 { {{.Address}} }
-				{{- end}}`},
-			},
-			defaultTemplate: SplitRoutingDefaultTemplate,
-		}
 	case "SplitRoutingSetExcludes":
 		// Set Excludes
 		cl = &CommandList{
@@ -223,6 +208,7 @@ add element inet oc-daemon-routing excludes6 { {{.}} }
 add element inet oc-daemon-routing excludes4 { {{.}} }
 {{end -}}
 {{end}}`},
+				//add element inet oc-daemon-routing excludes{{if .Addr.Is6}}6{{else}}4{{end}} { {{.}} }
 			},
 			defaultTemplate: SplitRoutingDefaultTemplate,
 		}

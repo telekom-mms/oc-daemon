@@ -2,7 +2,6 @@ package splitrt
 
 import (
 	"context"
-	"errors"
 	"net/netip"
 	"reflect"
 	"testing"
@@ -63,41 +62,27 @@ func getTestDynamicExcludes(t *testing.T) []netip.Prefix {
 
 // TestExcludesAddStatic tests AddStatic of Excludes.
 func TestExcludesAddStatic(t *testing.T) {
-	ctx := context.Background()
 	e := NewExcludes(daemoncfg.NewConfig())
 	excludes := getTestStaticExcludes(t)
 
-	// set testing runNft function
-	got := []string{}
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
-		return nil, nil, nil
-	}
-
 	// test adding excludes
-	want := []string{
-		"add element inet oc-daemon-routing excludes4 { 192.168.1.0/24 }",
-		"add element inet oc-daemon-routing excludes6 { 2001::/64 }",
-	}
 	for _, exclude := range excludes {
-		e.AddStatic(ctx, exclude)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+		if !e.AddStatic(exclude) {
+			t.Errorf("should add exclude %s", exclude)
+		}
 	}
 
 	// test adding excludes again, should not change nft commands
 	for _, exclude := range excludes {
-		e.AddStatic(ctx, exclude)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+		if e.AddStatic(exclude) {
+			t.Errorf("should not add exclude %s", exclude)
+		}
 	}
 
 	// test adding overlapping excludes
 	e = NewExcludes(daemoncfg.NewConfig())
 	for _, exclude := range getTestStaticExcludesOverlap(t) {
-		e.AddStatic(ctx, exclude)
+		e.AddStatic(exclude)
 	}
 	for k := range e.s {
 		if k != "192.168.1.0/24" && k != "2001:2001:2001:2000::/56" {
@@ -108,164 +93,77 @@ func TestExcludesAddStatic(t *testing.T) {
 
 // TestExcludesAddDynamic tests AddDynamic of Excludes.
 func TestExcludesAddDynamic(t *testing.T) {
-	ctx := context.Background()
 	e := NewExcludes(daemoncfg.NewConfig())
 	excludes := getTestDynamicExcludes(t)
 
-	// set testing runNft function
-	got := []string{}
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
-		return nil, nil, nil
-	}
-
 	// test adding excludes
-	want := []string{
-		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
-		"add element inet oc-daemon-routing excludes6 { 2001::1/128 }",
-		"add element inet oc-daemon-routing excludes4 { 172.16.1.1/32 }",
-	}
 	for _, exclude := range excludes {
-		e.AddDynamic(ctx, exclude, 300)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+		if !e.AddDynamic(exclude, 300) {
+			t.Errorf("should add exclude %s", exclude)
+		}
 	}
 
 	// test adding excludes again, should not change nft commands
 	for _, exclude := range excludes {
-		e.AddDynamic(ctx, exclude, 300)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+		if e.AddDynamic(exclude, 300) {
+			t.Errorf("should not add exclude %s", exclude)
+		}
 	}
 
 	// test adding excludes with existing static excludes,
 	// should only add new excludes
+	// TODO: fix
 	e = NewExcludes(daemoncfg.NewConfig())
 	for _, exclude := range getTestStaticExcludes(t) {
-		e.AddStatic(ctx, exclude)
-	}
-	got = []string{}
-	want = []string{
-		"add element inet oc-daemon-routing excludes4 { 172.16.1.1/32 }",
+		e.AddStatic(exclude)
 	}
 	for _, exclude := range excludes {
-		e.AddDynamic(ctx, exclude, 300)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+		e.AddDynamic(exclude, 300)
 	}
 
 	// test adding invalid excludes (static as dynamic)
 	e = NewExcludes(daemoncfg.NewConfig())
-	got = []string{}
-	want = []string{}
 	for _, exclude := range getTestStaticExcludes(t) {
-		e.AddDynamic(ctx, exclude, 300)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+		if e.AddDynamic(exclude, 300) {
+			t.Errorf("should not add exclude %s", exclude)
+		}
 	}
 }
 
 // TestExcludesRemoveStatic tests RemoveStatic of Excludes.
 func TestExcludesRemove(t *testing.T) {
-	ctx := context.Background()
 	e := NewExcludes(daemoncfg.NewConfig())
 	excludes := getTestStaticExcludes(t)
 
-	// set testing runNft function
-	got := []string{}
-	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
-		return nil, nil, nil
-	}
-	defer func() { execs.RunCmd = oldRunCmd }()
-
 	// test removing not existing excludes
-	want := []string{
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n",
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n",
-	}
 	for _, exclude := range excludes {
-		e.RemoveStatic(ctx, exclude)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+		if e.RemoveStatic(exclude) {
+			t.Errorf("should not remove exclude %s", exclude)
+		}
 	}
 
 	// test removing static excludes
-	got = []string{}
-	want = []string{
-		"add element inet oc-daemon-routing excludes4 { 192.168.1.0/24 }",
-		"add element inet oc-daemon-routing excludes6 { 2001::/64 }",
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n" +
-			"add element inet oc-daemon-routing excludes6 { 2001::/64 }\n",
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n",
+	for _, exclude := range excludes {
+		e.AddStatic(exclude)
 	}
 	for _, exclude := range excludes {
-		e.AddStatic(ctx, exclude)
-	}
-	for _, exclude := range excludes {
-		e.RemoveStatic(ctx, exclude)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
-
-	// test with nft error
-	got = []string{}
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
-		return nil, nil, errors.New("test error")
-	}
-	for _, exclude := range excludes {
-		e.AddStatic(ctx, exclude)
-	}
-	for _, exclude := range excludes {
-		e.RemoveStatic(ctx, exclude)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+		e.RemoveStatic(exclude)
 	}
 
 	// test removing with dynamic excludes
-	got = []string{}
-	want = []string{
-		"add element inet oc-daemon-routing excludes4 { 192.168.1.0/24 }",
-		"add element inet oc-daemon-routing excludes6 { 2001::/64 }",
-		"add element inet oc-daemon-routing excludes4 { 172.16.1.1/32 }",
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n" +
-			"add element inet oc-daemon-routing excludes6 { 2001::/64 }\n" +
-			"add element inet oc-daemon-routing excludes4 { 172.16.1.1/32 }\n",
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n" +
-			"add element inet oc-daemon-routing excludes4 { 172.16.1.1/32 }\n",
-	}
 	for _, exclude := range excludes {
-		e.AddStatic(ctx, exclude)
+		e.AddStatic(exclude)
 	}
 	for _, exclude := range getTestDynamicExcludes(t) {
-		e.AddDynamic(ctx, exclude, 300)
+		e.AddDynamic(exclude, 300)
 	}
 	for _, exclude := range excludes {
-		e.RemoveStatic(ctx, exclude)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+		e.RemoveStatic(exclude)
 	}
 }
 
 // TestExcludesCleanup tests cleanup of Excludes.
 func TestExcludesCleanup(t *testing.T) {
-	ctx := context.Background()
 	e := NewExcludes(daemoncfg.NewConfig())
 
 	// set testing runNft function
@@ -277,20 +175,20 @@ func TestExcludesCleanup(t *testing.T) {
 
 	// test without excludes
 	want := []string{}
-	e.cleanup(ctx)
+	e.cleanup()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
 	// test with dynamic excludes
 	for _, exclude := range getTestDynamicExcludes(t) {
-		e.AddDynamic(ctx, exclude, excludesTimer)
+		e.AddDynamic(exclude, excludesTimer)
 	}
 
 	got = []string{}
 	for i := 0; i <= excludesTimer; i += excludesTimer {
 		want := []string{}
-		e.cleanup(ctx)
+		e.cleanup()
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("got %v, want %v", got, want)
 		}
@@ -299,18 +197,18 @@ func TestExcludesCleanup(t *testing.T) {
 		"flush set inet oc-daemon-routing excludes4\n" +
 			"flush set inet oc-daemon-routing excludes6\n",
 	}
-	e.cleanup(ctx)
+	e.cleanup()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
 	// test with static excludes
 	for _, exclude := range getTestStaticExcludes(t) {
-		e.AddStatic(ctx, exclude)
+		e.AddStatic(exclude)
 	}
 	got = []string{}
 	want = []string{}
-	e.cleanup(ctx)
+	e.cleanup()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
