@@ -1,13 +1,10 @@
 package splitrt
 
 import (
-	"context"
 	"net/netip"
-	"reflect"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
 // getTestExcludes returns excludes for testing.
@@ -112,13 +109,26 @@ func TestExcludesAddDynamic(t *testing.T) {
 
 	// test adding excludes with existing static excludes,
 	// should only add new excludes
-	// TODO: fix
+	statics := getTestStaticExcludes(t)
 	e = NewExcludes(daemoncfg.NewConfig())
-	for _, exclude := range getTestStaticExcludes(t) {
-		e.AddStatic(exclude)
+	for _, exclude := range statics {
+		if !e.AddStatic(exclude) {
+			t.Errorf("should add exclude %s", exclude)
+		}
 	}
 	for _, exclude := range excludes {
-		e.AddDynamic(exclude, 300)
+		add := true
+		for _, static := range statics {
+			if static.Overlaps(exclude) {
+				add = false
+			}
+		}
+		if add && !e.AddDynamic(exclude, 300) {
+			t.Errorf("should add exclude %s", exclude)
+		}
+		if !add && e.AddDynamic(exclude, 300) {
+			t.Errorf("should not add exclude %s", exclude)
+		}
 	}
 
 	// test adding invalid excludes (static as dynamic)
@@ -166,18 +176,9 @@ func TestExcludesRemove(t *testing.T) {
 func TestExcludesCleanup(t *testing.T) {
 	e := NewExcludes(daemoncfg.NewConfig())
 
-	// set testing runNft function
-	got := []string{}
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
-		return nil, nil, nil
-	}
-
 	// test without excludes
-	want := []string{}
-	e.cleanup()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+	if e.cleanup() {
+		t.Error("should not remove excludes")
 	}
 
 	// test with dynamic excludes
@@ -185,33 +186,23 @@ func TestExcludesCleanup(t *testing.T) {
 		e.AddDynamic(exclude, excludesTimer)
 	}
 
-	got = []string{}
 	for i := 0; i <= excludesTimer; i += excludesTimer {
-		want := []string{}
-		e.cleanup()
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v, want %v", got, want)
+		if e.cleanup() {
+			t.Error("should not remove excludes")
 		}
 	}
-	want = []string{
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n",
-	}
-	e.cleanup()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+	if !e.cleanup() {
+		t.Error("should remove excludes")
 	}
 
 	// test with static excludes
 	for _, exclude := range getTestStaticExcludes(t) {
 		e.AddStatic(exclude)
 	}
-	got = []string{}
-	want = []string{}
-	e.cleanup()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+	if e.cleanup() {
+		t.Error("should not remove excludes")
 	}
+
 }
 
 // TestExcludesStartStop tests Start and Stop of Excludes.
