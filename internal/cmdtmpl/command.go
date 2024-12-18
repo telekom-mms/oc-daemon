@@ -208,7 +208,6 @@ add element inet oc-daemon-routing excludes6 { {{.}} }
 add element inet oc-daemon-routing excludes4 { {{.}} }
 {{end -}}
 {{end}}`},
-				//add element inet oc-daemon-routing excludes{{if .Addr.Is6}}6{{else}}4{{end}} { {{.}} }
 			},
 			defaultTemplate: SplitRoutingDefaultTemplate,
 		}

@@ -205,13 +205,6 @@ func TestExcludesCleanup(t *testing.T) {
 
 }
 
-// TestExcludesStartStop tests Start and Stop of Excludes.
-func TestExcludesStartStop(_ *testing.T) {
-	e := NewExcludes(daemoncfg.NewConfig())
-	e.Start()
-	e.Stop()
-}
-
 // TestNewExcludes tests NewExcludes.
 func TestNewExcludes(t *testing.T) {
 	conf := daemoncfg.NewConfig()

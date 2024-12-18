@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/netip"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
@@ -81,9 +82,6 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 		}
 	}
 
-	// add excludes
-	s.excludes.Start()
-
 	// add gateway to static excludes
 	if s.config.VPNConfig.Gateway.IsValid() {
 		gateway := netip.PrefixFrom(s.config.VPNConfig.Gateway,
@@ -135,9 +133,6 @@ func (s *SplitRouting) teardownRouting(ctx context.Context) {
 			}).Error("SplitRouting could not run teardown routing command")
 		}
 	}
-
-	// remove excludes
-	s.excludes.Stop()
 }
 
 // excludeSettings returns whether local (virtual) networks should be excluded.
@@ -259,6 +254,7 @@ func (s *SplitRouting) start(ctx context.Context) {
 	defer s.addrmon.Stop()
 
 	// main loop
+	timer := time.NewTimer(excludesTimer * time.Second)
 	for {
 		select {
 		case u := <-s.devmon.Updates():
@@ -267,7 +263,14 @@ func (s *SplitRouting) start(ctx context.Context) {
 			s.handleAddressUpdate(ctx, u)
 		case r := <-s.dnsreps:
 			s.handleDNSReport(ctx, r)
+		case <-timer.C:
+			s.excludes.cleanup()
+			timer.Reset(excludesTimer * time.Second)
+
 		case <-s.done:
+			if !timer.Stop() {
+				<-timer.C
+			}
 			return
 		}
 	}

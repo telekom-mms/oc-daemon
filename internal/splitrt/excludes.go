@@ -3,7 +3,6 @@ package splitrt
 import (
 	"net/netip"
 	"sync"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
@@ -163,39 +162,6 @@ func (e *Excludes) cleanup() bool {
 		return true
 	}
 	return false
-}
-
-// start starts periodic cleanup of the split excludes.
-func (e *Excludes) start() {
-	defer close(e.closed)
-
-	timer := time.NewTimer(excludesTimer * time.Second)
-	for {
-		select {
-		case <-timer.C:
-			e.cleanup()
-			timer.Reset(excludesTimer * time.Second)
-
-		case <-e.done:
-			if !timer.Stop() {
-				<-timer.C
-			}
-			return
-		}
-	}
-}
-
-// Start starts periodic cleanup of the split excludes.
-func (e *Excludes) Start() {
-	log.Debug("SplitRouting starting periodic cleanup of excludes")
-	go e.start()
-}
-
-// Stop stops periodic cleanup of the split excludes.
-func (e *Excludes) Stop() {
-	close(e.done)
-	<-e.closed
-	log.Debug("SplitRouting stopped periodic cleanup of excludes")
 }
 
 // List returns the list of static and dynamic excludes.
