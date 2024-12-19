@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/netip"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
@@ -80,14 +81,13 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 		rejectIPv4(ctx, s.config.VPNConfig.Device.Name)
 	}
 
-	// add excludes
-	s.excludes.Start()
-
 	// add gateway to static excludes
 	if s.config.VPNConfig.Gateway.IsValid() {
 		gateway := netip.PrefixFrom(s.config.VPNConfig.Gateway,
 			s.config.VPNConfig.Gateway.BitLen())
-		s.excludes.AddStatic(ctx, gateway)
+		if s.excludes.AddStatic(gateway) {
+			setExcludes(ctx, s.excludes.GetPrefixes())
+		}
 	}
 
 	// add static IPv4 excludes
@@ -95,7 +95,9 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 		if e.String() == "0.0.0.0/32" {
 			continue
 		}
-		s.excludes.AddStatic(ctx, e)
+		if s.excludes.AddStatic(e) {
+			setExcludes(ctx, s.excludes.GetPrefixes())
+		}
 	}
 
 	// add static IPv6 excludes
@@ -104,7 +106,9 @@ func (s *SplitRouting) setupRouting(ctx context.Context) {
 		if e.String() == "::/128" {
 			continue
 		}
-		s.excludes.AddStatic(ctx, e)
+		if s.excludes.AddStatic(e) {
+			setExcludes(ctx, s.excludes.GetPrefixes())
+		}
 	}
 
 	// setup routing
@@ -131,9 +135,6 @@ func (s *SplitRouting) teardownRouting(ctx context.Context) {
 		s.config.VPNConfig.Device.Name,
 		s.config.SplitRouting.RoutingTable)
 	unsetRoutingRules(ctx)
-
-	// remove excludes
-	s.excludes.Stop()
 }
 
 // excludeSettings returns whether local (virtual) networks should be excluded.
@@ -184,14 +185,18 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	// add new excludes
 	for _, e := range excludes {
 		if !isIn(e, s.locals.get()) {
-			s.excludes.AddStatic(ctx, e)
+			if s.excludes.AddStatic(e) {
+				setExcludes(ctx, s.excludes.GetPrefixes())
+			}
 		}
 	}
 
 	// remove old excludes
 	for _, l := range s.locals.get() {
 		if !isIn(l, excludes) {
-			s.excludes.RemoveStatic(ctx, l)
+			if s.excludes.RemoveStatic(l) {
+				setExcludes(ctx, s.excludes.GetPrefixes())
+			}
 		}
 	}
 
@@ -238,7 +243,10 @@ func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) 
 	defer r.Close()
 	log.WithField("report", r).Debug("SplitRouting handling DNS report")
 
-	s.excludes.AddDynamic(ctx, netip.PrefixFrom(r.IP, r.IP.BitLen()), r.TTL)
+	exclude := netip.PrefixFrom(r.IP, r.IP.BitLen())
+	if s.excludes.AddDynamic(exclude, r.TTL) {
+		addExclude(ctx, exclude)
+	}
 }
 
 // start starts split routing.
@@ -249,6 +257,7 @@ func (s *SplitRouting) start(ctx context.Context) {
 	defer s.addrmon.Stop()
 
 	// main loop
+	timer := time.NewTimer(excludesTimer * time.Second)
 	for {
 		select {
 		case u := <-s.devmon.Updates():
@@ -257,7 +266,13 @@ func (s *SplitRouting) start(ctx context.Context) {
 			s.handleAddressUpdate(ctx, u)
 		case r := <-s.dnsreps:
 			s.handleDNSReport(ctx, r)
+		case <-timer.C:
+			s.excludes.cleanup()
+			timer.Reset(excludesTimer * time.Second)
 		case <-s.done:
+			if !timer.Stop() {
+				<-timer.C
+			}
 			return
 		}
 	}
