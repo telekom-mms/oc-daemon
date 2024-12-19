@@ -186,7 +186,7 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	for _, e := range excludes {
 		if !isIn(e, s.locals.get()) {
 			if s.excludes.AddStatic(e) {
-				addExclude(ctx, e)
+				setExcludes(ctx, s.excludes.GetPrefixes())
 			}
 		}
 	}
@@ -245,7 +245,7 @@ func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) 
 
 	exclude := netip.PrefixFrom(r.IP, r.IP.BitLen())
 	if s.excludes.AddDynamic(exclude, r.TTL) {
-		addExclude(ctx, exclude)
+		setExcludes(ctx, s.excludes.GetPrefixes())
 	}
 }
 
