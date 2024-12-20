@@ -84,7 +84,9 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 
 	// test adding
 	want := []string{
-		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
+		"flush set inet oc-daemon-routing excludes4\n" +
+			"flush set inet oc-daemon-routing excludes6\n" +
+			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n",
 	}
 	update := getTestAddrMonUpdate(t, "192.168.1.1/32")
 	s.handleAddressUpdate(ctx, update)
@@ -119,7 +121,9 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 
 	// test adding
 	want = []string{
-		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
+		"flush set inet oc-daemon-routing excludes4\n" +
+			"flush set inet oc-daemon-routing excludes6\n" +
+			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n",
 	}
 	update = getTestAddrMonUpdate(t, "192.168.1.1/32")
 	s.handleAddressUpdate(ctx, update)
