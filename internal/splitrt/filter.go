@@ -195,26 +195,6 @@ func rejectIPv4(ctx context.Context, device string) {
 	rejectIPVersion(ctx, device, "ipv4")
 }
 
-// addExclude adds exclude address to netfilter.
-func addExclude(ctx context.Context, address netip.Prefix) {
-	log.WithField("address", address).Debug("SplitRouting adding exclude to netfilter")
-
-	set := "excludes4"
-	if address.Addr().Is6() {
-		set = "excludes6"
-	}
-
-	nftconf := fmt.Sprintf("add element inet oc-daemon-routing %s { %s }",
-		set, address)
-	if stdout, stderr, err := execs.RunNft(ctx, nftconf); err != nil {
-		log.WithError(err).WithFields(log.Fields{
-			"address": address,
-			"stdout":  string(stdout),
-			"stderr":  string(stderr),
-		}).Error("SplitRouting error adding exclude")
-	}
-}
-
 // setExcludes resets the excludes to addresses in netfilter.
 func setExcludes(ctx context.Context, addresses []netip.Prefix) {
 	// flush existing entries

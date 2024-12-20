@@ -174,8 +174,13 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	<-report.Done()
 
 	want := []string{
-		"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }",
-		"add element inet oc-daemon-routing excludes6 { 2001::1/128 }",
+		"flush set inet oc-daemon-routing excludes4\n" +
+			"flush set inet oc-daemon-routing excludes6\n" +
+			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n",
+		"flush set inet oc-daemon-routing excludes4\n" +
+			"flush set inet oc-daemon-routing excludes6\n" +
+			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n" +
+			"add element inet oc-daemon-routing excludes6 { 2001::1/128 }\n",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)

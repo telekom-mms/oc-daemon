@@ -245,7 +245,7 @@ func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) 
 
 	exclude := netip.PrefixFrom(r.IP, r.IP.BitLen())
 	if s.excludes.AddDynamic(exclude, r.TTL) {
-		addExclude(ctx, exclude)
+		setExcludes(ctx, s.excludes.GetPrefixes())
 	}
 }
 
