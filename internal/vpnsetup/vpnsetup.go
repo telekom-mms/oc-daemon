@@ -51,8 +51,8 @@ type VPNSetup struct {
 }
 
 // setupVPNDevice sets up the vpn device with config.
-func setupVPNDevice(ctx context.Context, conf *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupVPNDevice", conf)
+func setupVPNDevice(ctx context.Context, config *daemoncfg.Config) {
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupVPNDevice", config)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup VPN device commands")
 	}
@@ -71,8 +71,8 @@ func setupVPNDevice(ctx context.Context, conf *daemoncfg.Config) {
 }
 
 // teardownVPNDevice tears down the configured vpn device.
-func teardownVPNDevice(ctx context.Context, conf *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownVPNDevice", conf)
+func teardownVPNDevice(ctx context.Context, config *daemoncfg.Config) {
+	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownVPNDevice", config)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get teardown VPN device commands")
 	}
@@ -111,8 +111,8 @@ func (v *VPNSetup) teardownRouting() {
 }
 
 // setupDNSServer sets the DNS server.
-func (v *VPNSetup) setupDNSServer(ctx context.Context, conf *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSServer", conf)
+func (v *VPNSetup) setupDNSServer(ctx context.Context, config *daemoncfg.Config) {
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSServer", config)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS server commands")
 	}
@@ -131,8 +131,8 @@ func (v *VPNSetup) setupDNSServer(ctx context.Context, conf *daemoncfg.Config) {
 }
 
 // setupDNSDomains sets the DNS domains.
-func (v *VPNSetup) setupDNSDomains(ctx context.Context, conf *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDomains", conf)
+func (v *VPNSetup) setupDNSDomains(ctx context.Context, config *daemoncfg.Config) {
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDomains", config)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS domains commands")
 	}
@@ -151,8 +151,8 @@ func (v *VPNSetup) setupDNSDomains(ctx context.Context, conf *daemoncfg.Config) 
 }
 
 // setupDNSDefaultRoute sets the DNS default route.
-func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, conf *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDefaultRoute", conf)
+func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *daemoncfg.Config) {
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSDefaultRoute", config)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS default route commands")
 	}
@@ -171,20 +171,20 @@ func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, conf *daemoncfg.Con
 }
 
 // setupDNS sets up DNS using config.
-func (v *VPNSetup) setupDNS(ctx context.Context, conf *daemoncfg.Config) {
+func (v *VPNSetup) setupDNS(ctx context.Context, config *daemoncfg.Config) {
 	// configure dns proxy
 
 	// set remotes
-	remotes := conf.VPNConfig.DNS.Remotes()
+	remotes := config.VPNConfig.DNS.Remotes()
 	v.dnsProxy.SetRemotes(remotes)
 
 	// set watches
-	excludes := conf.VPNConfig.Split.DNSExcludes()
+	excludes := config.VPNConfig.Split.DNSExcludes()
 	log.WithField("excludes", excludes).Debug("Daemon setting DNS Split Excludes")
 	v.dnsProxy.SetWatches(excludes)
 
 	// update dns configuration of host
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNS", conf)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNS", config)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get setup DNS commands")
 	}
@@ -203,7 +203,7 @@ func (v *VPNSetup) setupDNS(ctx context.Context, conf *daemoncfg.Config) {
 }
 
 // teardownDNS tears down the DNS configuration.
-func (v *VPNSetup) teardownDNS(ctx context.Context, conf *daemoncfg.Config) {
+func (v *VPNSetup) teardownDNS(ctx context.Context, config *daemoncfg.Config) {
 	// update dns proxy configuration
 
 	// reset remotes
@@ -214,7 +214,7 @@ func (v *VPNSetup) teardownDNS(ctx context.Context, conf *daemoncfg.Config) {
 	v.dnsProxy.SetWatches([]string{})
 
 	// update dns configuration of host
-	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownDNS", conf)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownDNS", config)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get teardown DNS commands")
 	}
@@ -281,11 +281,11 @@ func (v *VPNSetup) checkDNSDomain(config *daemoncfg.Config, domains []string) bo
 }
 
 // ensureDNS ensures the DNS config.
-func (v *VPNSetup) ensureDNS(ctx context.Context, conf *daemoncfg.Config) bool {
+func (v *VPNSetup) ensureDNS(ctx context.Context, config *daemoncfg.Config) bool {
 	log.Debug("VPNSetup checking DNS settings")
 
 	// get dns settings
-	cmds, err := cmdtmpl.GetCmds("VPNSetupEnsureDNS", conf)
+	cmds, err := cmdtmpl.GetCmds("VPNSetupEnsureDNS", config)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get ensure DNS commands")
 	}
@@ -325,10 +325,10 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, conf *daemoncfg.Config) bool {
 			protOK = v.checkDNSProtocols(f)
 
 		case "DNS Servers":
-			srvOK = v.checkDNSServers(conf, f)
+			srvOK = v.checkDNSServers(config, f)
 
 		case "DNS Domain":
-			domOK = v.checkDNSDomain(conf, f)
+			domOK = v.checkDNSDomain(config, f)
 		}
 	}
 
@@ -339,7 +339,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, conf *daemoncfg.Config) bool {
 		log.Error("VPNSetup found invalid DNS protocols, trying to fix")
 
 		// reset default route for device
-		v.setupDNSDefaultRoute(ctx, conf)
+		v.setupDNSDefaultRoute(ctx, config)
 	}
 
 	if !srvOK {
@@ -347,7 +347,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, conf *daemoncfg.Config) bool {
 		log.Error("VPNSetup found invalid DNS servers, trying to fix")
 
 		// reset dns server
-		v.setupDNSServer(ctx, conf)
+		v.setupDNSServer(ctx, config)
 	}
 
 	if !domOK {
@@ -355,7 +355,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, conf *daemoncfg.Config) bool {
 		log.Error("VPNSetup found invalid DNS domains, trying to fix")
 
 		// reset domains for device
-		v.setupDNSDomains(ctx, conf)
+		v.setupDNSDomains(ctx, config)
 	}
 
 	// combine results
