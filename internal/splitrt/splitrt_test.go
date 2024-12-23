@@ -168,22 +168,33 @@ func TestSplitRoutingHandleDNSReport(t *testing.T) {
 	go s.handleDNSReport(ctx, report)
 	<-report.Done()
 
-	// test ipv6
-	report = dnsproxy.NewReport("example.com", netip.MustParseAddr("2001::1"), 300)
-	go s.handleDNSReport(ctx, report)
-	<-report.Done()
-
 	want := []string{
 		"flush set inet oc-daemon-routing excludes4\n" +
 			"flush set inet oc-daemon-routing excludes6\n" +
 			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// test ipv6
+	got = []string{}
+	report = dnsproxy.NewReport("example.com", netip.MustParseAddr("2001::1"), 300)
+	go s.handleDNSReport(ctx, report)
+	<-report.Done()
+
+	want = []string{
 		"flush set inet oc-daemon-routing excludes4\n" +
 			"flush set inet oc-daemon-routing excludes6\n" +
 			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n" +
 			"add element inet oc-daemon-routing excludes6 { 2001::1/128 }\n",
+		"flush set inet oc-daemon-routing excludes4\n" +
+			"flush set inet oc-daemon-routing excludes6\n" +
+			"add element inet oc-daemon-routing excludes6 { 2001::1/128 }\n" +
+			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n",
 	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+	if !reflect.DeepEqual(got[0], want[0]) && !reflect.DeepEqual(got[0], want[1]) {
+		t.Errorf("got %v, want %v or %v", got[0], want[0], want[1])
 	}
 }
 
