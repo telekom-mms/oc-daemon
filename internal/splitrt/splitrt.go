@@ -358,7 +358,7 @@ func Cleanup(ctx context.Context, config *daemoncfg.Config) {
 				"command": c.Cmd,
 				"args":    c.Args,
 				"stdin":   c.Stdin,
-			}).Warn("SplitRouting cleaned up configuration")
+			}).Debug("SplitRouting cleaned up configuration")
 		}
 	}
 }
