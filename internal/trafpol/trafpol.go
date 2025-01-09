@@ -71,12 +71,12 @@ func (t *TrafPol) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
 	// skip when removing devices.
 	if u.Add && u.Type != "device" {
 		if t.allowDevs.Add(u.Device) {
-			addAllowedDevice(ctx, u.Device)
+			addAllowedDevice(ctx, t.config, u.Device)
 		}
 		return
 	}
 	if t.allowDevs.Remove(u.Device) {
-		removeAllowedDevice(ctx, u.Device)
+		removeAllowedDevice(ctx, t.config, u.Device)
 	}
 }
 
@@ -100,7 +100,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 			t.resolver.Resolve()
 
 			// remove ports from allowed ports
-			removePortalPorts(ctx, t.config.TrafficPolicing.PortalPorts)
+			removePortalPorts(ctx, t.config)
 			t.capPortal = false
 			log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
 		}
@@ -109,7 +109,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 
 	// add ports to allowed ports
 	if !t.capPortal {
-		addPortalPorts(ctx, t.config.TrafficPolicing.PortalPorts)
+		addPortalPorts(ctx, t.config)
 		t.capPortal = true
 		log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
 	}
@@ -147,7 +147,7 @@ func (t *TrafPol) handleResolverUpdate(ctx context.Context, update *ResolvedName
 	t.allowNames.Add(update.Name, update.IPs)
 
 	// set new filter rules
-	setAllowedIPs(ctx, t.getAllowedHostsIPs())
+	setAllowedIPs(ctx, t.config, t.getAllowedHostsIPs())
 }
 
 // handleAddressCommand handles an address command.
@@ -169,7 +169,7 @@ func (t *TrafPol) handleAddressCommand(ctx context.Context, cmd *trafPolCmd) {
 	}
 
 	// set new filter rules
-	setAllowedIPs(ctx, t.getAllowedHostsIPs())
+	setAllowedIPs(ctx, t.config, t.getAllowedHostsIPs())
 
 	// added/removed successfully
 	cmd.ok = true
@@ -201,7 +201,7 @@ func (t *TrafPol) handleCommand(ctx context.Context, cmd *trafPolCmd) {
 // start starts the traffic policing component.
 func (t *TrafPol) start(ctx context.Context) {
 	defer close(t.loopDone)
-	defer unsetFilterRules(ctx)
+	defer unsetFilterRules(ctx, t.config)
 	defer t.resolver.Stop()
 	defer t.cpd.Stop()
 	defer t.devmon.Stop()
@@ -250,10 +250,10 @@ func (t *TrafPol) Start() error {
 	ctx := context.Background()
 
 	// set firewall config
-	setFilterRules(ctx, t.config.SplitRouting.FirewallMark)
+	setFilterRules(ctx, t.config)
 
 	// set filter rules
-	setAllowedIPs(ctx, t.getAllowedHostsIPs())
+	setAllowedIPs(ctx, t.config, t.getAllowedHostsIPs())
 
 	// start resolver for allowed names
 	t.resolver.Start()
@@ -284,7 +284,7 @@ cleanup_dnsmon:
 cleanup_devmon:
 	t.cpd.Stop()
 	t.resolver.Stop()
-	unsetFilterRules(ctx)
+	unsetFilterRules(ctx, t.config)
 
 	return err
 }
@@ -409,6 +409,6 @@ func NewTrafPol(config *daemoncfg.Config) *TrafPol {
 }
 
 // Cleanup cleans up old configuration after a failed shutdown.
-func Cleanup(ctx context.Context) {
-	cleanupFilterRules(ctx)
+func Cleanup(ctx context.Context, conf *daemoncfg.Config) {
+	cleanupFilterRules(ctx, conf)
 }
