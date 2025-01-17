@@ -135,7 +135,7 @@ func (s *SplitRouting) teardownRouting(ctx context.Context) {
 	}
 }
 
-// excludeSettings returns whether local (virtual) networks should be excluded.
+// excludeLocalNetworks returns whether local (virtual) networks should be excluded.
 func (s *SplitRouting) excludeLocalNetworks() (exclude bool, virtual bool) {
 	for _, e := range s.config.VPNConfig.Split.ExcludeIPv4 {
 		if e.String() == "0.0.0.0/32" {
