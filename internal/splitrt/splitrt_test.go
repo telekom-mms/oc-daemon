@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/netip"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
@@ -348,35 +347,5 @@ func TestNewSplitRouting(t *testing.T) {
 		s.closed == nil {
 
 		t.Errorf("got nil, want != nil")
-	}
-}
-
-// TestCleanup tests Cleanup.
-func TestCleanup(t *testing.T) {
-	got := []string{}
-
-	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
-		if s == "" {
-			got = append(got, cmd+" "+strings.Join(arg, " "))
-			return nil, nil, nil
-		}
-		got = append(got, cmd+" "+strings.Join(arg, " ")+" "+s)
-		return nil, nil, nil
-	}
-	defer func() { execs.RunCmd = oldRunCmd }()
-
-	Cleanup(context.Background(), daemoncfg.NewConfig())
-	want := []string{
-		"ip -4 rule delete pref 2111",
-		"ip -4 rule delete pref 2112",
-		"ip -6 rule delete pref 2111",
-		"ip -6 rule delete pref 2112",
-		"ip -4 route flush table 42111",
-		"ip -6 route flush table 42111",
-		"nft -f - delete table inet oc-daemon-routing",
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
 	}
 }

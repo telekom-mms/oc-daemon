@@ -560,8 +560,7 @@ func Cleanup(ctx context.Context, config *daemoncfg.Config) {
 				"command": c.Cmd,
 				"args":    c.Args,
 				"stdin":   c.Stdin,
-			}).Warn("VPNSetup cleaned up configuration")
+			}).Debug("VPNSetup cleaned up configuration")
 		}
 	}
-	splitrt.Cleanup(ctx, config)
 }

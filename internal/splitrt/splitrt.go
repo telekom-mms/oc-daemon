@@ -345,20 +345,3 @@ func NewSplitRouting(config *daemoncfg.Config) *SplitRouting {
 		closed:   make(chan struct{}),
 	}
 }
-
-// Cleanup cleans up old configuration after a failed shutdown.
-func Cleanup(ctx context.Context, config *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("SplitRoutingCleanup", config)
-	if err != nil {
-		log.WithError(err).Error("SplitRouting could not get cleanup commands")
-	}
-	for _, c := range cmds {
-		if _, _, err := c.Run(ctx); err == nil {
-			log.WithFields(log.Fields{
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-			}).Debug("SplitRouting cleaned up configuration")
-		}
-	}
-}

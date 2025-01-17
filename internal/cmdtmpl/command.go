@@ -217,21 +217,6 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 			},
 			defaultTemplate: SplitRoutingDefaultTemplate,
 		}
-	case "SplitRoutingCleanup":
-		// Cleanup
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority1}}"},
-				{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority2}}"},
-				{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority1}}"},
-				{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority2}}"},
-				{Line: "{{.Executables.IP}} -4 route flush table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -6 route flush table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
-			},
-			defaultTemplate: SplitRoutingDefaultTemplate,
-		}
 	default:
 		return nil
 
@@ -579,8 +564,18 @@ func getCommandListVPNSetup(name string) *CommandList {
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
+				// DNS cleanup
 				{Line: "{{.Executables.Resolvectl}} revert {{.OpenConnect.VPNDevice}}"},
+				// Device cleanup
 				{Line: "{{.Executables.IP}} link delete {{.OpenConnect.VPNDevice}}"},
+				// Routing cleanup
+				{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority1}}"},
+				{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority2}}"},
+				{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority1}}"},
+				{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority2}}"},
+				{Line: "{{.Executables.IP}} -4 route flush table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -6 route flush table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
 			},
 			defaultTemplate: "",
 		}
