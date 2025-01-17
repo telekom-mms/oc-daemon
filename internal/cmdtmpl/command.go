@@ -47,156 +47,10 @@ func (cl *CommandList) executeTemplate(tmpl string, data any) (string, error) {
 	return s, nil
 }
 
-// SplitRoutingDefaultTemplate is the default template for Split Routing.
-const SplitRoutingDefaultTemplate = `
-{{- define "SplitRoutingRules"}}
-table inet oc-daemon-routing {
-	# set for ipv4 excludes
-	set excludes4 {
-		type ipv4_addr
-		flags interval
-		{{if .VPNConfig.Gateway.Is4}}
-		elements = { {{.VPNConfig.Gateway}}/32 }
-		{{end}}
-	}
-
-	# set for ipv6 excludes
-	set excludes6 {
-		type ipv6_addr
-		flags interval
-		{{if .VPNConfig.Gateway.Is6}}
-		elements = { {{.VPNConfig.Gateway}}/128 }
-		{{end}}
-	}
-
-	chain preraw {
-		type filter hook prerouting priority raw; policy accept;
-
-		# add drop rules for non-local traffic from other devices to
-		# tunnel network addresses here
-		{{if .VPNConfig.IPv4.IsValid}}
-		iifname != {{.VPNConfig.Device.Name}} ip daddr {{.VPNConfig.IPv4}} fib saddr type != local counter drop
-		{{end}}
-		{{if .VPNConfig.IPv6.IsValid}}
-		iifname != {{.VPNConfig.Device.Name}} ip6 daddr {{.VPNConfig.IPv6}} fib saddr type != local counter drop
-		{{end}}
-	}
-
-	chain splitrouting {
-		# restore mark from conntracking
-		ct mark != 0 meta mark set ct mark counter
-		meta mark != 0 counter accept
-
-		# mark packets in exclude sets
-		ip daddr @excludes4 counter meta mark set {{.SplitRouting.FirewallMark}}
-		ip6 daddr @excludes6 counter meta mark set {{.SplitRouting.FirewallMark}}
-
-		# save mark in conntraction
-		ct mark set meta mark counter
-	}
-
-	chain premangle {
-		type filter hook prerouting priority mangle; policy accept;
-
-		# handle split routing
-		counter jump splitrouting
-	}
-
-	chain output {
-		type route hook output priority mangle; policy accept;
-
-		# handle split routing
-		counter jump splitrouting
-	}
-
-	chain postmangle {
-		type filter hook postrouting priority mangle; policy accept;
-
-		# save mark in conntracking
-		meta mark {{.SplitRouting.FirewallMark}} ct mark set meta mark counter
-	}
-
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-
-		# masquerare tunnel/exclude traffic to make sure the source IP
-		# matches the outgoing interface
-		ct mark {{.SplitRouting.FirewallMark}} counter masquerade
-	}
-
-	chain rejectipversion {
-		# used to reject unsupported ip version on the tunnel device
-
-		# make sure exclude traffic is not filtered
-		ct mark {{.SplitRouting.FirewallMark}} counter accept
-
-		# use tcp reset and icmp admin prohibited
-		meta l4proto tcp counter reject with tcp reset
-		counter reject with icmpx admin-prohibited
-	}
-
-	chain rejectforward {
-		type filter hook forward priority filter; policy accept;
-
-		# reject unsupported ip versions when forwarding packets,
-		# add matching jump rule to rejectipversion if necessary
-		{{if .VPNConfig.IPv4.IsValid}}
-		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv6 counter jump rejectipversion
-		{{end}}
-		{{if .VPNConfig.IPv6.IsValid}}
-		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv4 counter jump rejectipversion
-		{{end}}
-	}
-
-	chain rejectoutput {
-		type filter hook output priority filter; policy accept;
-
-		# reject unsupported ip versions when sending packets,
-		# add matching jump rule to rejectipversion if necessary
-		{{if .VPNConfig.IPv4.IsValid}}
-		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv6 counter jump rejectipversion
-		{{end}}
-		{{if .VPNConfig.IPv6.IsValid}}
-		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv4 counter jump rejectipversion
-		{{end}}
-	}
-}
-{{end -}}
-`
-
 // getCommandListSplitRouting returns the command list identified by name for SplitRouting.
 func getCommandListSplitRouting(name string) *CommandList {
 	var cl *CommandList
 	switch name {
-	case "SplitRoutingSetupRouting":
-		// Setup Routing
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f -", Stdin: `{{template "SplitRoutingRules" .}}`},
-				{Line: "{{.Executables.IP}} -4 route add 0.0.0.0/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -4 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
-				{Line: "{{.Executables.IP}} -4 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
-				{Line: "{{.Executables.Sysctl}} -q net.ipv4.conf.all.src_valid_mark=1"},
-				{Line: "{{.Executables.IP}} -6 route add ::/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -6 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
-				{Line: "{{.Executables.IP}} -6 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
-			},
-			defaultTemplate: SplitRoutingDefaultTemplate,
-		}
-	case "SplitRoutingTeardownRouting":
-		// Teardown Routing
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.IP}} -4 rule delete table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -4 rule delete iif {{.VPNConfig.Device.Name}} table main"},
-				{Line: "{{.Executables.IP}} -6 rule delete table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -6 rule delete iif {{.VPNConfig.Device.Name}} table main"},
-				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
-			},
-			defaultTemplate: SplitRoutingDefaultTemplate,
-		}
 	case "SplitRoutingSetExcludes":
 		// Set Excludes
 		cl = &CommandList{
@@ -215,7 +69,7 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 {{end -}}
 {{end}}`},
 			},
-			defaultTemplate: SplitRoutingDefaultTemplate,
+			defaultTemplate: VPNSetupDefaultTemplate,
 		}
 	default:
 		return nil
@@ -471,33 +325,182 @@ func getCommandListTrafPol(name string) *CommandList {
 	return cl
 }
 
+// VPNSetupDefaultTemplate is the default template for VPNSetup.
+const VPNSetupDefaultTemplate = `
+{{- define "SplitRoutingRules"}}
+table inet oc-daemon-routing {
+	# set for ipv4 excludes
+	set excludes4 {
+		type ipv4_addr
+		flags interval
+		{{if .VPNConfig.Gateway.Is4}}
+		elements = { {{.VPNConfig.Gateway}}/32 }
+		{{end}}
+	}
+
+	# set for ipv6 excludes
+	set excludes6 {
+		type ipv6_addr
+		flags interval
+		{{if .VPNConfig.Gateway.Is6}}
+		elements = { {{.VPNConfig.Gateway}}/128 }
+		{{end}}
+	}
+
+	chain preraw {
+		type filter hook prerouting priority raw; policy accept;
+
+		# add drop rules for non-local traffic from other devices to
+		# tunnel network addresses here
+		{{if .VPNConfig.IPv4.IsValid}}
+		iifname != {{.VPNConfig.Device.Name}} ip daddr {{.VPNConfig.IPv4}} fib saddr type != local counter drop
+		{{end}}
+		{{if .VPNConfig.IPv6.IsValid}}
+		iifname != {{.VPNConfig.Device.Name}} ip6 daddr {{.VPNConfig.IPv6}} fib saddr type != local counter drop
+		{{end}}
+	}
+
+	chain splitrouting {
+		# restore mark from conntracking
+		ct mark != 0 meta mark set ct mark counter
+		meta mark != 0 counter accept
+
+		# mark packets in exclude sets
+		ip daddr @excludes4 counter meta mark set {{.SplitRouting.FirewallMark}}
+		ip6 daddr @excludes6 counter meta mark set {{.SplitRouting.FirewallMark}}
+
+		# save mark in conntraction
+		ct mark set meta mark counter
+	}
+
+	chain premangle {
+		type filter hook prerouting priority mangle; policy accept;
+
+		# handle split routing
+		counter jump splitrouting
+	}
+
+	chain output {
+		type route hook output priority mangle; policy accept;
+
+		# handle split routing
+		counter jump splitrouting
+	}
+
+	chain postmangle {
+		type filter hook postrouting priority mangle; policy accept;
+
+		# save mark in conntracking
+		meta mark {{.SplitRouting.FirewallMark}} ct mark set meta mark counter
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+
+		# masquerare tunnel/exclude traffic to make sure the source IP
+		# matches the outgoing interface
+		ct mark {{.SplitRouting.FirewallMark}} counter masquerade
+	}
+
+	chain rejectipversion {
+		# used to reject unsupported ip version on the tunnel device
+
+		# make sure exclude traffic is not filtered
+		ct mark {{.SplitRouting.FirewallMark}} counter accept
+
+		# use tcp reset and icmp admin prohibited
+		meta l4proto tcp counter reject with tcp reset
+		counter reject with icmpx admin-prohibited
+	}
+
+	chain rejectforward {
+		type filter hook forward priority filter; policy accept;
+
+		# reject unsupported ip versions when forwarding packets,
+		# add matching jump rule to rejectipversion if necessary
+		{{if .VPNConfig.IPv4.IsValid}}
+		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv6 counter jump rejectipversion
+		{{end}}
+		{{if .VPNConfig.IPv6.IsValid}}
+		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv4 counter jump rejectipversion
+		{{end}}
+	}
+
+	chain rejectoutput {
+		type filter hook output priority filter; policy accept;
+
+		# reject unsupported ip versions when sending packets,
+		# add matching jump rule to rejectipversion if necessary
+		{{if .VPNConfig.IPv4.IsValid}}
+		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv6 counter jump rejectipversion
+		{{end}}
+		{{if .VPNConfig.IPv6.IsValid}}
+		meta oifname {{.VPNConfig.Device.Name}} meta nfproto ipv4 counter jump rejectipversion
+		{{end}}
+	}
+}
+{{end -}}
+`
+
 // getCommandListVPNSetup returns the command list identified by name for VPNSetup.
 func getCommandListVPNSetup(name string) *CommandList {
 	var cl *CommandList
 	switch name {
-	case "VPNSetupSetupVPNDevice":
-		// Setup VPN Device
+	case "VPNSetupSetup":
+		// Setup VPN
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				// set mtu on device
+				// Device setup:
+				// - set mtu on device
+				// - set device up
+				// - set ipv4 and ipv6 addresses on device
 				{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} mtu {{.VPNConfig.Device.MTU}}"},
-				// set device up
 				{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} up"},
-				// set ipv4 and ipv6 addresses on device
 				{Line: "{{if .VPNConfig.IPv4.IsValid}}{{.Executables.IP}} address add {{.VPNConfig.IPv4}} dev {{.VPNConfig.Device.Name}}{{end}}"},
 				{Line: "{{if .VPNConfig.IPv6.IsValid}}{{.Executables.IP}} address add {{.VPNConfig.IPv6}} dev {{.VPNConfig.Device.Name}}{{end}}"},
+				// Routing setup
+				{Line: "{{.Executables.Nft}} -f -", Stdin: `{{template "SplitRoutingRules" .}}`},
+				{Line: "{{.Executables.IP}} -4 route add 0.0.0.0/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -4 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
+				{Line: "{{.Executables.IP}} -4 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
+				{Line: "{{.Executables.Sysctl}} -q net.ipv4.conf.all.src_valid_mark=1"},
+				{Line: "{{.Executables.IP}} -6 route add ::/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -6 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
+				{Line: "{{.Executables.IP}} -6 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
+				// DNS setup:
+				// - set DNS Proxy
+				// - set Domains
+				// - set default DNS route
+				// - flush caches
+				// - reset server features
+				{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
+				{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
+				{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device.Name}} yes"},
+				{Line: "{{.Executables.Resolvectl}} flush-caches"},
+				{Line: "{{.Executables.Resolvectl}} reset-server-features"},
 			},
-			defaultTemplate: "",
+			defaultTemplate: VPNSetupDefaultTemplate,
 		}
-	case "VPNSetupTeardownVPNDevice":
-		// Teardown VPN Device
+	case "VPNSetupTeardown":
+		// Teardown VPN
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
+				// Device teardown
 				{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} down"},
+				// Routing teardown
+				{Line: "{{.Executables.IP}} -4 rule delete table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -4 rule delete iif {{.VPNConfig.Device.Name}} table main"},
+				{Line: "{{.Executables.IP}} -6 rule delete table {{.SplitRouting.RoutingTable}}"},
+				{Line: "{{.Executables.IP}} -6 rule delete iif {{.VPNConfig.Device.Name}} table main"},
+				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
+				// DNS teardown
+				{Line: "{{.Executables.Resolvectl}} revert {{.VPNConfig.Device.Name}}"},
+				{Line: "{{.Executables.Resolvectl}} flush-caches"},
+				{Line: "{{.Executables.Resolvectl}} reset-server-features"},
 			},
-			defaultTemplate: "",
+			defaultTemplate: VPNSetupDefaultTemplate,
 		}
 	case "VPNSetupSetupDNSServer":
 		// Setup DNS server
@@ -506,7 +509,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 			Commands: []*Command{
 				{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
 			},
-			defaultTemplate: "",
+			defaultTemplate: VPNSetupDefaultTemplate,
 		}
 	case "VPNSetupSetupDNSDomains":
 		// Setup DNS domains
@@ -515,7 +518,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 			Commands: []*Command{
 				{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
 			},
-			defaultTemplate: "",
+			defaultTemplate: VPNSetupDefaultTemplate,
 		}
 	case "VPNSetupSetupDNSDefaultRoute":
 		// Setup DNS Default Route
@@ -524,31 +527,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 			Commands: []*Command{
 				{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device}} yes"},
 			},
-			defaultTemplate: "",
-		}
-	case "VPNSetupSetupDNS":
-		// Setup DNS
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
-				{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
-				{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device.Name}} yes"},
-				{Line: "{{.Executables.Resolvectl}} flush-caches"},
-				{Line: "{{.Executables.Resolvectl}} reset-server-features"},
-			},
-			defaultTemplate: "",
-		}
-	case "VPNSetupTeardownDNS":
-		// Teardown DNS
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Resolvectl}} revert {{.VPNConfig.Device.Name}}"},
-				{Line: "{{.Executables.Resolvectl}} flush-caches"},
-				{Line: "{{.Executables.Resolvectl}} reset-server-features"},
-			},
-			defaultTemplate: "",
+			defaultTemplate: VPNSetupDefaultTemplate,
 		}
 	case "VPNSetupEnsureDNS":
 		// Ensure DNS
@@ -557,7 +536,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 			Commands: []*Command{
 				{Line: "{{.Executables.Resolvectl}} status {{.VPNConfig.Device.Name}} --no-pager"},
 			},
-			defaultTemplate: "",
+			defaultTemplate: VPNSetupDefaultTemplate,
 		}
 	case "VPNSetupCleanup":
 		// Cleanup
@@ -577,7 +556,7 @@ func getCommandListVPNSetup(name string) *CommandList {
 				{Line: "{{.Executables.IP}} -6 route flush table {{.SplitRouting.RoutingTable}}"},
 				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
 			},
-			defaultTemplate: "",
+			defaultTemplate: VPNSetupDefaultTemplate,
 		}
 	default:
 		return nil

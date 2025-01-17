@@ -50,66 +50,6 @@ type VPNSetup struct {
 	closed chan struct{}
 }
 
-// setupVPNDevice sets up the vpn device with config.
-func setupVPNDevice(ctx context.Context, config *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupVPNDevice", config)
-	if err != nil {
-		log.WithError(err).Error("VPNSetup could not get setup VPN device commands")
-	}
-	for _, c := range cmds {
-		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			log.WithFields(log.Fields{
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-				"error":   err,
-			}).Error("VPNSetup could not run setup VPN device command")
-		}
-	}
-}
-
-// teardownVPNDevice tears down the configured vpn device.
-func teardownVPNDevice(ctx context.Context, config *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownVPNDevice", config)
-	if err != nil {
-		log.WithError(err).Error("VPNSetup could not get teardown VPN device commands")
-	}
-	for _, c := range cmds {
-		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			log.WithFields(log.Fields{
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-				"error":   err,
-			}).Error("VPNSetup could not run teardown VPN device command")
-		}
-	}
-}
-
-// setupRouting sets up routing using config.
-func (v *VPNSetup) setupRouting(config *daemoncfg.Config) {
-	if v.splitrt != nil {
-		return
-	}
-	v.splitrt = splitrt.NewSplitRouting(config)
-	if err := v.splitrt.Start(); err != nil {
-		log.WithError(err).Error("VPNSetup error setting split routing")
-	}
-}
-
-// teardownRouting tears down the routing configuration.
-func (v *VPNSetup) teardownRouting() {
-	if v.splitrt == nil {
-		return
-	}
-	v.splitrt.Stop()
-	v.splitrt = nil
-}
-
 // setupDNSServer sets the DNS server.
 func (v *VPNSetup) setupDNSServer(ctx context.Context, config *daemoncfg.Config) {
 	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNSServer", config)
@@ -166,68 +106,6 @@ func (v *VPNSetup) setupDNSDefaultRoute(ctx context.Context, config *daemoncfg.C
 				"stderr":  string(stderr),
 				"error":   err,
 			}).Error("VPNSetup could not run setup DNS default route command")
-		}
-	}
-}
-
-// setupDNS sets up DNS using config.
-func (v *VPNSetup) setupDNS(ctx context.Context, config *daemoncfg.Config) {
-	// configure dns proxy
-
-	// set remotes
-	remotes := config.VPNConfig.DNS.Remotes()
-	v.dnsProxy.SetRemotes(remotes)
-
-	// set watches
-	excludes := config.VPNConfig.Split.DNSExcludes()
-	log.WithField("excludes", excludes).Debug("Daemon setting DNS Split Excludes")
-	v.dnsProxy.SetWatches(excludes)
-
-	// update dns configuration of host
-	cmds, err := cmdtmpl.GetCmds("VPNSetupSetupDNS", config)
-	if err != nil {
-		log.WithError(err).Error("VPNSetup could not get setup DNS commands")
-	}
-	for _, c := range cmds {
-		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			log.WithFields(log.Fields{
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-				"error":   err,
-			}).Error("VPNSetup could not run setup DNS command")
-		}
-	}
-}
-
-// teardownDNS tears down the DNS configuration.
-func (v *VPNSetup) teardownDNS(ctx context.Context, config *daemoncfg.Config) {
-	// update dns proxy configuration
-
-	// reset remotes
-	remotes := map[string][]string{}
-	v.dnsProxy.SetRemotes(remotes)
-
-	// reset watches
-	v.dnsProxy.SetWatches([]string{})
-
-	// update dns configuration of host
-	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardownDNS", config)
-	if err != nil {
-		log.WithError(err).Error("VPNSetup could not get teardown DNS commands")
-	}
-	for _, c := range cmds {
-		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			log.WithFields(log.Fields{
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-				"error":   err,
-			}).Error("VPNSetup could not run teardown DNS command")
 		}
 	}
 }
@@ -404,10 +282,37 @@ func (v *VPNSetup) stopEnsure() {
 
 // setup sets up the vpn configuration.
 func (v *VPNSetup) setup(ctx context.Context, conf *daemoncfg.Config) {
-	// setup device, routing, dns
-	setupVPNDevice(ctx, conf)
-	v.setupRouting(conf)
-	v.setupDNS(ctx, conf)
+	// configure dns proxy
+	// - set remotes
+	// - set watches
+	remotes := conf.VPNConfig.DNS.Remotes()
+	v.dnsProxy.SetRemotes(remotes)
+	excludes := conf.VPNConfig.Split.DNSExcludes()
+	log.WithField("excludes", excludes).Debug("Daemon setting DNS Split Excludes")
+	v.dnsProxy.SetWatches(excludes)
+
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetup", conf)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get setup commands")
+	}
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+				"error":   err,
+			}).Error("VPNSetup could not run setup command")
+		}
+	}
+
+	// configure split routing
+	v.splitrt = splitrt.NewSplitRouting(conf)
+	if err := v.splitrt.Start(); err != nil {
+		log.WithError(err).Error("VPNSetup error setting split routing")
+	}
 
 	// ensure VPN config
 	v.startEnsure(ctx, conf)
@@ -418,10 +323,34 @@ func (v *VPNSetup) teardown(ctx context.Context, conf *daemoncfg.Config) {
 	// stop ensuring VPN config
 	v.stopEnsure()
 
-	// tear down device, routing, dns
-	teardownVPNDevice(ctx, conf)
-	v.teardownRouting()
-	v.teardownDNS(ctx, conf)
+	// unconfigure split routing
+	v.splitrt.Stop()
+	v.splitrt = nil
+
+	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardown", conf)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get teardown commands")
+	}
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.WithFields(log.Fields{
+				"command": c.Cmd,
+				"args":    c.Args,
+				"stdin":   c.Stdin,
+				"stdout":  string(stdout),
+				"stderr":  string(stderr),
+				"error":   err,
+			}).Error("VPNSetup could not run teardown command")
+		}
+	}
+
+	// unconfigure dns proxy
+	// - reset remotes
+	// - reset watches
+	remotes := map[string][]string{}
+	v.dnsProxy.SetRemotes(remotes)
+	v.dnsProxy.SetWatches([]string{})
+
 }
 
 // getState gets the internal state.

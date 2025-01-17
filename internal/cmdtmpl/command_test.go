@@ -36,8 +36,6 @@ func TestGetCommandList(t *testing.T) {
 	// existing
 	for _, name := range []string{
 		// Split Routing
-		"SplitRoutingSetupRouting",
-		"SplitRoutingTeardownRouting",
 		"SplitRoutingSetExcludes",
 
 		// Traffic Policing
@@ -52,13 +50,11 @@ func TestGetCommandList(t *testing.T) {
 		"TrafPolCleanup",
 
 		// VPN Setup
-		"VPNSetupSetupVPNDevice",
-		"VPNSetupTeardownVPNDevice",
+		"VPNSetupSetup",
+		"VPNSetupTeardown",
 		"VPNSetupSetupDNSServer",
 		"VPNSetupSetupDNSDomains",
 		"VPNSetupSetupDNSDefaultRoute",
-		"VPNSetupSetupDNS",
-		"VPNSetupTeardownDNS",
 		"VPNSetupEnsureDNS",
 		"VPNSetupCleanup",
 	} {
@@ -94,8 +90,6 @@ func TestGetCmds(t *testing.T) {
 	// existing, that only need daemon config as input data
 	for _, name := range []string{
 		// Split Routing
-		"SplitRoutingSetupRouting",
-		"SplitRoutingTeardownRouting",
 		// "SplitRoutingSetExcludes", // skip, requires excludes
 
 		// Traffic Policing
@@ -110,13 +104,11 @@ func TestGetCmds(t *testing.T) {
 		"TrafPolCleanup",
 
 		// VPN Setup
-		"VPNSetupSetupVPNDevice",
-		"VPNSetupTeardownVPNDevice",
+		"VPNSetupSetup",
+		"VPNSetupTeardown",
 		"VPNSetupSetupDNSServer",
 		"VPNSetupSetupDNSDomains",
 		"VPNSetupSetupDNSDefaultRoute",
-		"VPNSetupSetupDNS",
-		"VPNSetupTeardownDNS",
 		"VPNSetupEnsureDNS",
 		"VPNSetupCleanup",
 	} {
