@@ -55,12 +55,18 @@ table inet oc-daemon-routing {
 	set excludes4 {
 		type ipv4_addr
 		flags interval
+		{{if .VPNConfig.Gateway.Is4}}
+		elements = { {{.VPNConfig.Gateway}}/32 }
+		{{end}}
 	}
 
 	# set for ipv6 excludes
 	set excludes6 {
 		type ipv6_addr
 		flags interval
+		{{if .VPNConfig.Gateway.Is6}}
+		elements = { {{.VPNConfig.Gateway}}/128 }
+		{{end}}
 	}
 
 	chain preraw {
