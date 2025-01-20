@@ -440,6 +440,45 @@ func (d *Daemon) updateVPNConfigDown() {
 	log.Info("Daemon unconfigured VPN connection")
 }
 
+// handleVPNAttemptReconnect handles a "attempt reconnect" event received from vpncscript.
+func (d *Daemon) handleVPNAttemptReconnect() {
+	// check if vpn is flagged as running
+	if !d.status.OCRunning.Running() {
+		log.WithField("error", "vpn not running").
+			Error("Daemon got invalid attempt reconnect event")
+		return
+	}
+
+	// check if we are connected or connecting
+	if d.status.ConnectionState != vpnstatus.ConnectionStateConnected &&
+		d.status.ConnectionState != vpnstatus.ConnectionStateConnecting {
+		log.WithField("error", "vpn not connected and not connecting").
+			Error("Daemon got invalid attempt reconnect event")
+		return
+	}
+
+	d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
+}
+
+// handleVPNReconnect handles a "reconnect" event received from vpncscript.
+func (d *Daemon) handleVPNReconnect() {
+	// check if vpn is flagged as running
+	if !d.status.OCRunning.Running() {
+		log.WithField("error", "vpn not running").
+			Error("Daemon got invalid reconnect event")
+		return
+	}
+
+	// check if we are connecting
+	if d.status.ConnectionState != vpnstatus.ConnectionStateConnecting {
+		log.WithField("error", "vpn not connecting").
+			Error("Daemon got invalid reconnect event")
+		return
+	}
+
+	d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
+}
+
 // updateVPNConfig updates the VPN config with config update in client request.
 func (d *Daemon) updateVPNConfig(request *api.Request) {
 	// parse config
@@ -466,6 +505,10 @@ func (d *Daemon) updateVPNConfig(request *api.Request) {
 		d.updateVPNConfigUp(configUpdate.Config)
 	case "disconnect":
 		d.updateVPNConfigDown()
+	case "attempt-reconnect":
+		d.handleVPNAttemptReconnect()
+	case "reconnect":
+		d.handleVPNReconnect()
 	}
 }
 
