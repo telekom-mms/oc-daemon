@@ -466,6 +466,10 @@ func (d *Daemon) updateVPNConfig(request *api.Request) {
 		d.updateVPNConfigUp(configUpdate.Config)
 	case "disconnect":
 		d.updateVPNConfigDown()
+	case "attempt-reconnect":
+		d.setStatusConnectionState(vpnstatus.ConnectionStateConnecting)
+	case "reconnect":
+		d.setStatusConnectionState(vpnstatus.ConnectionStateConnected)
 	}
 }
 
