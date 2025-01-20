@@ -3,8 +3,6 @@ package splitrt
 import (
 	"net/netip"
 	"testing"
-
-	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
 // getTestExcludes returns excludes for testing.
@@ -59,7 +57,7 @@ func getTestDynamicExcludes(t *testing.T) []netip.Prefix {
 
 // TestExcludesAddStatic tests AddStatic of Excludes.
 func TestExcludesAddStatic(t *testing.T) {
-	e := NewExcludes(daemoncfg.NewConfig())
+	e := NewExcludes()
 	excludes := getTestStaticExcludes(t)
 
 	// test adding excludes
@@ -77,7 +75,7 @@ func TestExcludesAddStatic(t *testing.T) {
 	}
 
 	// test adding overlapping excludes
-	e = NewExcludes(daemoncfg.NewConfig())
+	e = NewExcludes()
 	for _, exclude := range getTestStaticExcludesOverlap(t) {
 		e.AddStatic(exclude)
 	}
@@ -90,7 +88,7 @@ func TestExcludesAddStatic(t *testing.T) {
 
 // TestExcludesAddDynamic tests AddDynamic of Excludes.
 func TestExcludesAddDynamic(t *testing.T) {
-	e := NewExcludes(daemoncfg.NewConfig())
+	e := NewExcludes()
 	excludes := getTestDynamicExcludes(t)
 
 	// test adding excludes
@@ -110,7 +108,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 	// test adding excludes with existing static excludes,
 	// should only add new excludes
 	statics := getTestStaticExcludes(t)
-	e = NewExcludes(daemoncfg.NewConfig())
+	e = NewExcludes()
 	for _, exclude := range statics {
 		if !e.AddStatic(exclude) {
 			t.Errorf("should add exclude %s", exclude)
@@ -132,7 +130,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 	}
 
 	// test adding invalid excludes (static as dynamic)
-	e = NewExcludes(daemoncfg.NewConfig())
+	e = NewExcludes()
 	for _, exclude := range getTestStaticExcludes(t) {
 		if e.AddDynamic(exclude, 300) {
 			t.Errorf("should not add exclude %s", exclude)
@@ -142,7 +140,7 @@ func TestExcludesAddDynamic(t *testing.T) {
 
 // TestExcludesRemoveStatic tests RemoveStatic of Excludes.
 func TestExcludesRemove(t *testing.T) {
-	e := NewExcludes(daemoncfg.NewConfig())
+	e := NewExcludes()
 	excludes := getTestStaticExcludes(t)
 
 	// test removing not existing excludes
@@ -182,7 +180,7 @@ func TestExcludesRemove(t *testing.T) {
 
 // TestExcludesCleanup tests cleanup of Excludes.
 func TestExcludesCleanup(t *testing.T) {
-	e := NewExcludes(daemoncfg.NewConfig())
+	e := NewExcludes()
 
 	// test without excludes
 	if e.cleanup() {
@@ -219,10 +217,8 @@ func TestExcludesCleanup(t *testing.T) {
 
 // TestNewExcludes tests NewExcludes.
 func TestNewExcludes(t *testing.T) {
-	conf := daemoncfg.NewConfig()
-	e := NewExcludes(conf)
+	e := NewExcludes()
 	if e == nil ||
-		e.conf != conf ||
 		e.s == nil ||
 		e.d == nil ||
 		e.done == nil ||

@@ -2,7 +2,6 @@
 package splitrt
 
 import (
-	"context"
 	"fmt"
 	"net/netip"
 	"sync"
@@ -55,7 +54,8 @@ type SplitRouting struct {
 	addrs    *Addresses
 	locals   locals
 	excludes *Excludes
-	dnsreps  chan *dnsproxy.Report
+	prefixes chan []netip.Prefix
+	dnsreps  <-chan *dnsproxy.Report
 	done     chan struct{}
 	closed   chan struct{}
 }
@@ -73,8 +73,16 @@ func (s *SplitRouting) excludeLocalNetworks() (exclude bool, virtual bool) {
 	return
 }
 
+// sendPrefixes sends the current prefixes over the prefixes channel.
+func (s *SplitRouting) sendPrefixes(p []netip.Prefix) {
+	select {
+	case s.prefixes <- p:
+	case <-s.done:
+	}
+}
+
 // updateLocalNetworkExcludes updates the local network split excludes.
-func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
+func (s *SplitRouting) updateLocalNetworkExcludes() {
 	exclude, virtual := s.excludeLocalNetworks()
 
 	// stop if exclude local networks is disabled
@@ -106,21 +114,23 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 	}
 
 	// add new excludes
+	updated := false
 	for _, e := range excludes {
 		if !isIn(e, s.locals.get()) {
-			if s.excludes.AddStatic(e) {
-				setExcludes(ctx, s.config, s.excludes.GetPrefixes())
-			}
+			updated = s.excludes.AddStatic(e) || updated
 		}
 	}
 
 	// remove old excludes
 	for _, l := range s.locals.get() {
 		if !isIn(l, excludes) {
-			if s.excludes.RemoveStatic(l) {
-				setExcludes(ctx, s.config, s.excludes.GetPrefixes())
-			}
+			updated = s.excludes.RemoveStatic(l) || updated
 		}
+	}
+
+	if updated {
+		// signal update
+		s.sendPrefixes(s.excludes.GetPrefixes())
 	}
 
 	// save local excludes
@@ -129,7 +139,7 @@ func (s *SplitRouting) updateLocalNetworkExcludes(ctx context.Context) {
 }
 
 // handleDeviceUpdate handles a device update from the device monitor.
-func (s *SplitRouting) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
+func (s *SplitRouting) handleDeviceUpdate(u *devmon.Update) {
 	log.WithField("update", u).Debug("SplitRouting got device update")
 
 	if u.Add {
@@ -146,11 +156,11 @@ func (s *SplitRouting) handleDeviceUpdate(ctx context.Context, u *devmon.Update)
 	} else {
 		s.devices.Remove(u)
 	}
-	s.updateLocalNetworkExcludes(ctx)
+	s.updateLocalNetworkExcludes()
 }
 
 // handleAddressUpdate handles an address update from the address monitor.
-func (s *SplitRouting) handleAddressUpdate(ctx context.Context, u *addrmon.Update) {
+func (s *SplitRouting) handleAddressUpdate(u *addrmon.Update) {
 	log.WithField("update", u).Debug("SplitRouting got address update")
 
 	if u.Add {
@@ -158,36 +168,43 @@ func (s *SplitRouting) handleAddressUpdate(ctx context.Context, u *addrmon.Updat
 	} else {
 		s.addrs.Remove(u)
 	}
-	s.updateLocalNetworkExcludes(ctx)
+	s.updateLocalNetworkExcludes()
 }
 
 // handleDNSReport handles a DNS report.
-func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) {
+func (s *SplitRouting) handleDNSReport(r *dnsproxy.Report) {
 	defer r.Close()
 	log.WithField("report", r).Debug("SplitRouting handling DNS report")
 
 	exclude := netip.PrefixFrom(r.IP, r.IP.BitLen())
 	if s.excludes.AddDynamic(exclude, r.TTL) {
-		setExcludes(ctx, s.config, s.excludes.GetPrefixes())
+		// signal update
+		s.sendPrefixes(s.excludes.GetPrefixes())
 	}
 }
 
 // start starts split routing.
-func (s *SplitRouting) start(ctx context.Context) {
+func (s *SplitRouting) start() {
 	defer close(s.closed)
+	defer close(s.prefixes)
 	defer s.devmon.Stop()
 	defer s.addrmon.Stop()
+
+	// send initial prefixes
+	if prefixes := s.excludes.GetPrefixes(); len(prefixes) > 0 {
+		s.sendPrefixes(prefixes)
+	}
 
 	// main loop
 	timer := time.NewTimer(excludesTimer * time.Second)
 	for {
 		select {
 		case u := <-s.devmon.Updates():
-			s.handleDeviceUpdate(ctx, u)
+			s.handleDeviceUpdate(u)
 		case u := <-s.addrmon.Updates():
-			s.handleAddressUpdate(ctx, u)
+			s.handleAddressUpdate(u)
 		case r := <-s.dnsreps:
-			s.handleDNSReport(ctx, r)
+			s.handleDNSReport(r)
 		case <-timer.C:
 			s.excludes.cleanup()
 			timer.Reset(excludesTimer * time.Second)
@@ -204,9 +221,6 @@ func (s *SplitRouting) start(ctx context.Context) {
 func (s *SplitRouting) Start() error {
 	log.Debug("SplitRouting starting")
 
-	// create context
-	ctx := context.Background()
-
 	// start device monitor
 	if err := s.devmon.Start(); err != nil {
 		return fmt.Errorf("SplitRouting could not start DevMon: %w", err)
@@ -222,9 +236,7 @@ func (s *SplitRouting) Start() error {
 	if s.config.VPNConfig.Gateway.IsValid() {
 		gateway := netip.PrefixFrom(s.config.VPNConfig.Gateway,
 			s.config.VPNConfig.Gateway.BitLen())
-		if s.excludes.AddStatic(gateway) {
-			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
-		}
+		s.excludes.AddStatic(gateway)
 	}
 
 	// add static IPv4 excludes
@@ -232,9 +244,7 @@ func (s *SplitRouting) Start() error {
 		if e.String() == "0.0.0.0/32" {
 			continue
 		}
-		if s.excludes.AddStatic(e) {
-			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
-		}
+		s.excludes.AddStatic(e)
 	}
 
 	// add static IPv6 excludes
@@ -243,12 +253,10 @@ func (s *SplitRouting) Start() error {
 		if e.String() == "::/128" {
 			continue
 		}
-		if s.excludes.AddStatic(e) {
-			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
-		}
+		s.excludes.AddStatic(e)
 	}
 
-	go s.start(ctx)
+	go s.start()
 	return nil
 }
 
@@ -259,9 +267,9 @@ func (s *SplitRouting) Stop() {
 	log.Debug("SplitRouting stopped")
 }
 
-// DNSReports returns the channel for dns reports.
-func (s *SplitRouting) DNSReports() chan *dnsproxy.Report {
-	return s.dnsreps
+// Prefixes returns the channel for the exclude prefixes.
+func (s *SplitRouting) Prefixes() <-chan []netip.Prefix {
+	return s.prefixes
 }
 
 // GetState returns the internal state.
@@ -281,15 +289,16 @@ func (s *SplitRouting) GetState() *State {
 }
 
 // NewSplitRouting returns a new SplitRouting.
-func NewSplitRouting(config *daemoncfg.Config) *SplitRouting {
+func NewSplitRouting(config *daemoncfg.Config, dnsReports <-chan *dnsproxy.Report) *SplitRouting {
 	return &SplitRouting{
 		config:   config,
 		devmon:   devmon.NewDevMon(),
 		addrmon:  addrmon.NewAddrMon(),
 		devices:  NewDevices(),
 		addrs:    NewAddresses(),
-		excludes: NewExcludes(config),
-		dnsreps:  make(chan *dnsproxy.Report),
+		excludes: NewExcludes(),
+		prefixes: make(chan []netip.Prefix),
+		dnsreps:  dnsReports,
 		done:     make(chan struct{}),
 		closed:   make(chan struct{}),
 	}
