@@ -57,10 +57,10 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	var nftMutex sync.Mutex
 	nftCmds := []string{}
 	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, cmd string, _ string, args ...string) ([]byte, []byte, error) {
+	execs.RunCmd = func(_ context.Context, cmd string, stdin string, args ...string) ([]byte, []byte, error) {
 		nftMutex.Lock()
 		defer nftMutex.Unlock()
-		nftCmds = append(nftCmds, cmd+" "+strings.Join(args, " "))
+		nftCmds = append(nftCmds, cmd+" "+strings.Join(args, " ")+" "+stdin)
 		return nil, nil, nil
 	}
 	defer func() { execs.RunCmd = oldRunCmd }()
@@ -86,7 +86,9 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	tp.handleCPDReport(ctx, report)
 
 	want = []string{
-		"nft -f - add element inet oc-daemon-filter allowports { 80, 443 }",
+		"nft -f - flush set inet oc-daemon-filter allowports\n" +
+			"add element inet oc-daemon-filter allowports { 80 }\n" +
+			"add element inet oc-daemon-filter allowports { 443 }\n",
 	}
 	got = getNftCmds()
 	if !reflect.DeepEqual(got, want) {
@@ -98,8 +100,10 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	tp.handleCPDReport(ctx, report)
 
 	want = []string{
-		"nft -f - add element inet oc-daemon-filter allowports { 80, 443 }",
-		"nft -f - delete element inet oc-daemon-filter allowports { 80, 443 }",
+		"nft -f - flush set inet oc-daemon-filter allowports\n" +
+			"add element inet oc-daemon-filter allowports { 80 }\n" +
+			"add element inet oc-daemon-filter allowports { 443 }\n",
+		"nft -f - flush set inet oc-daemon-filter allowports\n",
 	}
 	got = getNftCmds()
 	if !reflect.DeepEqual(got, want) {

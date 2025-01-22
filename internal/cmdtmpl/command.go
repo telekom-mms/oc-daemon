@@ -252,21 +252,16 @@ add element inet oc-daemon-filter allowdevs { {{.}} }
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
-	case "TrafPolAddPortalPorts":
+	case "TrafPolSetAllowedPorts":
 		// Remove Portal Ports
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f - add element inet oc-daemon-filter allowports { {{range $i, $port := .TrafficPolicing.PortalPorts}}{{if $i}}, {{end}}{{$port}}{{end}} }"},
-			},
-			defaultTemplate: TrafPolDefaultTemplate,
-		}
-	case "TrafPolRemovePortalPorts":
-		// Remove Portal Ports
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f - delete element inet oc-daemon-filter allowports { {{range $i, $port := .TrafficPolicing.PortalPorts}}{{if $i}}, {{end}}{{$port}}{{end}} }"},
+				{Line: "{{.Executables.Nft}} -f -",
+					Stdin: `flush set inet oc-daemon-filter allowports
+{{range .Ports -}}
+add element inet oc-daemon-filter allowports { {{.}} }
+{{end}}`},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}

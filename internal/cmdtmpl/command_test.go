@@ -40,8 +40,7 @@ func TestGetCommandList(t *testing.T) {
 		"TrafPolSetAllowedDevices",
 		"TrafPolFlushAllowedHosts",
 		"TrafPolAddAllowedHost",
-		"TrafPolAddPortalPorts",
-		"TrafPolRemovePortalPorts",
+		"TrafPolSetAllowedPorts",
 		"TrafPolCleanup",
 
 		// VPN Setup
@@ -91,8 +90,7 @@ func TestGetCmds(t *testing.T) {
 		// TrafPolSetAllowedDevices", // skip, requires devices
 		"TrafPolFlushAllowedHosts",
 		// "TrafPolAddAllowedHost", // skip, requires host
-		"TrafPolAddPortalPorts",
-		"TrafPolRemovePortalPorts",
+		//"TrafPolSetAllowedPorts", // skip, requires ports
 		"TrafPolCleanup",
 
 		// VPN Setup
@@ -117,6 +115,7 @@ func TestGetCmds(t *testing.T) {
 		// Traffic Policing
 		"TrafPolSetAllowedDevices",
 		"TrafPolAddAllowedHost",
+		"TrafPolSetAllowedPorts",
 
 		// VPN Setup
 		"VPNSetupSetExcludes",
