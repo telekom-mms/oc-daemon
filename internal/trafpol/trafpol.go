@@ -71,12 +71,12 @@ func (t *TrafPol) handleDeviceUpdate(ctx context.Context, u *devmon.Update) {
 	// skip when removing devices.
 	if u.Add && u.Type != "device" {
 		if t.allowDevs.Add(u.Device) {
-			addAllowedDevice(ctx, t.config, u.Device)
+			setAllowedDevices(ctx, t.config, t.allowDevs.List())
 		}
 		return
 	}
 	if t.allowDevs.Remove(u.Device) {
-		removeAllowedDevice(ctx, t.config, u.Device)
+		setAllowedDevices(ctx, t.config, t.allowDevs.List())
 	}
 }
 

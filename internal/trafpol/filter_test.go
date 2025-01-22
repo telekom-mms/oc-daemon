@@ -27,8 +27,10 @@ func TestFilterFunctionsErrors(_ *testing.T) {
 	unsetFilterRules(ctx, conf)
 
 	// allowed devices
-	addAllowedDevice(ctx, conf, "eth0")
-	removeAllowedDevice(ctx, conf, "eth0")
+	setAllowedDevices(ctx, conf, []string{"eth0"})
+	setAllowedDevices(ctx, conf, []string{"eth0", "eth1"})
+	setAllowedDevices(ctx, conf, []string{"eth0"})
+	setAllowedDevices(ctx, conf, []string{})
 
 	// allowed IPs
 	setAllowedIPs(ctx, conf, []netip.Prefix{

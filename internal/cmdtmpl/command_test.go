@@ -37,8 +37,7 @@ func TestGetCommandList(t *testing.T) {
 		// Traffic Policing
 		"TrafPolSetFilterRules",
 		"TrafPolUnsetFilterRules",
-		"TrafPolAddAllowedDevice",
-		"TrafPolRemoveAllowedDevice",
+		"TrafPolSetAllowedDevices",
 		"TrafPolFlushAllowedHosts",
 		"TrafPolAddAllowedHost",
 		"TrafPolAddPortalPorts",
@@ -89,8 +88,7 @@ func TestGetCmds(t *testing.T) {
 		// Traffic Policing
 		"TrafPolSetFilterRules",
 		"TrafPolUnsetFilterRules",
-		// TrafPolAddAllowedDevice", // skip, requires device
-		// "TrafPolRemoveAllowedDevice", // skip, requires device
+		// TrafPolSetAllowedDevices", // skip, requires devices
 		"TrafPolFlushAllowedHosts",
 		// "TrafPolAddAllowedHost", // skip, requires host
 		"TrafPolAddPortalPorts",
@@ -117,8 +115,7 @@ func TestGetCmds(t *testing.T) {
 	// existing, with insufficient input data
 	for _, name := range []string{
 		// Traffic Policing
-		"TrafPolAddAllowedDevice",
-		"TrafPolRemoveAllowedDevice",
+		"TrafPolSetAllowedDevices",
 		"TrafPolAddAllowedHost",
 
 		// VPN Setup
