@@ -39,7 +39,6 @@ func TestGetCommandList(t *testing.T) {
 		"SplitRoutingSetupRouting",
 		"SplitRoutingTeardownRouting",
 		"SplitRoutingSetExcludes",
-		"SplitRoutingCleanup",
 
 		// Traffic Policing
 		"TrafPolSetFilterRules",
@@ -98,7 +97,6 @@ func TestGetCmds(t *testing.T) {
 		"SplitRoutingSetupRouting",
 		"SplitRoutingTeardownRouting",
 		// "SplitRoutingSetExcludes", // skip, requires excludes
-		"SplitRoutingCleanup",
 
 		// Traffic Policing
 		"TrafPolSetFilterRules",
