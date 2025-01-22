@@ -10,7 +10,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
-	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
@@ -59,80 +58,6 @@ type SplitRouting struct {
 	dnsreps  chan *dnsproxy.Report
 	done     chan struct{}
 	closed   chan struct{}
-}
-
-// setupRouting sets up routing using config.
-func (s *SplitRouting) setupRouting(ctx context.Context) {
-	// set up routing
-	data := s.config
-	cmds, err := cmdtmpl.GetCmds("SplitRoutingSetupRouting", data)
-	if err != nil {
-		log.WithError(err).Error("SplitRouting could not get setup routing commands")
-	}
-	for _, c := range cmds {
-		if stdout, stderr, err := c.Run(ctx); err != nil {
-			log.WithFields(log.Fields{
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-				"error":   err,
-			}).Error("SplitRouting could not run setup routing command")
-		}
-	}
-
-	// add gateway to static excludes
-	if s.config.VPNConfig.Gateway.IsValid() {
-		gateway := netip.PrefixFrom(s.config.VPNConfig.Gateway,
-			s.config.VPNConfig.Gateway.BitLen())
-		if s.excludes.AddStatic(gateway) {
-			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
-		}
-	}
-
-	// add static IPv4 excludes
-	for _, e := range s.config.VPNConfig.Split.ExcludeIPv4 {
-		if e.String() == "0.0.0.0/32" {
-			continue
-		}
-		if s.excludes.AddStatic(e) {
-			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
-		}
-	}
-
-	// add static IPv6 excludes
-	for _, e := range s.config.VPNConfig.Split.ExcludeIPv6 {
-		// TODO: does ::/128 exist?
-		if e.String() == "::/128" {
-			continue
-		}
-		if s.excludes.AddStatic(e) {
-			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
-		}
-	}
-}
-
-// teardownRouting tears down the routing configuration.
-func (s *SplitRouting) teardownRouting(ctx context.Context) {
-	// tear down routing
-	data := s.config
-	cmds, err := cmdtmpl.GetCmds("SplitRoutingTeardownRouting", data)
-	if err != nil {
-		log.WithError(err).Error("SplitRouting could not get teardown routing commands")
-	}
-	for _, c := range cmds {
-		if stdout, stderr, err := c.Run(ctx); err != nil {
-			log.WithFields(log.Fields{
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-				"error":   err,
-			}).Error("SplitRouting could not run teardown routing command")
-		}
-	}
 }
 
 // excludeLocalNetworks returns whether local (virtual) networks should be excluded.
@@ -250,7 +175,6 @@ func (s *SplitRouting) handleDNSReport(ctx context.Context, r *dnsproxy.Report) 
 // start starts split routing.
 func (s *SplitRouting) start(ctx context.Context) {
 	defer close(s.closed)
-	defer s.teardownRouting(ctx)
 	defer s.devmon.Stop()
 	defer s.addrmon.Stop()
 
@@ -283,20 +207,45 @@ func (s *SplitRouting) Start() error {
 	// create context
 	ctx := context.Background()
 
-	// configure routing
-	s.setupRouting(ctx)
-
 	// start device monitor
 	if err := s.devmon.Start(); err != nil {
-		s.teardownRouting(ctx)
 		return fmt.Errorf("SplitRouting could not start DevMon: %w", err)
 	}
 
 	// start address monitor
 	if err := s.addrmon.Start(); err != nil {
 		s.devmon.Stop()
-		s.teardownRouting(ctx)
 		return fmt.Errorf("SplitRouting could not start AddrMon: %w", err)
+	}
+
+	// add gateway to static excludes
+	if s.config.VPNConfig.Gateway.IsValid() {
+		gateway := netip.PrefixFrom(s.config.VPNConfig.Gateway,
+			s.config.VPNConfig.Gateway.BitLen())
+		if s.excludes.AddStatic(gateway) {
+			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
+		}
+	}
+
+	// add static IPv4 excludes
+	for _, e := range s.config.VPNConfig.Split.ExcludeIPv4 {
+		if e.String() == "0.0.0.0/32" {
+			continue
+		}
+		if s.excludes.AddStatic(e) {
+			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
+		}
+	}
+
+	// add static IPv6 excludes
+	for _, e := range s.config.VPNConfig.Split.ExcludeIPv6 {
+		// TODO: does ::/128 exist?
+		if e.String() == "::/128" {
+			continue
+		}
+		if s.excludes.AddStatic(e) {
+			setExcludes(ctx, s.config, s.excludes.GetPrefixes())
+		}
 	}
 
 	go s.start(ctx)
