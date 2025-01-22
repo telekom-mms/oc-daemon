@@ -219,7 +219,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	}
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
-	// test with new configs
+	// test with new config
 	s := NewSplitRouting(daemoncfg.NewConfig())
 	if err := s.Start(); err != nil {
 		t.Error(err)

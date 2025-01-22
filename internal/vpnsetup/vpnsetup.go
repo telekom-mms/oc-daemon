@@ -362,7 +362,7 @@ func (v *VPNSetup) ensureDNS(ctx context.Context, config *daemoncfg.Config) bool
 	return protOK && srvOK && domOK
 }
 
-// ensureConfig ensured that the VPN config is and stays active.
+// ensureConfig ensures that the VPN config is and stays active.
 func (v *VPNSetup) ensureConfig(ctx context.Context, conf *daemoncfg.Config) {
 	defer close(v.ensureClosed)
 
