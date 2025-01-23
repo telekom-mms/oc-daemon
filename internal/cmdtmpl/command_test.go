@@ -47,10 +47,8 @@ func TestGetCommandList(t *testing.T) {
 		"VPNSetupSetup",
 		"VPNSetupTeardown",
 		"VPNSetupSetExcludes",
-		"VPNSetupSetupDNSServer",
-		"VPNSetupSetupDNSDomains",
-		"VPNSetupSetupDNSDefaultRoute",
-		"VPNSetupEnsureDNS",
+		"VPNSetupSetDNS",
+		"VPNSetupGetDNS",
 		"VPNSetupCleanup",
 	} {
 		cl := getCommandList(name)
@@ -97,10 +95,8 @@ func TestGetCmds(t *testing.T) {
 		"VPNSetupSetup",
 		"VPNSetupTeardown",
 		// "VPNSetupSetExcludes", // skip, requires excludes
-		"VPNSetupSetupDNSServer",
-		"VPNSetupSetupDNSDomains",
-		"VPNSetupSetupDNSDefaultRoute",
-		"VPNSetupEnsureDNS",
+		"VPNSetupSetDNS",
+		"VPNSetupGetDNS",
 		"VPNSetupCleanup",
 	} {
 		if cmds, err := GetCmds(name, daemoncfg.NewConfig()); err != nil ||

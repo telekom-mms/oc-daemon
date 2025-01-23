@@ -479,35 +479,19 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 			},
 			defaultTemplate: VPNSetupDefaultTemplate,
 		}
-	case "VPNSetupSetupDNSServer":
-		// Setup DNS server
+	case "VPNSetupSetDNS":
+		// Set DNS settings
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
 				{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
-			},
-			defaultTemplate: VPNSetupDefaultTemplate,
-		}
-	case "VPNSetupSetupDNSDomains":
-		// Setup DNS domains
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
 				{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
-			},
-			defaultTemplate: VPNSetupDefaultTemplate,
-		}
-	case "VPNSetupSetupDNSDefaultRoute":
-		// Setup DNS Default Route
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
 				{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device}} yes"},
 			},
 			defaultTemplate: VPNSetupDefaultTemplate,
 		}
-	case "VPNSetupEnsureDNS":
-		// Ensure DNS
+	case "VPNSetupGetDNS":
+		// Get DNS settings
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
