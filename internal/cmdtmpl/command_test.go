@@ -22,7 +22,6 @@ func TestExecuteTemplateParseError(t *testing.T) {
 func TestGetCommandList(t *testing.T) {
 	// not existing
 	for _, name := range []string{
-		"SplitRoutingDoesNotExist",
 		"TrafPolDoesNotExist",
 		"VPNSetupDoesNotExist",
 		"DoesNotExist",
@@ -35,9 +34,6 @@ func TestGetCommandList(t *testing.T) {
 
 	// existing
 	for _, name := range []string{
-		// Split Routing
-		"SplitRoutingSetExcludes",
-
 		// Traffic Policing
 		"TrafPolSetFilterRules",
 		"TrafPolUnsetFilterRules",
@@ -52,6 +48,7 @@ func TestGetCommandList(t *testing.T) {
 		// VPN Setup
 		"VPNSetupSetup",
 		"VPNSetupTeardown",
+		"VPNSetupSetExcludes",
 		"VPNSetupSetupDNSServer",
 		"VPNSetupSetupDNSDomains",
 		"VPNSetupSetupDNSDefaultRoute",
@@ -89,9 +86,6 @@ func TestGetCmds(t *testing.T) {
 
 	// existing, that only need daemon config as input data
 	for _, name := range []string{
-		// Split Routing
-		// "SplitRoutingSetExcludes", // skip, requires excludes
-
 		// Traffic Policing
 		"TrafPolSetFilterRules",
 		"TrafPolUnsetFilterRules",
@@ -106,6 +100,7 @@ func TestGetCmds(t *testing.T) {
 		// VPN Setup
 		"VPNSetupSetup",
 		"VPNSetupTeardown",
+		// "VPNSetupSetExcludes", // skip, requires excludes
 		"VPNSetupSetupDNSServer",
 		"VPNSetupSetupDNSDomains",
 		"VPNSetupSetupDNSDefaultRoute",
@@ -121,13 +116,13 @@ func TestGetCmds(t *testing.T) {
 
 	// existing, with insufficient input data
 	for _, name := range []string{
-		// Split Routing
-		"SplitRoutingSetExcludes",
-
 		// Traffic Policing
 		"TrafPolAddAllowedDevice",
 		"TrafPolRemoveAllowedDevice",
 		"TrafPolAddAllowedHost",
+
+		// VPN Setup
+		"VPNSetupSetExcludes",
 	} {
 		if _, err := GetCmds(name, daemoncfg.NewConfig()); err == nil {
 			t.Errorf("insufficient data should return error for list %s", name)

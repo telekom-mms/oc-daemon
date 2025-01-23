@@ -47,39 +47,6 @@ func (cl *CommandList) executeTemplate(tmpl string, data any) (string, error) {
 	return s, nil
 }
 
-// getCommandListSplitRouting returns the command list identified by name for SplitRouting.
-func getCommandListSplitRouting(name string) *CommandList {
-	var cl *CommandList
-	switch name {
-	case "SplitRoutingSetExcludes":
-		// Set Excludes
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				// flush existing entries
-				// add entries
-				{Line: "{{.Executables.Nft}} -f -",
-					Stdin: `flush set inet oc-daemon-routing excludes4
-flush set inet oc-daemon-routing excludes6
-{{range .Addresses -}}
-{{if .Addr.Is6 -}}
-add element inet oc-daemon-routing excludes6 { {{.}} }
-{{else -}}
-add element inet oc-daemon-routing excludes4 { {{.}} }
-{{end -}}
-{{end}}`},
-			},
-			defaultTemplate: VPNSetupDefaultTemplate,
-		}
-	default:
-		return nil
-
-	}
-
-	cl.template = template.Must(template.New("Template").Parse(cl.defaultTemplate))
-	return cl
-}
-
 // TrafPolDefaultTemplate is the default template for Traffic Policing.
 const TrafPolDefaultTemplate = `
 {{- define "TrafPolRules"}}
@@ -502,6 +469,26 @@ func getCommandListVPNSetup(name string) *CommandList {
 			},
 			defaultTemplate: VPNSetupDefaultTemplate,
 		}
+	case "VPNSetupSetExcludes":
+		// Set Excludes
+		cl = &CommandList{
+			Name: name,
+			Commands: []*Command{
+				// flush existing entries
+				// add entries
+				{Line: "{{.Executables.Nft}} -f -",
+					Stdin: `flush set inet oc-daemon-routing excludes4
+flush set inet oc-daemon-routing excludes6
+{{range .Addresses -}}
+{{if .Addr.Is6 -}}
+add element inet oc-daemon-routing excludes6 { {{.}} }
+{{else -}}
+add element inet oc-daemon-routing excludes4 { {{.}} }
+{{end -}}
+{{end}}`},
+			},
+			defaultTemplate: VPNSetupDefaultTemplate,
+		}
 	case "VPNSetupSetupDNSServer":
 		// Setup DNS server
 		cl = &CommandList{
@@ -568,9 +555,6 @@ func getCommandListVPNSetup(name string) *CommandList {
 
 // getCommandList returns the command list identified by name.
 func getCommandList(name string) *CommandList {
-	if strings.HasPrefix(name, "SplitRouting") {
-		return getCommandListSplitRouting(name)
-	}
 	if strings.HasPrefix(name, "TrafPol") {
 		return getCommandListTrafPol(name)
 	}

@@ -1,109 +1,103 @@
 package splitrt
 
 import (
-	"context"
-	"errors"
+	"cmp"
 	"net/netip"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/vishvananda/netlink"
 )
 
 // TestSplitRoutingHandleDeviceUpdate tests handleDeviceUpdate of SplitRouting.
 func TestSplitRoutingHandleDeviceUpdate(t *testing.T) {
-	ctx := context.Background()
-	s := NewSplitRouting(daemoncfg.NewConfig())
+	s := NewSplitRouting(daemoncfg.NewConfig(), make(chan *dnsproxy.Report))
 
-	want := []string{"nothing else"}
-	got := []string{"nothing else"}
-
-	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
-		return nil, nil, nil
+	// test helper
+	want := []netip.Prefix{}
+	got := []netip.Prefix{}
+	test := func(t *testing.T, update *devmon.Update) {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			s.handleDeviceUpdate(update)
+		}()
+		select {
+		case got = <-s.Prefixes():
+		case <-done:
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
 	}
-	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test adding
 	update := getTestDevMonUpdate()
-	s.handleDeviceUpdate(ctx, update)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
+	t.Run("adding", func(t *testing.T) { test(t, update) })
 
 	// test removing
+	update = getTestDevMonUpdate()
 	update.Add = false
-	s.handleDeviceUpdate(ctx, update)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
+	t.Run("removing", func(t *testing.T) { test(t, update) })
 
 	// test adding loopback device
 	update = getTestDevMonUpdate()
 	update.Type = "loopback"
-	s.handleDeviceUpdate(ctx, update)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
+	t.Run("adding loopback", func(t *testing.T) { test(t, update) })
 
 	// test adding vpn device
 	update = getTestDevMonUpdate()
 	update.Device = s.config.VPNConfig.Device.Name
-	s.handleDeviceUpdate(ctx, update)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
+	t.Run("adding vpn device", func(t *testing.T) { test(t, update) })
 }
 
 // TestSplitRoutingHandleAddressUpdate tests handleAddressUpdate of SplitRouting.
 func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
-	ctx := context.Background()
 
 	// test with exclude
 	conf := daemoncfg.NewConfig()
 	conf.VPNConfig.Split.ExcludeIPv4 = []netip.Prefix{
 		netip.MustParsePrefix("0.0.0.0/32"),
 	}
-	s := NewSplitRouting(conf)
+	s := NewSplitRouting(conf, make(chan *dnsproxy.Report))
 	s.devices.Add(getTestDevMonUpdate())
 
-	got := []string{}
-	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
-		return nil, nil, nil
+	// test helper
+	want := []netip.Prefix{}
+	got := []netip.Prefix{}
+	test := func(t *testing.T, update *addrmon.Update) {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			s.handleAddressUpdate(update)
+		}()
+		select {
+		case got = <-s.Prefixes():
+		case <-done:
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
 	}
-	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test adding
-	want := []string{
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n" +
-			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n",
-	}
 	update := getTestAddrMonUpdate(t, "192.168.1.1/32")
-	s.handleAddressUpdate(ctx, update)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+	want = []netip.Prefix{
+		netip.MustParsePrefix("192.168.1.1/32"),
 	}
+	got = []netip.Prefix{}
+	t.Run("adding with exclude", func(t *testing.T) { test(t, update) })
 
 	// test removing
-	got = []string{}
-	want = []string{
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n",
-	}
 	update.Add = false
-	s.handleAddressUpdate(ctx, update)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
+	want = []netip.Prefix{}
+	got = []netip.Prefix{}
+	t.Run("removing with exclude", func(t *testing.T) { test(t, update) })
 
 	// test with exclude and virtual
 	conf = daemoncfg.NewConfig()
@@ -111,101 +105,84 @@ func TestSplitRoutingHandleAddressUpdate(t *testing.T) {
 		netip.MustParsePrefix("0.0.0.0/32"),
 	}
 	conf.VPNConfig.Split.ExcludeVirtualSubnetsOnlyIPv4 = true
-	s = NewSplitRouting(conf)
+	s = NewSplitRouting(conf, make(chan *dnsproxy.Report))
 	devUp := getTestDevMonUpdate()
 	devUp.Type = "virtual"
 	s.devices.Add(devUp)
 
-	got = []string{}
-
 	// test adding
-	want = []string{
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n" +
-			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n",
-	}
 	update = getTestAddrMonUpdate(t, "192.168.1.1/32")
-	s.handleAddressUpdate(ctx, update)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+	want = []netip.Prefix{
+		netip.MustParsePrefix("192.168.1.1/32"),
 	}
+	got = []netip.Prefix{}
+	t.Run("adding with exclude and virtual", func(t *testing.T) { test(t, update) })
 
 	// test double adding
-	s.handleAddressUpdate(ctx, update)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
+	want = []netip.Prefix{}
+	got = []netip.Prefix{}
+	t.Run("double adding with exclude and virtual", func(t *testing.T) { test(t, update) })
 
 	// test removing
-	got = []string{}
-	want = []string{
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n",
-	}
 	update.Add = false
-	s.handleAddressUpdate(ctx, update)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
+	want = []netip.Prefix{}
+	got = []netip.Prefix{}
+	t.Run("removing with exclude and virtual", func(t *testing.T) { test(t, update) })
 }
 
 // TestSplitRoutingHandleDNSReport tests handleDNSReport of SplitRouting.
 func TestSplitRoutingHandleDNSReport(t *testing.T) {
-	ctx := context.Background()
-	s := NewSplitRouting(daemoncfg.NewConfig())
+	s := NewSplitRouting(daemoncfg.NewConfig(), make(chan *dnsproxy.Report))
 
-	got := []string{}
-	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, _ string, s string, _ ...string) ([]byte, []byte, error) {
-		got = append(got, s)
-		return nil, nil, nil
+	// test helper
+	want := []netip.Prefix{}
+	got := []netip.Prefix{}
+	test := func(t *testing.T, report *dnsproxy.Report) {
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			s.handleDNSReport(report)
+			<-report.Done()
+		}()
+		select {
+		case got = <-s.Prefixes():
+		case <-done:
+		}
+		cmpPrefixes := func(a, b netip.Prefix) int {
+			c := a.Addr().Compare(b.Addr())
+			if c == 0 {
+				return cmp.Compare(a.Bits(), b.Bits())
+			}
+			return c
+		}
+		slices.SortFunc(want, cmpPrefixes)
+		slices.SortFunc(got, cmpPrefixes)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
 	}
-	defer func() { execs.RunCmd = oldRunCmd }()
 
 	// test ipv4
 	report := dnsproxy.NewReport("example.com", netip.MustParseAddr("192.168.1.1"), 300)
-	go s.handleDNSReport(ctx, report)
-	<-report.Done()
-
-	want := []string{
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n" +
-			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n",
+	want = []netip.Prefix{
+		netip.MustParsePrefix("192.168.1.1/32"),
 	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
+	got = []netip.Prefix{}
+	t.Run("ipv4", func(t *testing.T) { test(t, report) })
 
 	// test ipv6
-	got = []string{}
 	report = dnsproxy.NewReport("example.com", netip.MustParseAddr("2001::1"), 300)
-	go s.handleDNSReport(ctx, report)
-	<-report.Done()
-
-	want = []string{
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n" +
-			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n" +
-			"add element inet oc-daemon-routing excludes6 { 2001::1/128 }\n",
-		"flush set inet oc-daemon-routing excludes4\n" +
-			"flush set inet oc-daemon-routing excludes6\n" +
-			"add element inet oc-daemon-routing excludes6 { 2001::1/128 }\n" +
-			"add element inet oc-daemon-routing excludes4 { 192.168.1.1/32 }\n",
+	want = []netip.Prefix{
+		netip.MustParsePrefix("192.168.1.1/32"),
+		netip.MustParsePrefix("2001::1/128"),
 	}
-	if !reflect.DeepEqual(got[0], want[0]) && !reflect.DeepEqual(got[0], want[1]) {
-		t.Errorf("got %v, want %v or %v", got[0], want[0], want[1])
-	}
+	got = []netip.Prefix{}
+	t.Run("ipv6", func(t *testing.T) { test(t, report) })
 }
 
 // TestSplitRoutingStartStop tests Start and Stop of SplitRouting.
 func TestSplitRoutingStartStop(t *testing.T) {
 	// set dummy low level functions for testing
-	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
-		return nil, nil, nil
-	}
-	defer func() { execs.RunCmd = oldRunCmd }()
-
 	oldRegisterAddrUpdates := addrmon.RegisterAddrUpdates
 	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) (chan netlink.AddrUpdate, error) {
 		return nil, nil
@@ -219,7 +196,7 @@ func TestSplitRoutingStartStop(t *testing.T) {
 	defer func() { devmon.RegisterLinkUpdates = oldRegisterLinkUpdates }()
 
 	// test with new config
-	s := NewSplitRouting(daemoncfg.NewConfig())
+	s := NewSplitRouting(daemoncfg.NewConfig(), make(chan *dnsproxy.Report))
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
@@ -227,6 +204,8 @@ func TestSplitRoutingStartStop(t *testing.T) {
 
 	// test with excludes
 	conf := daemoncfg.NewConfig()
+	conf.VPNConfig.Gateway = netip.MustParseAddr("10.0.0.1")
+	conf.VPNConfig.IPv4 = netip.MustParsePrefix("192.168.0.1/24")
 	conf.VPNConfig.Split.ExcludeIPv4 = []netip.Prefix{
 		netip.MustParsePrefix("0.0.0.0/32"),
 		netip.MustParsePrefix("192.168.1.1/32"),
@@ -235,49 +214,77 @@ func TestSplitRoutingStartStop(t *testing.T) {
 		netip.MustParsePrefix("::/128"),
 		netip.MustParsePrefix("2000::1/128"),
 	}
-	s = NewSplitRouting(conf)
+	s = NewSplitRouting(conf, make(chan *dnsproxy.Report))
+
+	want := []netip.Prefix{
+		netip.MustParsePrefix("10.0.0.1/32"),
+		netip.MustParsePrefix("192.168.1.1/32"),
+		netip.MustParsePrefix("2000::1/128"),
+	}
+	got := []netip.Prefix{}
+
+	done := make(chan struct{})
+	go func(prefixes <-chan []netip.Prefix) {
+		defer close(done)
+		got = <-prefixes
+
+	}(s.Prefixes())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
+	<-done
 	s.Stop()
 
-	// test with vpn address
-	conf = daemoncfg.NewConfig()
-	conf.VPNConfig.IPv4 = netip.MustParsePrefix("192.168.1.1/24")
-	s = NewSplitRouting(daemoncfg.NewConfig())
-	if err := s.Start(); err != nil {
-		t.Error(err)
+	cmpPrefixes := func(a, b netip.Prefix) int {
+		c := a.Addr().Compare(b.Addr())
+		if c == 0 {
+			return cmp.Compare(a.Bits(), b.Bits())
+		}
+		return c
 	}
-	s.Stop()
+	slices.SortFunc(want, cmpPrefixes)
+	slices.SortFunc(got, cmpPrefixes)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
 
 	// test with events
-	s = NewSplitRouting(daemoncfg.NewConfig())
+	dnsReports := make(chan *dnsproxy.Report)
+	s = NewSplitRouting(daemoncfg.NewConfig(), dnsReports)
+
+	want = []netip.Prefix{
+		netip.MustParsePrefix("192.168.1.1/32"),
+	}
+	got = []netip.Prefix{}
+
+	done = make(chan struct{})
+	go func(prefixes <-chan []netip.Prefix) {
+		defer close(done)
+		for p := range prefixes {
+			got = p
+		}
+	}(s.Prefixes())
 	if err := s.Start(); err != nil {
 		t.Error(err)
 	}
 	s.devmon.Updates() <- getTestDevMonUpdate()
 	s.addrmon.Updates() <- getTestAddrMonUpdate(t, "192.168.1.1/32")
 	report := dnsproxy.NewReport("example.com", netip.MustParseAddr("192.168.1.1"), 300)
-	s.dnsreps <- report
+	dnsReports <- report
 	<-report.Done()
 	s.Stop()
 
-	// test with nft errors
-	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
-		return nil, nil, errors.New("test error")
+	<-done
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
-	s = NewSplitRouting(daemoncfg.NewConfig())
-	if err := s.Start(); err != nil {
-		t.Error(err)
-	}
-	s.Stop()
 }
 
-// TestSplitRoutingDNSReports tests DNSReports of SplitRouting.
-func TestSplitRoutingDNSReports(t *testing.T) {
-	s := NewSplitRouting(daemoncfg.NewConfig())
-	want := s.dnsreps
-	got := s.DNSReports()
+// TestSplitRoutingPrefixes tests Prefixes of SplitRouting.
+func TestSplitRoutingPrefixes(t *testing.T) {
+	s := NewSplitRouting(daemoncfg.NewConfig(), make(chan *dnsproxy.Report))
+	want := s.prefixes
+	got := s.Prefixes()
 	if got != want {
 		t.Errorf("got %p, want %p", got, want)
 	}
@@ -285,7 +292,7 @@ func TestSplitRoutingDNSReports(t *testing.T) {
 
 // TestSplitRoutingGetState tests GetState of SplitRouting.
 func TestSplitRoutingGetState(t *testing.T) {
-	s := NewSplitRouting(daemoncfg.NewConfig())
+	s := NewSplitRouting(daemoncfg.NewConfig(), make(chan *dnsproxy.Report))
 
 	// set devices
 	dev := &devmon.Update{
@@ -333,16 +340,20 @@ func TestSplitRoutingGetState(t *testing.T) {
 // TestNewSplitRouting tests NewSplitRouting.
 func TestNewSplitRouting(t *testing.T) {
 	config := daemoncfg.NewConfig()
-	s := NewSplitRouting(config)
+	dnsReports := make(chan *dnsproxy.Report)
+	s := NewSplitRouting(config, dnsReports)
 	if s.config != config {
 		t.Errorf("got %p, want %p", s.config, config)
+	}
+	if s.dnsreps != dnsReports {
+		t.Errorf("got %p, want %p", s.dnsreps, dnsReports)
 	}
 	if s.devmon == nil ||
 		s.addrmon == nil ||
 		s.devices == nil ||
 		s.addrs == nil ||
 		s.excludes == nil ||
-		s.dnsreps == nil ||
+		s.prefixes == nil ||
 		s.done == nil ||
 		s.closed == nil {
 

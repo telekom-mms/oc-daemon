@@ -4,6 +4,7 @@ package vpnsetup
 import (
 	"context"
 	"errors"
+	"net/netip"
 	"slices"
 	"strings"
 	"time"
@@ -39,6 +40,7 @@ type command struct {
 // VPNSetup sets up the configuration of the vpn tunnel that belongs to the
 // current VPN connection.
 type VPNSetup struct {
+	config   *daemoncfg.Config
 	splitrt  *splitrt.SplitRouting
 	dnsProxy *dnsproxy.Proxy
 
@@ -282,6 +284,9 @@ func (v *VPNSetup) stopEnsure() {
 
 // setup sets up the vpn configuration.
 func (v *VPNSetup) setup(ctx context.Context, conf *daemoncfg.Config) {
+	// set config
+	v.config = conf
+
 	// configure dns proxy
 	// - set remotes
 	// - set watches
@@ -290,6 +295,12 @@ func (v *VPNSetup) setup(ctx context.Context, conf *daemoncfg.Config) {
 	excludes := conf.VPNConfig.Split.DNSExcludes()
 	log.WithField("excludes", excludes).Debug("Daemon setting DNS Split Excludes")
 	v.dnsProxy.SetWatches(excludes)
+
+	// configure split routing
+	v.splitrt = splitrt.NewSplitRouting(conf, v.dnsProxy.Reports())
+	if err := v.splitrt.Start(); err != nil {
+		log.WithError(err).Error("VPNSetup error setting split routing")
+	}
 
 	cmds, err := cmdtmpl.GetCmds("VPNSetupSetup", conf)
 	if err != nil {
@@ -308,12 +319,6 @@ func (v *VPNSetup) setup(ctx context.Context, conf *daemoncfg.Config) {
 		}
 	}
 
-	// configure split routing
-	v.splitrt = splitrt.NewSplitRouting(conf)
-	if err := v.splitrt.Start(); err != nil {
-		log.WithError(err).Error("VPNSetup error setting split routing")
-	}
-
 	// ensure VPN config
 	v.startEnsure(ctx, conf)
 }
@@ -327,6 +332,7 @@ func (v *VPNSetup) teardown(ctx context.Context, conf *daemoncfg.Config) {
 	v.splitrt.Stop()
 	v.splitrt = nil
 
+	// tear down device, routing, dns
 	cmds, err := cmdtmpl.GetCmds("VPNSetupTeardown", conf)
 	if err != nil {
 		log.WithError(err).Error("VPNSetup could not get teardown commands")
@@ -351,6 +357,8 @@ func (v *VPNSetup) teardown(ctx context.Context, conf *daemoncfg.Config) {
 	v.dnsProxy.SetRemotes(remotes)
 	v.dnsProxy.SetWatches([]string{})
 
+	// unset config
+	v.config = nil
 }
 
 // getState gets the internal state.
@@ -379,20 +387,31 @@ func (v *VPNSetup) handleCommand(ctx context.Context, c *command) {
 	}
 }
 
-// handleDNSReport handles a DNS report.
-func (v *VPNSetup) handleDNSReport(r *dnsproxy.Report) {
-	log.WithField("report", r).Debug("Daemon handling DNS report")
-
-	if v.splitrt == nil {
-		// split routing not active, close report and do not forward
-		r.Close()
-		return
+// handlePrefixes handles a prefixes update from split routing.
+func (v *VPNSetup) handlePrefixes(ctx context.Context, config *daemoncfg.Config, prefixes []netip.Prefix) {
+	data := &struct {
+		daemoncfg.Config
+		Addresses []netip.Prefix
+	}{
+		Config:    *config,
+		Addresses: prefixes,
 	}
-
-	// forward report to split routing
-	select {
-	case v.splitrt.DNSReports() <- r:
-	case <-v.done:
+	cmds, err := cmdtmpl.GetCmds("VPNSetupSetExcludes", data)
+	if err != nil {
+		log.WithError(err).Error("VPNSetup could not get set excludes commands")
+	}
+	for _, c := range cmds {
+		if stdout, stderr, err := c.Run(ctx); err != nil {
+			log.WithFields(log.Fields{
+				"addresses": prefixes,
+				"command":   c.Cmd,
+				"args":      c.Args,
+				"stdin":     c.Stdin,
+				"stdout":    string(stdout),
+				"stderr":    string(stderr),
+				"error":     err,
+			}).Error("VPNSetup could not run set excludes command")
+		}
 	}
 }
 
@@ -408,11 +427,24 @@ func (v *VPNSetup) start() {
 	defer v.dnsProxy.Stop()
 
 	for {
+		dnsReports := v.dnsProxy.Reports()
+		var prefixes <-chan []netip.Prefix
+		if v.splitrt != nil {
+			// split routing active
+			// do not handle dns reports here
+			dnsReports = nil
+			// handle prefixes from split routing
+			prefixes = v.splitrt.Prefixes()
+		}
+
 		select {
 		case c := <-v.cmds:
 			v.handleCommand(ctx, c)
-		case r := <-v.dnsProxy.Reports():
-			v.handleDNSReport(r)
+		case r := <-dnsReports:
+			// split routing not active, close dns report
+			r.Close()
+		case p := <-prefixes:
+			v.handlePrefixes(ctx, v.config, p)
 		case <-v.done:
 			return
 		}
