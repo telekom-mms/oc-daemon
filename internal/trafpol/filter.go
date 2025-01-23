@@ -50,58 +50,30 @@ func unsetFilterRules(ctx context.Context, config *daemoncfg.Config) {
 	}
 }
 
-// addAllowedDevice adds device to the allowed devices.
-func addAllowedDevice(ctx context.Context, conf *daemoncfg.Config, device string) {
+// setAllowedDevices sets devices as allowed devices.
+func setAllowedDevices(ctx context.Context, conf *daemoncfg.Config, devices []string) {
 	data := &struct {
 		daemoncfg.Config
-		Device string
+		Devices []string
 	}{
-		Config: *conf,
-		Device: device,
+		Config:  *conf,
+		Devices: devices,
 	}
-	cmds, err := cmdtmpl.GetCmds("TrafPolAddAllowedDevice", data)
+	cmds, err := cmdtmpl.GetCmds("TrafPolSetAllowedDevices", data)
 	if err != nil {
-		log.WithError(err).Error("TrafPol could not get add allowed device commands")
+		log.WithError(err).Error("TrafPol could not get set allowed devices commands")
 	}
 	for _, c := range cmds {
 		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			log.WithFields(log.Fields{
-				"device":  device,
+				"devices": devices,
 				"command": c.Cmd,
 				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
 				"error":   err,
-			}).Error("TrafPol could not run add allowed device command")
-		}
-	}
-}
-
-// removeAllowedDevice removes device from the allowed devices.
-func removeAllowedDevice(ctx context.Context, conf *daemoncfg.Config, device string) {
-	data := &struct {
-		daemoncfg.Config
-		Device string
-	}{
-		Config: *conf,
-		Device: device,
-	}
-	cmds, err := cmdtmpl.GetCmds("TrafPolRemoveAllowedDevice", data)
-	if err != nil {
-		log.WithError(err).Error("TrafPol could not get remove allowed device commands")
-	}
-	for _, c := range cmds {
-		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			log.WithFields(log.Fields{
-				"device":  device,
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-				"error":   err,
-			}).Error("TrafPol could not run remove allowed device command")
+			}).Error("TrafPol could not run set allowed devices command")
 		}
 	}
 }

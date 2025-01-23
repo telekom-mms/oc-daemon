@@ -212,21 +212,16 @@ func getCommandListTrafPol(name string) *CommandList {
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
-	case "TrafPolAddAllowedDevice":
-		// Add Allowed Device
+	case "TrafPolSetAllowedDevices":
+		// Set Allowed Devices
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f - add element inet oc-daemon-filter allowdevs { {{.Device}} }"},
-			},
-			defaultTemplate: TrafPolDefaultTemplate,
-		}
-	case "TrafPolRemoveAllowedDevice":
-		// Remove Allowed Device
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f - delete element inet oc-daemon-filter allowdevs { {{.Device}} }"},
+				{Line: "{{.Executables.Nft}} -f -",
+					Stdin: `flush set inet oc-daemon-filter allowdevs
+{{range .Devices -}}
+add element inet oc-daemon-filter allowdevs { {{.}} }
+{{end}}`},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
