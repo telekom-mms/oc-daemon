@@ -100,7 +100,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 			t.resolver.Resolve()
 
 			// remove ports from allowed ports
-			removePortalPorts(ctx, t.config)
+			setAllowedPorts(ctx, t.config, []uint16{})
 			t.capPortal = false
 			log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
 		}
@@ -109,7 +109,7 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 
 	// add ports to allowed ports
 	if !t.capPortal {
-		addPortalPorts(ctx, t.config)
+		setAllowedPorts(ctx, t.config, t.config.TrafficPolicing.PortalPorts)
 		t.capPortal = true
 		log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
 	}

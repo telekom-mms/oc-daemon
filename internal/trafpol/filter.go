@@ -132,44 +132,30 @@ func setAllowedIPs(ctx context.Context, conf *daemoncfg.Config, ips []netip.Pref
 	}
 }
 
-// addPortalPorts adds ports for a captive portal to the allowed ports.
-func addPortalPorts(ctx context.Context, conf *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("TrafPolAddPortalPorts", conf)
+// setAllowedPorts sets ports (for a captive portal) as the allowed ports.
+func setAllowedPorts(ctx context.Context, conf *daemoncfg.Config, ports []uint16) {
+	data := &struct {
+		daemoncfg.Config
+		Ports []uint16
+	}{
+		Config: *conf,
+		Ports:  ports,
+	}
+	cmds, err := cmdtmpl.GetCmds("TrafPolSetAllowedPorts", data)
 	if err != nil {
-		log.WithError(err).Error("TrafPol could not get add portal ports commands")
+		log.WithError(err).Error("TrafPol could not get set allowed ports commands")
 	}
 	for _, c := range cmds {
 		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			log.WithFields(log.Fields{
-				"ports":   conf.TrafficPolicing.PortalPorts,
+				"ports":   ports,
 				"command": c.Cmd,
 				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
 				"error":   err,
-			}).Error("TrafPol could not run add portal ports command")
-		}
-	}
-}
-
-// removePortalPorts removes ports for a captive portal from the allowed ports.
-func removePortalPorts(ctx context.Context, conf *daemoncfg.Config) {
-	cmds, err := cmdtmpl.GetCmds("TrafPolRemovePortalPorts", conf)
-	if err != nil {
-		log.WithError(err).Error("TrafPol could not get remove portal ports commands")
-	}
-	for _, c := range cmds {
-		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			log.WithFields(log.Fields{
-				"ports":   conf.TrafficPolicing.PortalPorts,
-				"command": c.Cmd,
-				"args":    c.Args,
-				"stdin":   c.Stdin,
-				"stdout":  string(stdout),
-				"stderr":  string(stderr),
-				"error":   err,
-			}).Error("TrafPol could not run remove portal ports command")
+			}).Error("TrafPol could not run set allowed ports command")
 		}
 	}
 }
