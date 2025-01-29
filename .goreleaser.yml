@@ -37,7 +37,8 @@ builds:
     ldflags:
       - -s -w -X github.com/telekom-mms/oc-daemon/internal/daemon.Version={{.Version}}-{{.Commit}}
 archives:
-  - format: tar.gz
+  - formats:
+      - tar.gz
     wrap_in_directory: true
     files:
       - src: init/oc-daemon.service
@@ -62,7 +63,7 @@ archives:
 checksum:
   name_template: "checksums.txt"
 snapshot:
-  name_template: "{{ incpatch .Version }}-n{{ .Timestamp }}"
+  version_template: "{{ incpatch .Version }}-n{{ .Timestamp }}"
 changelog:
   sort: asc
   filters:
