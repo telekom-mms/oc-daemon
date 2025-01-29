@@ -80,54 +80,29 @@ func setAllowedDevices(ctx context.Context, conf *daemoncfg.Config, devices []st
 
 // setAllowedIPs set the allowed hosts.
 func setAllowedIPs(ctx context.Context, conf *daemoncfg.Config, ips []netip.Prefix) {
-	// we perform all nft commands separately here and not as one atomic
-	// operation to avoid issues where the whole update fails because nft
-	// runs into "file exists" errors even though we remove duplicates from
-	// ips before calling this function and we flush the existing entries
-
-	// flush allowed hosts
-	cmds, err := cmdtmpl.GetCmds("TrafPolFlushAllowedHosts", conf)
+	// set allowed hosts
+	data := &struct {
+		daemoncfg.Config
+		AllowedIPs []netip.Prefix
+	}{
+		Config:     *conf,
+		AllowedIPs: ips,
+	}
+	cmds, err := cmdtmpl.GetCmds("TrafPolSetAllowedHosts", data)
 	if err != nil {
-		log.WithError(err).Error("TrafPol could not get flush allowed hosts commands")
+		log.WithError(err).Error("TrafPol could not get set allowed hosts commands")
 	}
 	for _, c := range cmds {
 		if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			log.WithFields(log.Fields{
+				"hosts":   ips,
 				"command": c.Cmd,
 				"args":    c.Args,
 				"stdin":   c.Stdin,
 				"stdout":  string(stdout),
 				"stderr":  string(stderr),
 				"error":   err,
-			}).Error("TrafPol could not run flush allowed hosts command")
-		}
-	}
-
-	// add allowed hosts
-	for _, ip := range ips {
-		data := &struct {
-			daemoncfg.Config
-			AllowedIP netip.Prefix
-		}{
-			Config:    *conf,
-			AllowedIP: ip,
-		}
-		cmds, err := cmdtmpl.GetCmds("TrafPolAddAllowedHost", data)
-		if err != nil {
-			log.WithError(err).Error("TrafPol could not get add allowed host commands")
-		}
-		for _, c := range cmds {
-			if stdout, stderr, err := c.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-				log.WithFields(log.Fields{
-					"host":    ip,
-					"command": c.Cmd,
-					"args":    c.Args,
-					"stdin":   c.Stdin,
-					"stdout":  string(stdout),
-					"stderr":  string(stderr),
-					"error":   err,
-				}).Error("TrafPol could not run add allowed host command")
-			}
+			}).Error("TrafPol could not run set allowed hosts command")
 		}
 	}
 }

@@ -225,29 +225,21 @@ add element inet oc-daemon-filter allowdevs { {{.}} }
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
 		}
-	case "TrafPolFlushAllowedHosts":
-		// Flush Allowed Hosts
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f - flush set inet oc-daemon-filter allowhosts4"},
-				{Line: "{{.Executables.Nft}} -f - flush set inet oc-daemon-filter allowhosts6"},
-			},
-			defaultTemplate: TrafPolDefaultTemplate,
-		}
-	case "TrafPolAddAllowedHost":
-		// Add Allowed Host
+	case "TrafPolSetAllowedHosts":
+		// Set Allowed Hosts
 		cl = &CommandList{
 			Name: name,
 			Commands: []*Command{
 				{Line: "{{.Executables.Nft}} -f -",
-					Stdin: `
-				{{if .AllowedIP.Addr.Is4}}
-				add element inet oc-daemon-filter allowhosts4 { {{.AllowedIP}} }
-				{{else}}
-				add element inet oc-daemon-filter allowhosts6 { {{.AllowedIP}} }
-				{{end}}
-				`,
+					Stdin: `flush set inet oc-daemon-filter allowhosts4
+flush set inet oc-daemon-filter allowhosts6
+{{range .AllowedIPs -}}
+{{if .Addr.Is4 -}}
+add element inet oc-daemon-filter allowhosts4 { {{.}} }
+{{else -}}
+add element inet oc-daemon-filter allowhosts6 { {{.}} }
+{{end -}}
+{{end}}`,
 				},
 			},
 			defaultTemplate: TrafPolDefaultTemplate,
