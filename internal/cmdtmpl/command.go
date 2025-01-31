@@ -192,6 +192,7 @@ table inet oc-daemon-filter {
 // getCommandListTrafPol returns the command list identified by name for Traffic Policing.
 func getCommandListTrafPol(name string) *CommandList {
 	var cl *CommandList
+	// TODO: get/check cmdlist from config first?
 	switch name {
 	case "TrafPolSetFilterRules":
 		// Set Filter Rules
@@ -537,6 +538,7 @@ type Cmd struct {
 }
 
 // RunCmd runs the cmd with args and sets stdin to s, returns stdout and stderr.
+// TODO: merge into Cmd.Run?
 var RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) (stdout, stderr []byte, err error) {
 	c := exec.CommandContext(ctx, cmd, arg...)
 	if s != "" {
