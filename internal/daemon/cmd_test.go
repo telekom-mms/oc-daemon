@@ -84,6 +84,30 @@ func TestRun(t *testing.T) {
 		t.Errorf("start should return error")
 	}
 
+	// not existing command lists file
+	cmdListsFile := filepath.Join(dir, "cmd-lists")
+	cmdListsConf := fmt.Sprintf(`{
+	"CommandLists": {
+		"ListsFile": "%s"
+	}
+}
+	`, cmdListsFile)
+	if err := os.WriteFile(cfg, []byte(cmdListsConf), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := run([]string{"test", "-verbose", "-config", cfg}); err == nil {
+		t.Errorf("start should return error")
+	}
+
+	// minimum command lists file
+	if err := os.WriteFile(cmdListsFile, []byte("[]"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := run([]string{"test", "-verbose", "-config", cfg}); err == nil {
+		t.Errorf("start should return error")
+	}
+
 	// not existing executables
 	if err := os.WriteFile(cfg, []byte(fmt.Sprintf(`{
 	"Executables": {

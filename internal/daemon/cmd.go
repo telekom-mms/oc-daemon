@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
 
@@ -86,6 +87,14 @@ func run(args []string) error {
 	if !config.Valid() {
 		config = daemoncfg.NewConfig()
 		log.Warn("Daemon loaded invalid config, using default config")
+	}
+
+	// load command lists
+	if err := cmdtmpl.LoadCommandLists(config.CommandLists.ListsFile); err != nil {
+		log.WithError(err).Debug("Daemon did not load command lists, using defaults")
+	} else {
+		log.WithField("file", config.CommandLists.ListsFile).
+			Info("Daemon loaded command lists from file")
 	}
 
 	// check executables
