@@ -18,7 +18,6 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/profilemon"
 	"github.com/telekom-mms/oc-daemon/internal/sleepmon"
@@ -940,9 +939,6 @@ func (d *Daemon) start() {
 func (d *Daemon) Start() error {
 	// create context
 	ctx := context.Background()
-
-	// set executables
-	execs.SetExecutables(d.config.Executables)
 
 	// cleanup after a failed shutdown
 	d.cleanup(ctx)

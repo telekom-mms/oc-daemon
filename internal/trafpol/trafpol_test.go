@@ -10,10 +10,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/vishvananda/netlink"
 )
 
@@ -56,14 +56,16 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 
 	var nftMutex sync.Mutex
 	nftCmds := []string{}
-	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(_ context.Context, cmd string, stdin string, args ...string) ([]byte, []byte, error) {
+	oldRunCmd := cmdtmpl.RunCmd
+	cmdtmpl.RunCmd = func(_ context.Context, cmd string, stdin string,
+		args ...string) ([]byte, []byte, error) {
+
 		nftMutex.Lock()
 		defer nftMutex.Unlock()
 		nftCmds = append(nftCmds, cmd+" "+strings.Join(args, " ")+" "+stdin)
 		return nil, nil, nil
 	}
-	defer func() { execs.RunCmd = oldRunCmd }()
+	defer func() { cmdtmpl.RunCmd = oldRunCmd }()
 
 	getNftCmds := func() []string {
 		nftMutex.Lock()
@@ -303,10 +305,14 @@ func TestCleanup(t *testing.T) {
 		"nft -f - delete table inet oc-daemon-filter",
 	}
 	got := []string{}
-	execs.RunCmd = func(_ context.Context, cmd string, _ string, args ...string) ([]byte, []byte, error) {
+
+	oldRunCmd := cmdtmpl.RunCmd
+	cmdtmpl.RunCmd = func(_ context.Context, cmd string, _ string, args ...string) ([]byte, []byte, error) {
 		got = append(got, cmd+" "+strings.Join(args, " "))
 		return nil, nil, nil
 	}
+	defer func() { cmdtmpl.RunCmd = oldRunCmd }()
+
 	Cleanup(context.Background(), daemoncfg.NewConfig())
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
