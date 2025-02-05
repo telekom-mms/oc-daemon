@@ -4,7 +4,9 @@ package cmdtmpl
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"text/template"
@@ -542,6 +544,53 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 		},
 		template: defaultTemplate,
 	},
+}
+
+// LoadCommandLists loads the command lists from file.
+func LoadCommandLists(file string) error {
+	// read file contents
+	f, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	// parse entries in file
+	lists := []*CommandList{}
+	if err := json.Unmarshal(f, &lists); err != nil {
+		return err
+	}
+
+	// check entries in file
+	for _, cl := range lists {
+		// check valid names
+		switch cl.Name {
+		case TrafPolSetFilterRules:
+		case TrafPolUnsetFilterRules:
+		case TrafPolSetAllowedDevices:
+		case TrafPolSetAllowedHosts:
+		case TrafPolSetAllowedPorts:
+		case TrafPolCleanup:
+
+		case VPNSetupSetup:
+		case VPNSetupTeardown:
+		case VPNSetupSetExcludes:
+		case VPNSetupSetDNS:
+		case VPNSetupGetDNS:
+		case VPNSetupCleanup:
+
+		default:
+			// invalid name
+			return fmt.Errorf("invalid command list name %s", cl.Name)
+		}
+	}
+
+	// entries in file valid, update command lists
+	for _, cl := range lists {
+		cl.template = defaultTemplate
+		commandLists[cl.Name] = cl
+	}
+
+	return nil
 }
 
 // getCommandList returns the command list identified by name.
