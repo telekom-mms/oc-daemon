@@ -22,6 +22,7 @@ type CommandList struct {
 	Name     string
 	Commands []*Command
 
+	// TODO: remove defaultTemplate?
 	defaultTemplate string
 	template        *template.Template
 }
@@ -189,91 +190,6 @@ table inet oc-daemon-filter {
 }
 {{end}}`
 
-// getCommandListTrafPol returns the command list identified by name for Traffic Policing.
-func getCommandListTrafPol(name string) *CommandList {
-	var cl *CommandList
-	// TODO: get/check cmdlist from config first?
-	switch name {
-	case "TrafPolSetFilterRules":
-		// Set Filter Rules
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f -", Stdin: `{{template "TrafPolRules" .}}`},
-			},
-			defaultTemplate: TrafPolDefaultTemplate,
-		}
-	case "TrafPolUnsetFilterRules":
-		// Unset Filter Rules
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-filter"},
-			},
-			defaultTemplate: TrafPolDefaultTemplate,
-		}
-	case "TrafPolSetAllowedDevices":
-		// Set Allowed Devices
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f -",
-					Stdin: `flush set inet oc-daemon-filter allowdevs
-{{range .Devices -}}
-add element inet oc-daemon-filter allowdevs { {{.}} }
-{{end}}`},
-			},
-			defaultTemplate: TrafPolDefaultTemplate,
-		}
-	case "TrafPolSetAllowedHosts":
-		// Set Allowed Hosts
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f -",
-					Stdin: `flush set inet oc-daemon-filter allowhosts4
-flush set inet oc-daemon-filter allowhosts6
-{{range .AllowedIPs -}}
-{{if .Addr.Is4 -}}
-add element inet oc-daemon-filter allowhosts4 { {{.}} }
-{{else -}}
-add element inet oc-daemon-filter allowhosts6 { {{.}} }
-{{end -}}
-{{end}}`,
-				},
-			},
-			defaultTemplate: TrafPolDefaultTemplate,
-		}
-	case "TrafPolSetAllowedPorts":
-		// Remove Portal Ports
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f -",
-					Stdin: `flush set inet oc-daemon-filter allowports
-{{range .Ports -}}
-add element inet oc-daemon-filter allowports { {{.}} }
-{{end}}`},
-			},
-			defaultTemplate: TrafPolDefaultTemplate,
-		}
-	case "TrafPolCleanup":
-		// Cleanup
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-filter"},
-			},
-			defaultTemplate: TrafPolDefaultTemplate,
-		}
-	default:
-		return nil
-	}
-
-	cl.template = template.Must(template.New("Template").Parse(cl.defaultTemplate))
-	return cl
-}
-
 // VPNSetupDefaultTemplate is the default template for VPNSetup.
 const VPNSetupDefaultTemplate = `
 {{- define "SplitRoutingRules"}}
@@ -391,75 +307,161 @@ table inet oc-daemon-routing {
 {{end -}}
 `
 
-// getCommandListVPNSetup returns the command list identified by name for VPNSetup.
-func getCommandListVPNSetup(name string) *CommandList {
-	var cl *CommandList
-	switch name {
-	case "VPNSetupSetup":
-		// Setup VPN
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				// Device setup:
-				// - set mtu on device
-				// - set device up
-				// - set ipv4 and ipv6 addresses on device
-				{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} mtu {{.VPNConfig.Device.MTU}}"},
-				{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} up"},
-				{Line: "{{if .VPNConfig.IPv4.IsValid}}{{.Executables.IP}} address add {{.VPNConfig.IPv4}} dev {{.VPNConfig.Device.Name}}{{end}}"},
-				{Line: "{{if .VPNConfig.IPv6.IsValid}}{{.Executables.IP}} address add {{.VPNConfig.IPv6}} dev {{.VPNConfig.Device.Name}}{{end}}"},
-				// Routing setup
-				{Line: "{{.Executables.Nft}} -f -", Stdin: `{{template "SplitRoutingRules" .}}`},
-				{Line: "{{.Executables.IP}} -4 route add 0.0.0.0/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -4 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
-				{Line: "{{.Executables.IP}} -4 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
-				{Line: "{{.Executables.Sysctl}} -q net.ipv4.conf.all.src_valid_mark=1"},
-				{Line: "{{.Executables.IP}} -6 route add ::/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -6 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
-				{Line: "{{.Executables.IP}} -6 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
-				// DNS setup:
-				// - set DNS Proxy
-				// - set Domains
-				// - set default DNS route
-				// - flush caches
-				// - reset server features
-				{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
-				{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
-				{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device.Name}} yes"},
-				{Line: "{{.Executables.Resolvectl}} flush-caches"},
-				{Line: "{{.Executables.Resolvectl}} reset-server-features"},
+// commandLists contains all command lists.
+var commandLists = map[string]*CommandList{
+
+	//////////////////////
+	// Traffic Policing //
+	//////////////////////
+
+	// Set Filter Rules
+	"TrafPolSetFilterRules": {
+		Name: "TrafPolSetFilterRules",
+		Commands: []*Command{
+			{Line: "{{.Executables.Nft}} -f -", Stdin: `{{template "TrafPolRules" .}}`},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+	},
+
+	// Unset Filter Rules
+	"TrafPolUnsetFilterRules": {
+		Name: "TrafPolUnsetFilterRules",
+		Commands: []*Command{
+			{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-filter"},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+	},
+
+	// Set Allowed Devices
+	"TrafPolSetAllowedDevices": {
+		Name: "TrafPolSetAllowedDevices",
+		Commands: []*Command{
+			{Line: "{{.Executables.Nft}} -f -",
+				Stdin: `flush set inet oc-daemon-filter allowdevs
+{{range .Devices -}}
+add element inet oc-daemon-filter allowdevs { {{.}} }
+{{end}}`},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+	},
+
+	// Set Allowed Hosts
+	"TrafPolSetAllowedHosts": {
+		Name: "TrafPolSetAllowedHosts",
+		Commands: []*Command{
+			{Line: "{{.Executables.Nft}} -f -",
+				Stdin: `flush set inet oc-daemon-filter allowhosts4
+flush set inet oc-daemon-filter allowhosts6
+{{range .AllowedIPs -}}
+{{if .Addr.Is4 -}}
+add element inet oc-daemon-filter allowhosts4 { {{.}} }
+{{else -}}
+add element inet oc-daemon-filter allowhosts6 { {{.}} }
+{{end -}}
+{{end}}`,
 			},
-			defaultTemplate: VPNSetupDefaultTemplate,
-		}
-	case "VPNSetupTeardown":
-		// Teardown VPN
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				// Device teardown
-				{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} down"},
-				// Routing teardown
-				{Line: "{{.Executables.IP}} -4 rule delete table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -4 rule delete iif {{.VPNConfig.Device.Name}} table main"},
-				{Line: "{{.Executables.IP}} -6 rule delete table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -6 rule delete iif {{.VPNConfig.Device.Name}} table main"},
-				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
-				// DNS teardown
-				{Line: "{{.Executables.Resolvectl}} revert {{.VPNConfig.Device.Name}}"},
-				{Line: "{{.Executables.Resolvectl}} flush-caches"},
-				{Line: "{{.Executables.Resolvectl}} reset-server-features"},
-			},
-			defaultTemplate: VPNSetupDefaultTemplate,
-		}
-	case "VPNSetupSetExcludes":
-		// Set Excludes
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				// flush existing entries
-				// add entries
-				{Line: "{{.Executables.Nft}} -f -",
-					Stdin: `flush set inet oc-daemon-routing excludes4
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+	},
+
+	// Remove Portal Ports
+	"TrafPolSetAllowedPorts": {
+		Name: "TrafPolSetAllowedPorts",
+		Commands: []*Command{
+			{Line: "{{.Executables.Nft}} -f -",
+				Stdin: `flush set inet oc-daemon-filter allowports
+{{range .Ports -}}
+add element inet oc-daemon-filter allowports { {{.}} }
+{{end}}`},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+	},
+
+	// Cleanup
+	"TrafPolCleanup": {
+		Name: "TrafPolCleanup",
+		Commands: []*Command{
+			{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-filter"},
+		},
+		defaultTemplate: TrafPolDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+	},
+
+	//////////////
+	// VPNSetup //
+	//////////////
+
+	// Setup VPN
+	"VPNSetupSetup": {
+		Name: "VPNSetupSetup",
+		Commands: []*Command{
+			// Device setup:
+			// - set mtu on device
+			// - set device up
+			// - set ipv4 and ipv6 addresses on device
+			{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} mtu {{.VPNConfig.Device.MTU}}"},
+			{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} up"},
+			{Line: "{{if .VPNConfig.IPv4.IsValid}}{{.Executables.IP}} address add {{.VPNConfig.IPv4}} dev {{.VPNConfig.Device.Name}}{{end}}"},
+			{Line: "{{if .VPNConfig.IPv6.IsValid}}{{.Executables.IP}} address add {{.VPNConfig.IPv6}} dev {{.VPNConfig.Device.Name}}{{end}}"},
+			// Routing setup
+			{Line: "{{.Executables.Nft}} -f -", Stdin: `{{template "SplitRoutingRules" .}}`},
+			{Line: "{{.Executables.IP}} -4 route add 0.0.0.0/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
+			{Line: "{{.Executables.IP}} -4 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
+			{Line: "{{.Executables.IP}} -4 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
+			{Line: "{{.Executables.Sysctl}} -q net.ipv4.conf.all.src_valid_mark=1"},
+			{Line: "{{.Executables.IP}} -6 route add ::/0 dev {{.VPNConfig.Device.Name}} table {{.SplitRouting.RoutingTable}}"},
+			{Line: "{{.Executables.IP}} -6 rule add iif {{.VPNConfig.Device.Name}} table main pref {{.SplitRouting.RulePriority1}}"},
+			{Line: "{{.Executables.IP}} -6 rule add not fwmark {{.SplitRouting.FirewallMark}} table {{.SplitRouting.RoutingTable}} pref {{.SplitRouting.RulePriority2}}"},
+			// DNS setup:
+			// - set DNS Proxy
+			// - set Domains
+			// - set default DNS route
+			// - flush caches
+			// - reset server features
+			{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
+			{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
+			{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device.Name}} yes"},
+			{Line: "{{.Executables.Resolvectl}} flush-caches"},
+			{Line: "{{.Executables.Resolvectl}} reset-server-features"},
+		},
+		defaultTemplate: VPNSetupDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+	},
+
+	// Teardown VPN
+	"VPNSetupTeardown": {
+		Name: "VPNSetupTeardown",
+		Commands: []*Command{
+			// Device teardown
+			{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} down"},
+			// Routing teardown
+			{Line: "{{.Executables.IP}} -4 rule delete table {{.SplitRouting.RoutingTable}}"},
+			{Line: "{{.Executables.IP}} -4 rule delete iif {{.VPNConfig.Device.Name}} table main"},
+			{Line: "{{.Executables.IP}} -6 rule delete table {{.SplitRouting.RoutingTable}}"},
+			{Line: "{{.Executables.IP}} -6 rule delete iif {{.VPNConfig.Device.Name}} table main"},
+			{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
+			// DNS teardown
+			{Line: "{{.Executables.Resolvectl}} revert {{.VPNConfig.Device.Name}}"},
+			{Line: "{{.Executables.Resolvectl}} flush-caches"},
+			{Line: "{{.Executables.Resolvectl}} reset-server-features"},
+		},
+		defaultTemplate: VPNSetupDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+	},
+
+	// Set Excludes
+	"VPNSetupSetExcludes": {
+		Name: "VPNSetupSetExcludes",
+		Commands: []*Command{
+			// flush existing entries
+			// add entries
+			{Line: "{{.Executables.Nft}} -f -",
+				Stdin: `flush set inet oc-daemon-routing excludes4
 flush set inet oc-daemon-routing excludes6
 {{range .Addresses -}}
 {{if .Addr.Is6 -}}
@@ -468,66 +470,59 @@ add element inet oc-daemon-routing excludes6 { {{.}} }
 add element inet oc-daemon-routing excludes4 { {{.}} }
 {{end -}}
 {{end}}`},
-			},
-			defaultTemplate: VPNSetupDefaultTemplate,
-		}
-	case "VPNSetupSetDNS":
-		// Set DNS settings
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
-				{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
-				{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device}} yes"},
-			},
-			defaultTemplate: VPNSetupDefaultTemplate,
-		}
-	case "VPNSetupGetDNS":
-		// Get DNS settings
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				{Line: "{{.Executables.Resolvectl}} status {{.VPNConfig.Device.Name}} --no-pager"},
-			},
-			defaultTemplate: VPNSetupDefaultTemplate,
-		}
-	case "VPNSetupCleanup":
-		// Cleanup
-		cl = &CommandList{
-			Name: name,
-			Commands: []*Command{
-				// DNS cleanup
-				{Line: "{{.Executables.Resolvectl}} revert {{.OpenConnect.VPNDevice}}"},
-				// Device cleanup
-				{Line: "{{.Executables.IP}} link delete {{.OpenConnect.VPNDevice}}"},
-				// Routing cleanup
-				{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority1}}"},
-				{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority2}}"},
-				{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority1}}"},
-				{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority2}}"},
-				{Line: "{{.Executables.IP}} -4 route flush table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.IP}} -6 route flush table {{.SplitRouting.RoutingTable}}"},
-				{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
-			},
-			defaultTemplate: VPNSetupDefaultTemplate,
-		}
-	default:
-		return nil
-	}
+		},
+		defaultTemplate: VPNSetupDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+	},
 
-	cl.template = template.Must(template.New("Template").Parse(cl.defaultTemplate))
-	return cl
+	// Set DNS settings
+	"VPNSetupSetDNS": {
+		Name: "VPNSetupSetDNS",
+		Commands: []*Command{
+			{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
+			{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
+			{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device}} yes"},
+		},
+		defaultTemplate: VPNSetupDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+	},
+
+	// Get DNS settings
+	"VPNSetupGetDNS": {
+		Name: "VPNSetupGetDNS",
+		Commands: []*Command{
+			{Line: "{{.Executables.Resolvectl}} status {{.VPNConfig.Device.Name}} --no-pager"},
+		},
+		defaultTemplate: VPNSetupDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+	},
+
+	// Cleanup
+	"VPNSetupCleanup": {
+		Name: "VPNSetupCleanup",
+		Commands: []*Command{
+			// DNS cleanup
+			{Line: "{{.Executables.Resolvectl}} revert {{.OpenConnect.VPNDevice}}"},
+			// Device cleanup
+			{Line: "{{.Executables.IP}} link delete {{.OpenConnect.VPNDevice}}"},
+			// Routing cleanup
+			{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority1}}"},
+			{Line: "{{.Executables.IP}} -4 rule delete pref {{.SplitRouting.RulePriority2}}"},
+			{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority1}}"},
+			{Line: "{{.Executables.IP}} -6 rule delete pref {{.SplitRouting.RulePriority2}}"},
+			{Line: "{{.Executables.IP}} -4 route flush table {{.SplitRouting.RoutingTable}}"},
+			{Line: "{{.Executables.IP}} -6 route flush table {{.SplitRouting.RoutingTable}}"},
+			{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
+		},
+		defaultTemplate: VPNSetupDefaultTemplate,
+		template:        template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+	},
 }
 
 // getCommandList returns the command list identified by name.
 func getCommandList(name string) *CommandList {
-	if strings.HasPrefix(name, "TrafPol") {
-		return getCommandListTrafPol(name)
-	}
-	if strings.HasPrefix(name, "VPNSetup") {
-		return getCommandListVPNSetup(name)
-	}
-	return nil
+	// TODO: get/check cmdlist from config first?
+	return commandLists[name]
 }
 
 // Cmd is a command ready to run.
