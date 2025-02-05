@@ -45,8 +45,19 @@ func (cl *CommandList) executeTemplate(tmpl string, data any) (string, error) {
 	return s, nil
 }
 
-// TrafPolDefaultTemplate is the default template for Traffic Policing.
-const TrafPolDefaultTemplate = `
+// DefaultTemplate is the default template for the command lists.
+const DefaultTemplate = `
+
+{{- /*********************************************************************/ -}}
+{{- /*********************************************************************/ -}}
+{{- /*********************************************************************/ -}}
+{{- /***                                                               ***/ -}}
+{{- /***                  Traffic Policing Templates                   ***/ -}}
+{{- /***                                                               ***/ -}}
+{{- /*********************************************************************/ -}}
+{{- /*********************************************************************/ -}}
+{{- /*********************************************************************/ -}}
+
 {{- define "TrafPolRules"}}
 table inet oc-daemon-filter {
         # set for allowed devices
@@ -186,10 +197,18 @@ table inet oc-daemon-filter {
                 iifname @allowdevs oifname @allowdevs counter accept
         }
 }
-{{end}}`
+{{end}}
 
-// VPNSetupDefaultTemplate is the default template for VPNSetup.
-const VPNSetupDefaultTemplate = `
+{{- /*********************************************************************/ -}}
+{{- /*********************************************************************/ -}}
+{{- /*********************************************************************/ -}}
+{{- /***                                                               ***/ -}}
+{{- /***                      VPNSetup Templates                       ***/ -}}
+{{- /***                                                               ***/ -}}
+{{- /*********************************************************************/ -}}
+{{- /*********************************************************************/ -}}
+{{- /*********************************************************************/ -}}
+
 {{- define "SplitRoutingRules"}}
 table inet oc-daemon-routing {
 	# set for ipv4 excludes
@@ -305,6 +324,26 @@ table inet oc-daemon-routing {
 {{end -}}
 `
 
+// defaultTemplate is the parsed default template for the command lists.
+var defaultTemplate = template.Must(template.New("Template").Parse(DefaultTemplate))
+
+// command list names
+const (
+	TrafPolSetFilterRules    = "TrafPolSetFilterRules"
+	TrafPolUnsetFilterRules  = "TrafPolUnsetFilterRules"
+	TrafPolSetAllowedDevices = "TrafPolSetAllowedDevices"
+	TrafPolSetAllowedHosts   = "TrafPolSetAllowedHosts"
+	TrafPolSetAllowedPorts   = "TrafPolSetAllowedPorts"
+	TrafPolCleanup           = "TrafPolCleanup"
+
+	VPNSetupSetup       = "VPNSetupSetup"
+	VPNSetupTeardown    = "VPNSetupTeardown"
+	VPNSetupSetExcludes = "VPNSetupSetExcludes"
+	VPNSetupSetDNS      = "VPNSetupSetDNS"
+	VPNSetupGetDNS      = "VPNSetupGetDNS"
+	VPNSetupCleanup     = "VPNSetupCleanup"
+)
+
 // commandLists contains all command lists.
 var commandLists = map[string]*CommandList{
 
@@ -313,26 +352,26 @@ var commandLists = map[string]*CommandList{
 	//////////////////////
 
 	// Set Filter Rules
-	"TrafPolSetFilterRules": {
-		Name: "TrafPolSetFilterRules",
+	TrafPolSetFilterRules: {
+		Name: TrafPolSetFilterRules,
 		Commands: []*Command{
 			{Line: "{{.Executables.Nft}} -f -", Stdin: `{{template "TrafPolRules" .}}`},
 		},
-		template: template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Unset Filter Rules
-	"TrafPolUnsetFilterRules": {
-		Name: "TrafPolUnsetFilterRules",
+	TrafPolUnsetFilterRules: {
+		Name: TrafPolUnsetFilterRules,
 		Commands: []*Command{
 			{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-filter"},
 		},
-		template: template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Set Allowed Devices
-	"TrafPolSetAllowedDevices": {
-		Name: "TrafPolSetAllowedDevices",
+	TrafPolSetAllowedDevices: {
+		Name: TrafPolSetAllowedDevices,
 		Commands: []*Command{
 			{Line: "{{.Executables.Nft}} -f -",
 				Stdin: `flush set inet oc-daemon-filter allowdevs
@@ -340,12 +379,12 @@ var commandLists = map[string]*CommandList{
 add element inet oc-daemon-filter allowdevs { {{.}} }
 {{end}}`},
 		},
-		template: template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Set Allowed Hosts
-	"TrafPolSetAllowedHosts": {
-		Name: "TrafPolSetAllowedHosts",
+	TrafPolSetAllowedHosts: {
+		Name: TrafPolSetAllowedHosts,
 		Commands: []*Command{
 			{Line: "{{.Executables.Nft}} -f -",
 				Stdin: `flush set inet oc-daemon-filter allowhosts4
@@ -359,12 +398,12 @@ add element inet oc-daemon-filter allowhosts6 { {{.}} }
 {{end}}`,
 			},
 		},
-		template: template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Remove Portal Ports
-	"TrafPolSetAllowedPorts": {
-		Name: "TrafPolSetAllowedPorts",
+	TrafPolSetAllowedPorts: {
+		Name: TrafPolSetAllowedPorts,
 		Commands: []*Command{
 			{Line: "{{.Executables.Nft}} -f -",
 				Stdin: `flush set inet oc-daemon-filter allowports
@@ -372,16 +411,16 @@ add element inet oc-daemon-filter allowhosts6 { {{.}} }
 add element inet oc-daemon-filter allowports { {{.}} }
 {{end}}`},
 		},
-		template: template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Cleanup
-	"TrafPolCleanup": {
-		Name: "TrafPolCleanup",
+	TrafPolCleanup: {
+		Name: TrafPolCleanup,
 		Commands: []*Command{
 			{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-filter"},
 		},
-		template: template.Must(template.New("Template").Parse(TrafPolDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	//////////////
@@ -389,8 +428,8 @@ add element inet oc-daemon-filter allowports { {{.}} }
 	//////////////
 
 	// Setup VPN
-	"VPNSetupSetup": {
-		Name: "VPNSetupSetup",
+	VPNSetupSetup: {
+		Name: VPNSetupSetup,
 		Commands: []*Command{
 			// Device setup:
 			// - set mtu on device
@@ -421,12 +460,12 @@ add element inet oc-daemon-filter allowports { {{.}} }
 			{Line: "{{.Executables.Resolvectl}} flush-caches"},
 			{Line: "{{.Executables.Resolvectl}} reset-server-features"},
 		},
-		template: template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Teardown VPN
-	"VPNSetupTeardown": {
-		Name: "VPNSetupTeardown",
+	VPNSetupTeardown: {
+		Name: VPNSetupTeardown,
 		Commands: []*Command{
 			// Device teardown
 			{Line: "{{.Executables.IP}} link set {{.VPNConfig.Device.Name}} down"},
@@ -441,12 +480,12 @@ add element inet oc-daemon-filter allowports { {{.}} }
 			{Line: "{{.Executables.Resolvectl}} flush-caches"},
 			{Line: "{{.Executables.Resolvectl}} reset-server-features"},
 		},
-		template: template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Set Excludes
-	"VPNSetupSetExcludes": {
-		Name: "VPNSetupSetExcludes",
+	VPNSetupSetExcludes: {
+		Name: VPNSetupSetExcludes,
 		Commands: []*Command{
 			// flush existing entries
 			// add entries
@@ -461,32 +500,32 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 {{end -}}
 {{end}}`},
 		},
-		template: template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Set DNS settings
-	"VPNSetupSetDNS": {
-		Name: "VPNSetupSetDNS",
+	VPNSetupSetDNS: {
+		Name: VPNSetupSetDNS,
 		Commands: []*Command{
 			{Line: "{{.Executables.Resolvectl}} dns {{.VPNConfig.Device.Name}} {{.DNSProxy.Address}}"},
 			{Line: "{{.Executables.Resolvectl}} domain {{.VPNConfig.Device.Name}} {{.VPNConfig.DNS.DefaultDomain}} ~."},
 			{Line: "{{.Executables.Resolvectl}} default-route {{.VPNConfig.Device}} yes"},
 		},
-		template: template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Get DNS settings
-	"VPNSetupGetDNS": {
-		Name: "VPNSetupGetDNS",
+	VPNSetupGetDNS: {
+		Name: VPNSetupGetDNS,
 		Commands: []*Command{
 			{Line: "{{.Executables.Resolvectl}} status {{.VPNConfig.Device.Name}} --no-pager"},
 		},
-		template: template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+		template: defaultTemplate,
 	},
 
 	// Cleanup
-	"VPNSetupCleanup": {
-		Name: "VPNSetupCleanup",
+	VPNSetupCleanup: {
+		Name: VPNSetupCleanup,
 		Commands: []*Command{
 			// DNS cleanup
 			{Line: "{{.Executables.Resolvectl}} revert {{.OpenConnect.VPNDevice}}"},
@@ -501,7 +540,7 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 			{Line: "{{.Executables.IP}} -6 route flush table {{.SplitRouting.RoutingTable}}"},
 			{Line: "{{.Executables.Nft}} -f - delete table inet oc-daemon-routing"},
 		},
-		template: template.Must(template.New("Template").Parse(VPNSetupDefaultTemplate)),
+		template: defaultTemplate,
 	},
 }
 
