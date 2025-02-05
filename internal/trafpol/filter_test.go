@@ -6,17 +6,17 @@ import (
 	"net/netip"
 	"testing"
 
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
 // TestFilterFunctionsErrors tests filter functions, errors.
 func TestFilterFunctionsErrors(_ *testing.T) {
-	oldRunCmd := execs.RunCmd
-	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
+	oldRunCmd := cmdtmpl.RunCmd
+	cmdtmpl.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("test error")
 	}
-	defer func() { execs.RunCmd = oldRunCmd }()
+	defer func() { cmdtmpl.RunCmd = oldRunCmd }()
 
 	ctx := context.Background()
 

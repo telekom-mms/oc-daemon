@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/telekom-mms/oc-daemon/internal/addrmon"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
-	"github.com/telekom-mms/oc-daemon/internal/execs"
 	"github.com/vishvananda/netlink"
 )
 
@@ -95,8 +95,8 @@ func TestVPNSetupCheckDNSDomain(t *testing.T) {
 // TestVPNSetupEnsureDNS tests ensureDNS of VPNSetup.
 func TestVPNSetupEnsureDNS(t *testing.T) {
 	// clean up after tests
-	oldRunCmd := execs.RunCmd
-	defer func() { execs.RunCmd = oldRunCmd }()
+	oldRunCmd := cmdtmpl.RunCmd
+	defer func() { cmdtmpl.RunCmd = oldRunCmd }()
 
 	// test settings
 	conf := daemoncfg.NewConfig()
@@ -107,7 +107,7 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 	ctx := context.Background()
 
 	// test resolvectl error
-	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
+	cmdtmpl.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("test error")
 	}
 
@@ -124,7 +124,7 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 		[]byte("header\nProtocols: +DefaultRoute\nDNS Servers: other\nDNS Domain: test.example.com ~.\n"),
 		[]byte("header\nProtocols: +DefaultRoute\nDNS Servers: 127.0.0.1:4253\nDNS Domain: other\n"),
 	} {
-		execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
+		cmdtmpl.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 			return invalid, nil, nil
 		}
 
@@ -139,7 +139,7 @@ func TestVPNSetupEnsureDNS(t *testing.T) {
 		[]byte("header\n Protocols:  +DefaultRoute  \nother\n  " +
 			"DNS Servers: 127.0.0.1:4253  \n  DNS Domain: test.example.com ~.\nother\n"),
 	} {
-		execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
+		cmdtmpl.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 			return valid, nil, nil
 		}
 
@@ -159,11 +159,11 @@ func TestVPNSetupStartStop(_ *testing.T) {
 // TestVPNSetupSetupTeardown tests Setup and Teardown of VPNSetup.
 func TestVPNSetupSetupTeardown(_ *testing.T) {
 	// override functions
-	oldCmd := execs.RunCmd
-	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
+	oldCmd := cmdtmpl.RunCmd
+	cmdtmpl.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, nil
 	}
-	defer func() { execs.RunCmd = oldCmd }()
+	defer func() { cmdtmpl.RunCmd = oldCmd }()
 
 	oldRegisterAddrUpdates := addrmon.RegisterAddrUpdates
 	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) (chan netlink.AddrUpdate, error) {
@@ -205,11 +205,11 @@ func TestVPNSetupSetupTeardown(_ *testing.T) {
 // TestVPNSetupGetState tests GetState of VPNSetup.
 func TestVPNSetupGetState(t *testing.T) {
 	// override functions
-	oldCmd := execs.RunCmd
-	execs.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
+	oldCmd := cmdtmpl.RunCmd
+	cmdtmpl.RunCmd = func(context.Context, string, string, ...string) ([]byte, []byte, error) {
 		return nil, nil, nil
 	}
-	defer func() { execs.RunCmd = oldCmd }()
+	defer func() { cmdtmpl.RunCmd = oldCmd }()
 
 	oldRegisterAddrUpdates := addrmon.RegisterAddrUpdates
 	addrmon.RegisterAddrUpdates = func(*addrmon.AddrMon) (chan netlink.AddrUpdate, error) {
@@ -268,7 +268,7 @@ func TestNewVPNSetup(t *testing.T) {
 // TestCleanup tests Cleanup.
 func TestCleanup(t *testing.T) {
 	got := []string{}
-	execs.RunCmd = func(_ context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
+	cmdtmpl.RunCmd = func(_ context.Context, cmd string, s string, arg ...string) ([]byte, []byte, error) {
 		if s == "" {
 			got = append(got, cmd+" "+strings.Join(arg, " "))
 			return nil, nil, nil

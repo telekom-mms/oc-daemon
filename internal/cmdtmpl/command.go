@@ -5,10 +5,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os/exec"
 	"strings"
 	"text/template"
-
-	"github.com/telekom-mms/oc-daemon/internal/execs"
 )
 
 // Command consists of a command line to be executed and an optional Stdin to
@@ -537,9 +536,24 @@ type Cmd struct {
 	Stdin string
 }
 
+// RunCmd runs the cmd with args and sets stdin to s, returns stdout and stderr.
+var RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) (stdout, stderr []byte, err error) {
+	c := exec.CommandContext(ctx, cmd, arg...)
+	if s != "" {
+		c.Stdin = bytes.NewBufferString(s)
+	}
+	var outbuf, errbuf bytes.Buffer
+	c.Stdout = &outbuf
+	c.Stderr = &errbuf
+	err = c.Run()
+	stdout = outbuf.Bytes()
+	stderr = errbuf.Bytes()
+	return
+}
+
 // Run runs the command.
 func (c *Cmd) Run(ctx context.Context) (stdout, stderr []byte, err error) {
-	return execs.RunCmd(ctx, c.Cmd, c.Stdin, c.Args...)
+	return RunCmd(ctx, c.Cmd, c.Stdin, c.Args...)
 }
 
 // GetCmds returns a list of Cmds ready to run.
