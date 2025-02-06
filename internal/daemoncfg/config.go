@@ -792,8 +792,6 @@ type Config struct {
 
 	LoginInfo *logininfo.LoginInfo
 	VPNConfig *VPNConfig
-
-	//CommandLists []*cmdtmpl.CommandList
 }
 
 // Copy returns a copy of the configuration.

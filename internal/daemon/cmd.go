@@ -88,6 +88,8 @@ func run(args []string) error {
 		log.Warn("Daemon loaded invalid config, using default config")
 	}
 
+	// TODO: load command lists here?
+
 	// check executables
 	if err := config.Executables.CheckExecutables(); err != nil {
 		return fmt.Errorf("Daemon could not find all executables: %w", err)

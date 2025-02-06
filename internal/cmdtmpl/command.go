@@ -584,6 +584,8 @@ func LoadCommandLists(file string) error {
 		}
 	}
 
+	// TODO: check entries in file with dummy data?
+
 	// entries in file valid, update command lists
 	for _, cl := range lists {
 		cl.template = defaultTemplate
@@ -595,7 +597,6 @@ func LoadCommandLists(file string) error {
 
 // getCommandList returns the command list identified by name.
 func getCommandList(name string) *CommandList {
-	// TODO: get/check cmdlist from config first?
 	return commandLists[name]
 }
 
