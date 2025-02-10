@@ -79,7 +79,8 @@ func (a *AddrMon) start() {
 				continue
 			}
 			ones, _ := e.LinkAddress.Mask.Size()
-			addr := netip.PrefixFrom(ip, ones)
+			// unmap to make sure we don't get an IPv4-mapped IPv6 address
+			addr := netip.PrefixFrom(ip.Unmap(), ones)
 			u := &Update{
 				Address: addr,
 				Index:   e.LinkIndex,

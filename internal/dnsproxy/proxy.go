@@ -110,7 +110,7 @@ func (p *Proxy) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			log.Error("DNS-Proxy received invalid A record in reply")
 			return
 		}
-		addr, ok := netip.AddrFromSlice(rr.A)
+		addr, ok := netip.AddrFromSlice(rr.A.To4())
 		if !ok {
 			log.WithField("A", rr.A).
 				Error("DNS-Proxy received invalid IP in A record in reply")
