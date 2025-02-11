@@ -73,7 +73,13 @@ func TestAddrMonStartStop(t *testing.T) {
 		t.Error(err)
 	}
 	for i := 0; i < 3; i++ {
-		log.Println(<-addrMon.Updates())
+		update := <-addrMon.Updates()
+		log.Println(update)
+
+		// make sure IPv4 address is not IPv4-mapped IPv6 address
+		if update.Address.Addr().Is4In6() {
+			t.Errorf("address is IPv4-mapped IPv6 address: %s", update.Address)
+		}
 	}
 	addrMon.Stop()
 

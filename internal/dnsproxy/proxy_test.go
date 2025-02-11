@@ -126,13 +126,19 @@ func TestProxyHandleRequest(t *testing.T) {
 	}
 
 	// reports should contain the IPv4 and the IPv6 address of example.com
+	wantIPv4 := netip.MustParseAddr("127.0.0.1")
+	wantIPv6 := netip.MustParseAddr("::1")
 	for _, r := range reports {
 		if r.Name != "example.com." {
 			t.Errorf("invalid domain name: %s", r.Name)
 		}
-		if r.IP != netip.MustParseAddr("127.0.0.1") &&
-			r.IP != netip.MustParseAddr("::1") {
+		if r.IP != wantIPv4 && r.IP != wantIPv6 {
 			t.Errorf("invalid IP: %s", r.IP)
+		}
+
+		// make sure IPv4 address is not IPv4-mapped IPv6 address
+		if r.IP == wantIPv4 && r.IP.Is4In6() {
+			t.Errorf("address is IPv4-mapped IPv6 address: %s", r.IP)
 		}
 	}
 }

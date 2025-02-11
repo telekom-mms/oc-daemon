@@ -620,7 +620,7 @@ func TestGetVPNConfig(t *testing.T) {
 
 	// convert and check
 	got := GetVPNConfig(c)
-	if got.Gateway.Unmap().String() != "192.168.0.1" ||
+	if got.Gateway.String() != "192.168.0.1" ||
 		got.PID != c.PID ||
 		got.Timeout != c.Timeout ||
 		got.Device.Name != c.Device.Name ||

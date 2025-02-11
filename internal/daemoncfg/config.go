@@ -685,7 +685,8 @@ func GetVPNConfig(vpnconf *vpnconfig.Config) *VPNConfig {
 	// convert gateway
 	gateway := netip.Addr{}
 	if g, ok := netip.AddrFromSlice(vpnconf.Gateway); ok {
-		gateway = g
+		// unmap to make sure we don't get an IPv4-mapped IPv6 address
+		gateway = g.Unmap()
 	}
 
 	// convert ipv4 address
