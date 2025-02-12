@@ -2,6 +2,8 @@ package cmdtmpl
 
 import (
 	"context"
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"testing"
 	"text/template"
@@ -16,6 +18,70 @@ func TestExecuteTemplateParseError(t *testing.T) {
 	}
 	if _, err := cl.executeTemplate("{{ invalid }}", nil); err == nil {
 		t.Error("invalid template should not parse correctly")
+	}
+}
+
+// TestLoadCommandLists tests LoadCommandLists.
+func TestLoadCommandLists(t *testing.T) {
+	dir := t.TempDir()
+
+	// not existing file
+	if err := LoadCommandLists(filepath.Join(dir, "does not exist")); err == nil {
+		t.Errorf("not existing file should return error")
+	}
+
+	// invalid json file
+	f := filepath.Join(dir, "command-lists.json")
+	if err := os.WriteFile(f, []byte("invalid json"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := LoadCommandLists(f); err == nil {
+		t.Errorf("invalid json should return error")
+	}
+
+	// invalid command list name in file
+	lists := []*CommandList{
+		{Name: "does not exist"},
+	}
+	b, err := json.Marshal(lists)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(f, b, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := LoadCommandLists(f); err == nil {
+		t.Errorf("invalid command list name should return error")
+	}
+
+	// valid file, update command lists
+	oldTrafPolCleanup := commandLists[TrafPolCleanup].Commands
+	oldVPNSetupCleanup := commandLists[VPNSetupCleanup].Commands
+	defer func() {
+		commandLists[TrafPolCleanup].Commands = oldTrafPolCleanup
+		commandLists[VPNSetupCleanup].Commands = oldVPNSetupCleanup
+	}()
+
+	lists = []*CommandList{
+		{Name: TrafPolCleanup},
+		{Name: VPNSetupCleanup},
+	}
+
+	b, err = json.Marshal(lists)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(f, b, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := LoadCommandLists(f); err != nil {
+		t.Errorf("loading valid file returned error: %s", err)
+	}
+	if len(oldTrafPolCleanup) == len(commandLists[TrafPolCleanup].Commands) ||
+		len(oldVPNSetupCleanup) == len(commandLists[VPNSetupCleanup].Commands) {
+
+		t.Error("loading valid file did not change command lists")
 	}
 }
 
