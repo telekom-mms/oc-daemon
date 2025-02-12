@@ -584,8 +584,6 @@ func LoadCommandLists(file string) error {
 		}
 	}
 
-	// TODO: check entries in file with dummy data?
-
 	// entries in file valid, update command lists
 	for _, cl := range lists {
 		cl.template = defaultTemplate
@@ -608,7 +606,6 @@ type Cmd struct {
 }
 
 // RunCmd runs the cmd with args and sets stdin to s, returns stdout and stderr.
-// TODO: merge into Cmd.Run?
 var RunCmd = func(ctx context.Context, cmd string, s string, arg ...string) (stdout, stderr []byte, err error) {
 	c := exec.CommandContext(ctx, cmd, arg...)
 	if s != "" {

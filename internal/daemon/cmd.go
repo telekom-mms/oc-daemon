@@ -89,7 +89,7 @@ func run(args []string) error {
 		log.Warn("Daemon loaded invalid config, using default config")
 	}
 
-	// load command list
+	// load command lists
 	if err := cmdtmpl.LoadCommandLists(config.CommandLists.ListsFile); err != nil {
 		log.WithError(err).Warn("Daemon could not load command lists, using defaults")
 	}
