@@ -346,8 +346,8 @@ const (
 	VPNSetupCleanup     = "VPNSetupCleanup"
 )
 
-// commandLists contains all command lists.
-var commandLists = map[string]*CommandList{
+// CommandLists contains all command lists.
+var CommandLists = map[string]*CommandList{
 
 	//////////////////////
 	// Traffic Policing //
@@ -587,7 +587,7 @@ func LoadCommandLists(file string) error {
 	// entries in file valid, update command lists
 	for _, cl := range lists {
 		cl.template = defaultTemplate
-		commandLists[cl.Name] = cl
+		CommandLists[cl.Name] = cl
 	}
 
 	return nil
@@ -595,7 +595,7 @@ func LoadCommandLists(file string) error {
 
 // getCommandList returns the command list identified by name.
 func getCommandList(name string) *CommandList {
-	return commandLists[name]
+	return CommandLists[name]
 }
 
 // Cmd is a command ready to run.

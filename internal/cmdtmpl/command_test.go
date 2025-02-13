@@ -47,12 +47,12 @@ func TestLoadCommandLists(t *testing.T) {
 	}
 
 	// valid file, update command lists
-	oldTrafPolCleanup := commandLists[TrafPolCleanup].Commands
-	oldVPNSetupCleanup := commandLists[VPNSetupCleanup].Commands
+	oldTrafPolCleanup := CommandLists[TrafPolCleanup].Commands
+	oldVPNSetupCleanup := CommandLists[VPNSetupCleanup].Commands
 	defer func() {
 		// cleanup after test
-		commandLists[TrafPolCleanup].Commands = oldTrafPolCleanup
-		commandLists[VPNSetupCleanup].Commands = oldVPNSetupCleanup
+		CommandLists[TrafPolCleanup].Commands = oldTrafPolCleanup
+		CommandLists[VPNSetupCleanup].Commands = oldVPNSetupCleanup
 	}()
 
 	// load TrafPolCleanup and VPNSetupCleanup from file
@@ -81,13 +81,13 @@ func TestLoadCommandLists(t *testing.T) {
 	}
 
 	// make sure all lists still contain commands
-	for k, v := range commandLists {
+	for k, v := range CommandLists {
 		if len(v.Commands) == 0 {
 			t.Errorf("invalid command list length in %s after load", k)
 		}
 	}
 	// check TrafPolCleanup
-	commands := commandLists[TrafPolCleanup].Commands
+	commands := CommandLists[TrafPolCleanup].Commands
 	if commands[0].Line != "echo TrafPol" ||
 		commands[0].Stdin != "" ||
 		commands[1].Line != "echo" ||
@@ -97,7 +97,7 @@ func TestLoadCommandLists(t *testing.T) {
 			commands[0], commands[1])
 	}
 	// check VPNSetupCleanup
-	commands = commandLists[VPNSetupCleanup].Commands
+	commands = CommandLists[VPNSetupCleanup].Commands
 	if commands[0].Line != "echo VPNSetup" ||
 		commands[0].Stdin != "" ||
 		commands[1].Line != "echo" ||
