@@ -90,6 +90,11 @@ func run(args []string) error {
 	}
 
 	// load command lists
+	if err := cmdtmpl.LoadTemplates(config.CommandLists.TemplatesFile); err != nil {
+		log.WithError(err).Debug("Daemon could not load command templates, using defaults")
+	} else {
+		log.Info("Daemon loaded command templates from file")
+	}
 	if err := cmdtmpl.LoadCommandLists(config.CommandLists.ListsFile); err != nil {
 		log.WithError(err).Debug("Daemon could not load command lists, using defaults")
 	} else {

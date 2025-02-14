@@ -20,6 +20,33 @@ func TestExecuteTemplateParseError(t *testing.T) {
 	}
 }
 
+// TestLoadTemplates tests LoadTemplates.
+func TestLoadTemplates(t *testing.T) {
+	dir := t.TempDir()
+
+	// not existing file
+	if err := LoadTemplates(filepath.Join(dir, "does not exist")); err == nil {
+		t.Errorf("not existing file should return error")
+	}
+
+	// invalid template file
+	f := filepath.Join(dir, "command-lists.tmpl")
+	if err := os.WriteFile(f, []byte("{{ invalid template"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := LoadTemplates(f); err == nil {
+		t.Errorf("invalid template file should return error")
+	}
+
+	// valid template file
+	if err := os.WriteFile(f, []byte("valid template"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := LoadTemplates(f); err != nil {
+		t.Errorf("valid template file returned error: %s", err)
+	}
+}
+
 // TestLoadCommandLists tests LoadCommandLists.
 func TestLoadCommandLists(t *testing.T) {
 	dir := t.TempDir()

@@ -529,12 +529,14 @@ func NewTrafficPolicing() *TrafficPolicing {
 
 // Command lists default values
 var (
-	CommandListsListsFile = configDir + "/command-lists.json"
+	CommandListsListsFile     = configDir + "/command-lists.json"
+	CommandListsTemplatesFile = configDir + "/command-lists.tmpl"
 )
 
 // CommandLists is the command lists configuration.
 type CommandLists struct {
-	ListsFile string
+	ListsFile     string
+	TemplatesFile string
 }
 
 // Copy returns a copy of the command lists configuration.
@@ -546,7 +548,8 @@ func (c *CommandLists) Copy() *CommandLists {
 // Valid returns whether the command lists configuration is valid.
 func (c *CommandLists) Valid() bool {
 	if c == nil ||
-		c.ListsFile == "" {
+		c.ListsFile == "" ||
+		c.TemplatesFile == "" {
 
 		return false
 	}
@@ -556,7 +559,8 @@ func (c *CommandLists) Valid() bool {
 // NewCommandLists returns a new command lists configuration.
 func NewCommandLists() *CommandLists {
 	return &CommandLists{
-		ListsFile: CommandListsListsFile,
+		ListsFile:     CommandListsListsFile,
+		TemplatesFile: CommandListsTemplatesFile,
 	}
 }
 

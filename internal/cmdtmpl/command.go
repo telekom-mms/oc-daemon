@@ -326,6 +326,9 @@ table inet oc-daemon-routing {
 {{end -}}
 `
 
+// LoadedTemplates are the templates loaded from file.
+var LoadedTemplates string
+
 // defaultTemplate is the parsed default template for the command lists.
 var defaultTemplate = template.Must(template.New("Template").Parse(DefaultTemplate))
 
@@ -544,6 +547,25 @@ add element inet oc-daemon-routing excludes4 { {{.}} }
 		},
 		template: defaultTemplate,
 	},
+}
+
+// LoadTemplates loads the templates from file.
+func LoadTemplates(file string) error {
+	// read file contents
+	f, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	// parse file contents
+	s := string(f)
+	t, err := template.New("Template").Parse(s)
+	if err == nil {
+		// save loaded templates
+		LoadedTemplates = s
+		defaultTemplate = t
+	}
+	return err
 }
 
 // LoadCommandLists loads the command lists from file.
