@@ -91,7 +91,9 @@ func run(args []string) error {
 
 	// load command lists
 	if err := cmdtmpl.LoadCommandLists(config.CommandLists.ListsFile); err != nil {
-		log.WithError(err).Warn("Daemon could not load command lists, using defaults")
+		log.WithError(err).Debug("Daemon could not load command lists, using defaults")
+	} else {
+		log.Info("Daemon loaded command lists from file")
 	}
 
 	// check executables
