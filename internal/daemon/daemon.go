@@ -528,18 +528,20 @@ func (d *Daemon) handleClientRequest(request *api.Request) {
 func (d *Daemon) dumpState() string {
 	// define state type
 	type State struct {
-		DaemonConfig    *daemoncfg.Config
-		TrafficPolicing *trafpol.State
-		VPNSetup        *vpnsetup.State
-		CommandLists    map[string]*cmdtmpl.CommandList
+		DaemonConfig     *daemoncfg.Config
+		TrafficPolicing  *trafpol.State
+		VPNSetup         *vpnsetup.State
+		CommandLists     map[string]*cmdtmpl.CommandList
+		CommandTemplates string
 	}
 
 	// collect internal state
 	c := d.config.Copy()
 	c.LoginInfo.Cookie = "HIDDEN" // hide cookie
 	state := State{
-		DaemonConfig: c,
-		CommandLists: cmdtmpl.CommandLists,
+		DaemonConfig:     c,
+		CommandLists:     cmdtmpl.CommandLists,
+		CommandTemplates: cmdtmpl.LoadedTemplates,
 	}
 	if d.trafpol != nil {
 		state.TrafficPolicing = d.trafpol.GetState()
