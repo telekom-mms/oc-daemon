@@ -527,6 +527,39 @@ func NewTrafficPolicing() *TrafficPolicing {
 	}
 }
 
+// Command lists default values
+var (
+	CommandListsListsFile = configDir + "/command-lists.json"
+)
+
+// CommandLists is the command lists configuration.
+type CommandLists struct {
+	ListsFile string
+}
+
+// Copy returns a copy of the command lists configuration.
+func (c *CommandLists) Copy() *CommandLists {
+	n := *c
+	return &n
+}
+
+// Valid returns whether the command lists configuration is valid.
+func (c *CommandLists) Valid() bool {
+	if c == nil ||
+		c.ListsFile == "" {
+
+		return false
+	}
+	return true
+}
+
+// NewCommandLists returns a new command lists configuration.
+func NewCommandLists() *CommandLists {
+	return &CommandLists{
+		ListsFile: CommandListsListsFile,
+	}
+}
+
 // VPNDevice is a VPN device configuration in VPNConfig.
 type VPNDevice struct {
 	Name string
@@ -790,6 +823,8 @@ type Config struct {
 	TrafficPolicing *TrafficPolicing
 	TND             *tnd.Config
 
+	CommandLists *CommandLists
+
 	LoginInfo *logininfo.LoginInfo
 	VPNConfig *VPNConfig
 }
@@ -809,6 +844,8 @@ func (c *Config) Copy() *Config {
 		SplitRouting:    c.SplitRouting.Copy(),
 		TrafficPolicing: c.TrafficPolicing.Copy(),
 		TND:             &t,
+
+		CommandLists: c.CommandLists.Copy(),
 
 		LoginInfo: c.LoginInfo.Copy(),
 		VPNConfig: c.VPNConfig.Copy(),
@@ -838,6 +875,7 @@ func (c *Config) Valid() bool {
 		!c.SplitRouting.Valid() ||
 		!c.TrafficPolicing.Valid() ||
 		!c.TND.Valid() ||
+		!c.CommandLists.Valid() ||
 		!loginInfoEmpty(c.LoginInfo) && !c.LoginInfo.Valid() ||
 		!c.VPNConfig.Valid() {
 		// invalid
@@ -900,6 +938,8 @@ func NewConfig() *Config {
 		SplitRouting:    NewSplitRouting(),
 		TrafficPolicing: NewTrafficPolicing(),
 		TND:             tnd.NewConfig(),
+
+		CommandLists: NewCommandLists(),
 
 		LoginInfo: &logininfo.LoginInfo{},
 		VPNConfig: &VPNConfig{},

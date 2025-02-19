@@ -15,6 +15,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/api"
+	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
 	"github.com/telekom-mms/oc-daemon/internal/dnsproxy"
@@ -530,6 +531,7 @@ func (d *Daemon) dumpState() string {
 		DaemonConfig    *daemoncfg.Config
 		TrafficPolicing *trafpol.State
 		VPNSetup        *vpnsetup.State
+		CommandLists    map[string]*cmdtmpl.CommandList
 	}
 
 	// collect internal state
@@ -537,6 +539,7 @@ func (d *Daemon) dumpState() string {
 	c.LoginInfo.Cookie = "HIDDEN" // hide cookie
 	state := State{
 		DaemonConfig: c,
+		CommandLists: cmdtmpl.CommandLists,
 	}
 	if d.trafpol != nil {
 		state.TrafficPolicing = d.trafpol.GetState()

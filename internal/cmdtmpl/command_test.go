@@ -2,6 +2,7 @@ package cmdtmpl
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"text/template"
@@ -16,6 +17,94 @@ func TestExecuteTemplateParseError(t *testing.T) {
 	}
 	if _, err := cl.executeTemplate("{{ invalid }}", nil); err == nil {
 		t.Error("invalid template should not parse correctly")
+	}
+}
+
+// TestLoadCommandLists tests LoadCommandLists.
+func TestLoadCommandLists(t *testing.T) {
+	dir := t.TempDir()
+
+	// not existing file
+	if err := LoadCommandLists(filepath.Join(dir, "does not exist")); err == nil {
+		t.Errorf("not existing file should return error")
+	}
+
+	// invalid json file
+	f := filepath.Join(dir, "command-lists.json")
+	if err := os.WriteFile(f, []byte("invalid json"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := LoadCommandLists(f); err == nil {
+		t.Errorf("invalid json should return error")
+	}
+
+	b := []byte(`[{"Name":"does not exist"}]`)
+	if err := os.WriteFile(f, b, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := LoadCommandLists(f); err == nil {
+		t.Errorf("invalid command list name should return error")
+	}
+
+	// valid file, update command lists
+	oldTrafPolCleanup := CommandLists[TrafPolCleanup].Commands
+	oldVPNSetupCleanup := CommandLists[VPNSetupCleanup].Commands
+	defer func() {
+		// cleanup after test
+		CommandLists[TrafPolCleanup].Commands = oldTrafPolCleanup
+		CommandLists[VPNSetupCleanup].Commands = oldVPNSetupCleanup
+	}()
+
+	// load TrafPolCleanup and VPNSetupCleanup from file
+	b = []byte(`[
+{
+	"Name":"TrafPolCleanup",
+	"Commands": [
+		{"Line": "echo TrafPol"},
+		{"Line": "echo", "Stdin": "Cleanup"}
+	]
+},
+{
+	"Name":"VPNSetupCleanup",
+	"Commands": [
+		{"Line": "echo VPNSetup"},
+		{"Line": "echo", "Stdin": "Cleanup"}
+	]
+}
+]`)
+	if err := os.WriteFile(f, b, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := LoadCommandLists(f); err != nil {
+		t.Errorf("loading valid file returned error: %s", err)
+	}
+
+	// make sure all lists still contain commands
+	for k, v := range CommandLists {
+		if len(v.Commands) == 0 {
+			t.Errorf("invalid command list length in %s after load", k)
+		}
+	}
+	// check TrafPolCleanup
+	commands := CommandLists[TrafPolCleanup].Commands
+	if commands[0].Line != "echo TrafPol" ||
+		commands[0].Stdin != "" ||
+		commands[1].Line != "echo" ||
+		commands[1].Stdin != "Cleanup" {
+
+		t.Errorf("invalid command in TrafPolCleanup after successfull load: %v, %v",
+			commands[0], commands[1])
+	}
+	// check VPNSetupCleanup
+	commands = CommandLists[VPNSetupCleanup].Commands
+	if commands[0].Line != "echo VPNSetup" ||
+		commands[0].Stdin != "" ||
+		commands[1].Line != "echo" ||
+		commands[1].Stdin != "Cleanup" {
+
+		t.Errorf("invalid command in VPNSetupCleanup after successfull load: %v, %v",
+			commands[0], commands[1])
 	}
 }
 

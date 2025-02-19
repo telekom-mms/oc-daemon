@@ -833,6 +833,9 @@ func TestConfigLoad(t *testing.T) {
 		"HTTPSTimeout": 5000000000,
 		"UntrustedTimer": 30000000000,
 		"TrustedTimer": 60000000000
+	},
+	"CommandLists": {
+		"ListsFile": "/var/lib/oc-daemon/command-lists.json"
 	}
 }`,
 		`{
@@ -873,6 +876,7 @@ func TestConfigLoad(t *testing.T) {
 			SplitRouting:    NewSplitRouting(),
 			TrafficPolicing: NewTrafficPolicing(),
 			TND:             tnd.NewConfig(),
+			CommandLists:    NewCommandLists(),
 			LoginInfo:       &logininfo.LoginInfo{},
 			VPNConfig:       &VPNConfig{},
 		}
@@ -913,6 +917,7 @@ func TestNewConfig(t *testing.T) {
 		SplitRouting:    NewSplitRouting(),
 		TrafficPolicing: NewTrafficPolicing(),
 		TND:             tnd.NewConfig(),
+		CommandLists:    NewCommandLists(),
 		LoginInfo:       &logininfo.LoginInfo{},
 		VPNConfig:       &VPNConfig{},
 	}
