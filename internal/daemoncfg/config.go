@@ -3,7 +3,6 @@ package daemoncfg
 
 import (
 	"encoding/json"
-	"errors"
 	"net/netip"
 	"os"
 	"os/exec"
@@ -815,7 +814,7 @@ var (
 
 // Config is an OC-Daemon configuration.
 type Config struct {
-	Config  string
+	Config  string `json:"-"`
 	Verbose bool
 
 	SocketServer    *SocketServer
@@ -829,8 +828,8 @@ type Config struct {
 
 	CommandLists *CommandLists
 
-	LoginInfo *logininfo.LoginInfo
-	VPNConfig *VPNConfig
+	LoginInfo *logininfo.LoginInfo `json:"-"`
+	VPNConfig *VPNConfig           `json:"-"`
 }
 
 // Copy returns a copy of the configuration.
@@ -896,36 +895,8 @@ func (c *Config) Load() error {
 		return err
 	}
 
-	// save current values to detect not allowed config file entries
-	oldConfig := c.Config
-	c.Config = ""
-	oldLoginInfo := c.LoginInfo
-	c.LoginInfo = nil
-	oldVPNConfig := c.VPNConfig
-	c.VPNConfig = nil
-
 	// parse config
-	if err := json.Unmarshal(file, c); err != nil {
-		return err
-	}
-
-	// check not allowed entries in config file
-	if c.Config != "" {
-		return errors.New("configuration file must not include Config")
-	}
-	if c.LoginInfo != nil {
-		return errors.New("configuration file must not include LoginInfo")
-	}
-	if c.VPNConfig != nil {
-		return errors.New("configuration file must not include VPNConfig")
-	}
-
-	// reset saved values
-	c.Config = oldConfig
-	c.LoginInfo = oldLoginInfo
-	c.VPNConfig = oldVPNConfig
-
-	return nil
+	return json.Unmarshal(file, c)
 }
 
 // NewConfig returns a new Config.

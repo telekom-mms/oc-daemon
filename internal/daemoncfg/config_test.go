@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
@@ -731,10 +730,10 @@ func TestConfigLoad(t *testing.T) {
 		t.Errorf("got != nil, want nil")
 	}
 
-	// test invalid config files
-	// - with Config
-	// - with LoginInfo
-	// - with VPNConfig
+	// test invalid config file entries
+	// - Config
+	// - LoginInfo
+	// - VPNConfig
 	for _, content := range []string{
 		`{
 	"Config": "should not be here",
@@ -767,9 +766,14 @@ func TestConfigLoad(t *testing.T) {
 
 		conf := NewConfig()
 		conf.Config = invalid.Name()
-		if err := conf.Load(); err == nil ||
-			!strings.HasPrefix(err.Error(), "configuration file must not include") {
-			t.Errorf("should not load invalid config: %s", content)
+		if err := conf.Load(); err != nil {
+			t.Error(err)
+		}
+		// make sure invalid file entries did not change config
+		if conf.Config != invalid.Name() ||
+			conf.LoginInfo.Server != "" ||
+			conf.VPNConfig.Gateway.IsValid() {
+			t.Errorf("loaded config with invalid entry: %s", content)
 		}
 	}
 
