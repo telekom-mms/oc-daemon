@@ -2,14 +2,14 @@
 set -e
 
 # create ca key, ca certificate
-certtool --generate-privkey --outfile /etc/ocserv/ca-key.pem && \
+certtool --generate-privkey --outfile /etc/ocserv/ca-key.pem
 certtool --generate-self-signed \
 	--load-privkey /etc/ocserv/ca-key.pem \
 	--template /ocserv/ca.tmpl \
 	--outfile /etc/ocserv/ca-cert.pem
 
 # create server key, server certificate
-certtool --generate-privkey --outfile /etc/ocserv/server-key.pem && \
+certtool --generate-privkey --outfile /etc/ocserv/server-key.pem
 certtool --generate-certificate \
 	--load-privkey /etc/ocserv/server-key.pem \
 	--load-ca-certificate /etc/ocserv/ca-cert.pem \
