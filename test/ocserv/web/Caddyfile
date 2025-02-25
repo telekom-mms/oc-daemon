@@ -1,0 +1,7 @@
+:443 {
+	tls /web-cert.pem /web-key.pem
+	respond <<MSG
+	hello from web server
+
+	MSG
+}
