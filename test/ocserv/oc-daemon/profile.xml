@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AnyConnectProfile xmlns="http://schemas.xmlsoap.org/encoding/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.xmlsoap.org/encoding/ AnyConnectProfile.xsd">
+	<ClientInitialization>
+		<AutomaticVPNPolicy>true
+			<TrustedDNSDomains></TrustedDNSDomains>
+			<TrustedDNSServers></TrustedDNSServers>
+			<TrustedHttpsServerList>
+				<TrustedHttpsServer>
+					<Address>WEB_SERVER</Address>
+					<Port>443</Port>
+					<CertificateHash>CERT_HASH</CertificateHash>
+				</TrustedHttpsServer>
+			</TrustedHttpsServerList>
+			<TrustedNetworkPolicy>Disconnect</TrustedNetworkPolicy>
+			<UntrustedNetworkPolicy>DoNothing</UntrustedNetworkPolicy>
+			<AlwaysOn>true
+				<ConnectFailurePolicy>Closed
+					<AllowCaptivePortalRemediation>true
+						<CaptivePortalRemediationTimeout>5</CaptivePortalRemediationTimeout>
+					</AllowCaptivePortalRemediation>
+					<ApplyLastVPNLocalResourceRules>false</ApplyLastVPNLocalResourceRules>
+				</ConnectFailurePolicy>
+				<AllowVPNDisconnect>true</AllowVPNDisconnect>
+				<AllowedHosts>ocserv</AllowedHosts>
+			</AlwaysOn>
+		</AutomaticVPNPolicy>
+	</ClientInitialization>
+	<ServerList>
+		<HostEntry>
+			<HostName>oc-daemon-test-ocserv</HostName>
+			<HostAddress>oc-daemon-test-ocserv</HostAddress>
+			<UserGroup></UserGroup>
+			<LoadBalancingServerList>
+				<HostAddress>oc-daemon-test-ocserv</HostAddress>
+			</LoadBalancingServerList>
+		</HostEntry>
+	</ServerList>
+</AnyConnectProfile>
