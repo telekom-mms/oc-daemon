@@ -21,8 +21,8 @@ certtool --generate-certificate \
 echo test_password | ocpasswd -c /etc/ocserv/passwd test_user
 
 # create tun device
-mkdir -p /dev/net
-mknod /dev/net/tun c 10 200
+#mkdir -p /dev/net
+#mknod /dev/net/tun c 10 200
 
 # start ocserv
 exec ocserv -f -c /ocserv/ocserv.conf

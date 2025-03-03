@@ -1,0 +1,15 @@
+name: oc-daemon-test
+
+services:
+  ocserv:
+    build:
+      context: .
+      #dockerfile: test/ocserv/both.Dockerfile
+      dockerfile: both.Dockerfile
+      target: ocserv
+  deb12:
+    build:
+      context: .
+      #dockerfile: test/ocserv/both.Dockerfile
+      dockerfile: both.Dockerfile
+      target: oc-daemon

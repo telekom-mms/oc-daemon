@@ -7,4 +7,4 @@ podman run \
 	--device /dev/net/tun \
 	--network oc-daemon-test \
 	--name ocserv \
-	localhost/ocserv:latest
+	localhost/oc-daemon-test-ocserv:latest
