@@ -10,4 +10,5 @@ podman run \
 	--network oc-daemon-test \
 	--name deb12 \
 	localhost/oc-daemon-test-deb12
+	#localhost/oc-daemon-test_deb12
 	#--privileged \

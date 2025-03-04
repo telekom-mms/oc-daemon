@@ -8,3 +8,4 @@ podman run \
 	--network oc-daemon-test \
 	--name ocserv \
 	localhost/oc-daemon-test-ocserv:latest
+	#localhost/oc-daemon-test_ocserv:latest

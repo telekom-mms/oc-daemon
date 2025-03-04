@@ -35,8 +35,6 @@ EXPOSE 443/udp
 RUN \
 apt-get update && \
 apt-get install -y ocserv
-#&& \
-#echo test_password | ocpasswd -c /etc/ocserv/passwd test_user
 
 COPY --from=certs /ca-cert.pem /server-key.pem /server-cert.pem /etc/ocserv/
 COPY test/ocserv/ocserv.conf /etc/ocserv/

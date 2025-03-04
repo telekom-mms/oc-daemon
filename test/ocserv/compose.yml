@@ -3,13 +3,38 @@ name: oc-daemon-test
 services:
   ocserv:
     build:
-      context: .
-      #dockerfile: test/ocserv/both.Dockerfile
-      dockerfile: both.Dockerfile
+      context: ../../
+      dockerfile: test/ocserv/both.Dockerfile
       target: ocserv
+    #image:
+    #  localhost/oc-daemon-test-ocserv
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - "/dev/net/tun:/dev/net/tun"
+    networks:
+      - ext
+      - int
+    container_name: ocserv
   deb12:
     build:
-      context: .
-      #dockerfile: test/ocserv/both.Dockerfile
-      dockerfile: both.Dockerfile
+      context: ../../
+      dockerfile: test/ocserv/both.Dockerfile
       target: oc-daemon
+    #image:
+    #  localhost/oc-daemon-test-deb12
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    #privileged: true
+    devices:
+      - "/dev/net/tun:/dev/net/tun"
+    networks:
+      - ext
+    container_name: deb12
+
+networks:
+  ext:
+  int:
