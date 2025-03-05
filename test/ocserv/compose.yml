@@ -10,6 +10,7 @@ services:
     #  localhost/oc-daemon-test-ocserv
     cap_add:
       - NET_ADMIN
+      - NET_RAW # for ping
     devices:
       - "/dev/net/tun:/dev/net/tun"
     networks:
@@ -34,7 +35,23 @@ services:
     networks:
       - ext
     container_name: deb12
+  ext-web:
+    image:
+      docker.io/library/caddy
+    networks:
+      - ext
+    container_name: ext-web
+  int-web:
+    image:
+      docker.io/library/caddy
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - int
+    container_name: int-web
 
 networks:
   ext:
+    internal: true
   int:
+    internal: true
