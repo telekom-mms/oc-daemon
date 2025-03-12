@@ -119,13 +119,13 @@ ping_int() {
 # curl external web server
 curl_ext() {
 	echo "HTTP GET external web server"
-	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "$WEB_EXT_IP_EXT"
+	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "$WEB_EXT_IP_EXT" > /dev/null
 }
 
 # curl internal web server
 curl_int() {
 	echo "HTTP GET internal web server"
-	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "$WEB_INT_IP_INT"
+	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "$WEB_INT_IP_INT" > /dev/null
 }
 
 # run command in first argument and check whether return code is an error
@@ -150,12 +150,63 @@ expect_ok() {
 	fi
 }
 
-# run test
-run_test() {
+# TODO: test ipv6
+# TODO: test ipv4 and ipv6
+# TODO: test split routing with ipv4 and ipv6
+# TODO: test always on/trafpol
+# TODO: test profile update (from server?)?
+# TODO: test TND?
+# TODO: test Captive Portal Detection?
+
+# set ocserv config
+set_ocserv_config() {
+	echo "Setting new ocserv config..."
+	local config=$1
+
+	# write it to ocserv
+	$PODMAN exec "$OCSERV_NAME" sh -c "echo \"$config\" > /etc/ocserv/ocserv.conf"
+
+	# reload ocserv
+	$PODMAN exec "$OCSERV_NAME" occtl reload
+
+	# wait
+	sleep 1
+
+	# check
+	$PODMAN exec "$OCSERV_NAME" cat /etc/ocserv/ocserv.conf
+}
+
+# show routes on deb12
+show_routes() {
+	$PODMAN exec "$DEB12_NAME" ip -4 route show table all
+	$PODMAN exec "$DEB12_NAME" ip -6 route show table all
+}
+
+# show nftables ruleset on deb12
+show_nft_ruleset() {
+	$PODMAN exec "$DEB12_NAME" nft list ruleset
+}
+
+# show test summary
+show_summary() {
+	echo "==============================="
+	echo "=== Cumulative Test Summary ==="
+	echo "==============================="
+	echo "Tests: $TESTS"
+	echo "OKs: $OKS"
+	echo "FAILs: $FAILS"
+	echo "==============================="
+}
+
+# run test with default settings in ocserv.conf
+run_test_default() {
 	echo "Setting up test..."
 	start_containers
 	get_settings
 	configure_routing
+
+	show_routes
+	show_nft_ruleset
 	echo "Ping testing before VPN connection..."
 	expect_ok ping_ext
 	expect_err ping_int
@@ -163,7 +214,11 @@ run_test() {
 	expect_ok curl_ext
 	expect_err curl_int
 
+	# connect vpn
 	connect_vpn
+	show_routes
+	show_nft_ruleset
+
 	echo "Ping testing after VPN connection..."
 	expect_err ping_ext
 	expect_ok ping_int
@@ -175,16 +230,104 @@ run_test() {
 	stop_containers
 }
 
-run_test
-((TESTS++))
+# run test with split routing for ext-web
+run_test_splitrt() {
+	echo "Setting up test..."
+	start_containers
+	get_settings
+	configure_routing
 
-echo "==============="
-echo "=== Summary ==="
-echo "==============="
-echo "Tests: $TESTS"
-echo "OKs: $OKS"
-echo "FAILs: $FAILS"
+	local config="# splitrt config
+auth = \"certificate\"
+tcp-port = 443
+udp-port = 443
+run-as-user = ocserv
+run-as-group = ocserv
+socket-file = /run/ocserv-socket
+chroot-dir = /var/lib/ocserv
+server-cert = /etc/ocserv/server-cert.pem
+server-key = /etc/ocserv/server-key.pem
+ca-cert = /etc/ocserv/ca-cert.pem
+isolate-workers = true
+max-clients = 16
+max-same-clients = 2
+rate-limit-ms = 100
+server-stats-reset-time = 604800
+keepalive = 32400
+dpd = 90
+mobile-dpd = 1800
+switch-to-tcp-timeout = 25
+try-mtu-discovery = false
+cert-user-oid = 0.9.2342.19200300.100.1.1
+tls-priorities = \"NORMAL:%SERVER_PRECEDENCE:%COMPAT:-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1:-VERS-TLS1.3\"
+auth-timeout = 240
+min-reauth-time = 300
+max-ban-score = 80
+ban-reset-time = 1200
+cookie-timeout = 300
+deny-roaming = false
+rekey-time = 172800
+rekey-method = ssl
+use-occtl = true
+pid-file = /run/ocserv.pid
+log-level = 1
+device = vpns
+predictable-ips = true
+default-domain = example.com
+ipv4-network = 192.168.1.0
+ipv4-netmask = 255.255.255.0
+dns = 192.168.1.1
+ping-leases = false
 
+# configure routing
+route = default
+no-route = $WEB_EXT_IP_EXT/32
+
+cisco-client-compat = true
+dtls-legacy = true
+client-bypass-protocol = false
+"
+	set_ocserv_config "$config"
+
+	show_routes
+	show_nft_ruleset
+	echo "Ping testing before VPN connection..."
+	expect_ok ping_ext
+	expect_err ping_int
+	echo "HTTP GET testing before VPN connection..."
+	expect_ok curl_ext
+	expect_err curl_int
+
+	# connect vpn
+	connect_vpn
+	show_routes
+	show_nft_ruleset
+
+	echo "Ping testing after VPN connection..."
+	expect_ok ping_ext
+	expect_ok ping_int
+	echo "HTTP GET testing after VPN connection..."
+	expect_ok curl_ext
+	expect_ok curl_int
+
+	echo "Shutting down test..."
+	stop_containers
+}
+
+# define test cases/runs
+TEST_RUNS=(
+	run_test_default
+	run_test_splitrt
+)
+
+# run tests
+for i in "${TEST_RUNS[@]}"; do
+	((TESTS++))
+	$i
+	show_summary
+done
+
+# return error if a test failed
 if [ $FAILS -ne 0 ]; then
 	exit 1
 fi
