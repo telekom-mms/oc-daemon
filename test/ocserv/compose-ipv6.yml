@@ -1,4 +1,4 @@
-# test network with ipv4 only
+# test network with ipv4 and ipv6
 name: oc-daemon-test
 
 services:
@@ -7,8 +7,6 @@ services:
       context: ../../
       dockerfile: test/ocserv/both.Dockerfile
       target: ocserv
-    #image:
-    #  localhost/oc-daemon-test-ocserv
     cap_add:
       - NET_ADMIN
       - NET_RAW # for ping
@@ -23,8 +21,6 @@ services:
       context: ../../
       dockerfile: test/ocserv/both.Dockerfile
       target: oc-daemon
-    #image:
-    #  localhost/oc-daemon-test-deb12
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -54,5 +50,7 @@ services:
 networks:
   ext:
     internal: true
+    enable_ipv6: true
   int:
     internal: true
+    enable_ipv6: true
