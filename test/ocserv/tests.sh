@@ -217,7 +217,8 @@ get_oc_daemon_log() {
 }
 
 # get errors in oc-daemon log on deb12.
-# ignore some pre-defined errors, see ignore_errors
+# returns error if an error is found in log.
+# ignores some pre-defined errors, see ignore_errors
 get_log_errors() {
 	local ignore_errors=(
 		'msg="Could not read XML profile" error="open /var/lib/oc-daemon/profile.xml: no such file or directory"'
@@ -267,6 +268,9 @@ run_test_default() {
 	expect_ok curl_ext
 	expect_err curl_int
 
+	# check errors in log
+	expect_ok get_log_errors
+
 	# connect vpn
 	connect_vpn
 	show_routes
@@ -278,6 +282,9 @@ run_test_default() {
 	echo "HTTP GET testing after VPN connection..."
 	expect_err curl_ext
 	expect_ok curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
 
 	echo "Shutting down test..."
 	stop_containers
@@ -299,6 +306,9 @@ run_test_default_ipv6() {
 	expect_ok curl_ext
 	expect_err curl_int
 
+	# check errors in log
+	expect_ok get_log_errors
+
 	# connect vpn
 	connect_vpn
 	show_routes
@@ -310,6 +320,9 @@ run_test_default_ipv6() {
 	echo "HTTP GET testing after VPN connection..."
 	expect_err curl_ext
 	expect_ok curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
 
 	echo "Shutting down test..."
 	stop_containers_ipv6
@@ -383,6 +396,9 @@ client-bypass-protocol = false
 	expect_ok curl_ext
 	expect_err curl_int
 
+	# check errors in log
+	expect_ok get_log_errors
+
 	# connect vpn
 	connect_vpn
 	show_routes
@@ -394,6 +410,9 @@ client-bypass-protocol = false
 	echo "HTTP GET testing after VPN connection..."
 	expect_ok curl_ext
 	expect_ok curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
 
 	echo "Shutting down test..."
 	stop_containers
@@ -466,6 +485,9 @@ client-bypass-protocol = false
 	expect_ok curl_ext
 	expect_err curl_int
 
+	# check errors in log
+	expect_ok get_log_errors
+
 	# connect vpn
 	connect_vpn
 	show_routes
@@ -478,6 +500,9 @@ client-bypass-protocol = false
 	expect_ok curl_ext
 	expect_ok curl_int
 
+	# check errors in log
+	expect_ok get_log_errors
+
 	echo "Shutting down test..."
 	stop_containers_ipv6
 }
@@ -488,17 +513,21 @@ run_test_restart() {
 	start_containers
 	get_settings
 	configure_routing
+
+	# check errors in log before doing anything
+	sleep 3
 	expect_ok get_log_errors
 
-	sleep 3
+	# check errors in log after restart without vpn connection
 	restart_oc_daemon
 	expect_ok get_log_errors
 
-	# connect vpn
+	# check errors in log after connecting vpn
 	connect_vpn
+	sleep 3
 	expect_ok get_log_errors
 
-	sleep 3
+	# check errors in log after restart during connected vpn
 	restart_oc_daemon
 	expect_ok get_log_errors
 
