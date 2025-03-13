@@ -173,6 +173,9 @@ expect_ok() {
 # TODO: test profile update (from server?)?
 # TODO: test TND?
 # TODO: test Captive Portal Detection?
+# TODO: test restart daemon
+# TODO: test reconnect
+# TODO: test disconnect
 
 # set ocserv config
 set_ocserv_config() {
@@ -201,6 +204,40 @@ show_routes() {
 # show nftables ruleset on deb12
 show_nft_ruleset() {
 	$PODMAN exec "$DEB12_NAME" nft list ruleset
+}
+
+# restart oc-daemon on deb12
+restart_oc_daemon() {
+	$PODMAN exec "$DEB12_NAME" systemctl restart oc-daemon.service
+}
+
+# get oc-daemon log on deb12
+get_oc_daemon_log() {
+	$PODMAN exec "$DEB12_NAME" journalctl -u oc-daemon.service
+}
+
+# get errors in oc-daemon log on deb12.
+# ignore some pre-defined errors, see ignore_errors
+get_log_errors() {
+	local ignore_errors=(
+		'msg="Could not read XML profile" error="open /var/lib/oc-daemon/profile.xml: no such file or directory"'
+		'stderr="sysctl: permission denied on key \\"net.ipv4.conf.all.src_valid_mark\\"'
+	)
+
+	local log
+	log=$(get_oc_daemon_log)
+
+	local errors
+	errors=$(grep "level=error" <<< "$log")
+
+	for i in "${ignore_errors[@]}"; do
+		errors=$(grep -v "$i" <<< "$errors")
+	done
+
+	echo "$errors"
+	if [ -n "${errors}" ];then
+		return 1
+	fi
 }
 
 # show test summary
@@ -445,12 +482,37 @@ client-bypass-protocol = false
 	stop_containers_ipv6
 }
 
+# run test with with restart
+run_test_restart() {
+	echo "Setting up test..."
+	start_containers
+	get_settings
+	configure_routing
+	expect_ok get_log_errors
+
+	sleep 3
+	restart_oc_daemon
+	expect_ok get_log_errors
+
+	# connect vpn
+	connect_vpn
+	expect_ok get_log_errors
+
+	sleep 3
+	restart_oc_daemon
+	expect_ok get_log_errors
+
+	echo "Shutting down test..."
+	stop_containers
+}
+
 # define test cases/runs
 TEST_RUNS=(
 	run_test_default
 	run_test_default_ipv6
 	run_test_splitrt
 	run_test_splitrt_ipv6
+	run_test_restart
 )
 
 # run tests
