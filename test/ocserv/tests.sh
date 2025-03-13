@@ -288,10 +288,8 @@ show_summary() {
 # TODO: test reconnect
 # TODO: test disconnect
 
-# run test with default settings in ocserv.conf.
-run_test_default() {
-	echo "Setting up test..."
-	start_containers
+# common parts of tests with default settings in ocserv.conf.
+run_test_default_common() {
 	get_settings
 	configure_routing
 
@@ -351,83 +349,32 @@ run_test_default() {
 
 	# check errors in log
 	expect_ok get_log_errors
+}
+
+# run test with default settings in ocserv.conf.
+run_test_default() {
+	echo "Setting up test..."
+	start_containers
+
+	run_test_default_common
 
 	echo "Shutting down test..."
 	stop_containers
 }
 
-# run test with default settings in ocserv.conf, ipv6 version
+# run test with default settings in ocserv.conf, ipv6 version.
 run_test_default_ipv6() {
 	echo "Setting up test..."
 	start_containers_ipv6
-	get_settings
-	configure_routing
 
-	show_routes
-	show_nft_ruleset
-	echo "Ping testing before VPN connection..."
-	expect_ok ping_ext
-	expect_err ping_int
-	echo "HTTP GET testing before VPN connection..."
-	expect_ok curl_ext
-	expect_err curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
-
-	# connect vpn
-	connect_vpn
-	show_routes
-	show_nft_ruleset
-
-	echo "Ping testing after VPN connection..."
-	expect_err ping_ext
-	expect_ok ping_int
-	echo "HTTP GET testing after VPN connection..."
-	expect_err curl_ext
-	expect_ok curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
-
-	# reconnect vpn
-	reconnect_vpn
-	show_routes
-	show_nft_ruleset
-
-	echo "Ping testing after reconnecting VPN..."
-	expect_err ping_ext
-	expect_ok ping_int
-	echo "HTTP GET testing after reconnecting VPN..."
-	expect_err curl_ext
-	expect_ok curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
-
-	# disconnect vpn
-	disconnect_vpn
-	show_routes
-	show_nft_ruleset
-
-	echo "Ping testing after disconnecting VPN..."
-	expect_ok ping_ext
-	expect_err ping_int
-	echo "HTTP GET testing after disconnecting VPN..."
-	expect_ok curl_ext
-	expect_err curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	run_test_default_common
 
 	echo "Shutting down test..."
 	stop_containers_ipv6
 }
 
-# run test with split routing for ext-web
-run_test_splitrt() {
-	echo "Setting up test..."
-	start_containers
+# common parts of tests with split routing for ext-web.
+run_test_splitrt_common() {
 	get_settings
 	configure_routing
 
@@ -539,6 +486,14 @@ client-bypass-protocol = false
 
 	# check errors in log
 	expect_ok get_log_errors
+}
+
+# run test with split routing for ext-web.
+run_test_splitrt() {
+	echo "Setting up test..."
+	start_containers
+
+	run_test_splitrt_common
 
 	echo "Shutting down test..."
 	stop_containers
@@ -547,117 +502,8 @@ client-bypass-protocol = false
 run_test_splitrt_ipv6() {
 	echo "Setting up test..."
 	start_containers_ipv6
-	get_settings
-	configure_routing
 
-	local config="# splitrt config
-auth = \"certificate\"
-tcp-port = 443
-udp-port = 443
-run-as-user = ocserv
-run-as-group = ocserv
-socket-file = /run/ocserv-socket
-chroot-dir = /var/lib/ocserv
-server-cert = /etc/ocserv/server-cert.pem
-server-key = /etc/ocserv/server-key.pem
-ca-cert = /etc/ocserv/ca-cert.pem
-isolate-workers = true
-max-clients = 16
-max-same-clients = 2
-rate-limit-ms = 100
-server-stats-reset-time = 604800
-keepalive = 32400
-dpd = 90
-mobile-dpd = 1800
-switch-to-tcp-timeout = 25
-try-mtu-discovery = false
-cert-user-oid = 0.9.2342.19200300.100.1.1
-tls-priorities = \"NORMAL:%SERVER_PRECEDENCE:%COMPAT:-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1:-VERS-TLS1.3\"
-auth-timeout = 240
-min-reauth-time = 300
-max-ban-score = 80
-ban-reset-time = 1200
-cookie-timeout = 300
-deny-roaming = false
-rekey-time = 172800
-rekey-method = ssl
-use-occtl = true
-pid-file = /run/ocserv.pid
-log-level = 1
-device = vpns
-predictable-ips = true
-default-domain = example.com
-ipv4-network = 192.168.1.0
-ipv4-netmask = 255.255.255.0
-dns = 192.168.1.1
-ping-leases = false
-
-# configure routing
-route = default
-no-route = $WEB_EXT_IP_EXT/32
-
-cisco-client-compat = true
-dtls-legacy = true
-client-bypass-protocol = false
-"
-	set_ocserv_config "$config"
-
-	show_routes
-	show_nft_ruleset
-	echo "Ping testing before VPN connection..."
-	expect_ok ping_ext
-	expect_err ping_int
-	echo "HTTP GET testing before VPN connection..."
-	expect_ok curl_ext
-	expect_err curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
-
-	# connect vpn
-	connect_vpn
-	show_routes
-	show_nft_ruleset
-
-	echo "Ping testing after VPN connection..."
-	expect_ok ping_ext
-	expect_ok ping_int
-	echo "HTTP GET testing after VPN connection..."
-	expect_ok curl_ext
-	expect_ok curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
-
-	# reconnect vpn
-	reconnect_vpn
-	show_routes
-	show_nft_ruleset
-
-	echo "Ping testing after reconnecting VPN..."
-	expect_ok ping_ext
-	expect_ok ping_int
-	echo "HTTP GET testing after reconnecting VPN..."
-	expect_ok curl_ext
-	expect_ok curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
-
-	# disconnect vpn
-	disconnect_vpn
-	show_routes
-	show_nft_ruleset
-
-	echo "Ping testing after disconnecting VPN..."
-	expect_ok ping_ext
-	expect_err ping_int
-	echo "HTTP GET testing after disconnecting VPN..."
-	expect_ok curl_ext
-	expect_err curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	run_test_splitrt_common
 
 	echo "Shutting down test..."
 	stop_containers_ipv6
