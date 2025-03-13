@@ -288,67 +288,61 @@ show_summary() {
 # TODO: test reconnect
 # TODO: test disconnect
 
+test_expect_ok_err() {
+	show_routes
+	show_nft_ruleset
+	expect_ok ping_ext
+	expect_err ping_int
+	expect_ok curl_ext
+	expect_err curl_int
+	expect_ok get_log_errors
+}
+
+test_expect_err_ok() {
+	show_routes
+	show_nft_ruleset
+	expect_err ping_ext
+	expect_ok ping_int
+	expect_err curl_ext
+	expect_ok curl_int
+	expect_ok get_log_errors
+}
+
+test_expect_ok_ok() {
+	show_routes
+	show_nft_ruleset
+	expect_ok ping_ext
+	expect_ok ping_int
+	expect_ok curl_ext
+	expect_ok curl_int
+	expect_ok get_log_errors
+}
+
 # common parts of tests with default settings in ocserv.conf.
 run_test_default_common() {
 	get_settings
 	configure_routing
 
-	show_routes
-	show_nft_ruleset
-	echo "Ping testing before VPN connection..."
-	expect_ok ping_ext
-	expect_err ping_int
-	echo "HTTP GET testing before VPN connection..."
-	expect_ok curl_ext
-	expect_err curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	echo "Testing before VPN connection..."
+	test_expect_ok_err
 
 	# connect vpn
 	connect_vpn
-	show_routes
-	show_nft_ruleset
 
-	echo "Ping testing after VPN connection..."
-	expect_err ping_ext
-	expect_ok ping_int
-	echo "HTTP GET testing after VPN connection..."
-	expect_err curl_ext
-	expect_ok curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	echo "Testing after VPN connection..."
+	test_expect_err_ok
 
 	# reconnect vpn
 	reconnect_vpn
-	show_routes
-	show_nft_ruleset
 
-	echo "Ping testing after reconnecting VPN..."
-	expect_err ping_ext
-	expect_ok ping_int
-	echo "HTTP GET testing after reconnecting VPN..."
-	expect_err curl_ext
-	expect_ok curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	echo "Testing after reconnecting VPN..."
+	test_expect_err_ok
 
 	# diconnect vpn
 	disconnect_vpn
-	show_routes
-	show_nft_ruleset
 
-	echo "Ping testing after disconnecting VPN..."
-	expect_ok ping_ext
-	expect_err ping_int
-	echo "HTTP GET testing after disconnecting VPN..."
-	expect_ok curl_ext
-	expect_err curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	echo "Testing after disconnecting VPN..."
+	test_expect_ok_err
 }
 
 # run test with default settings in ocserv.conf.
@@ -430,62 +424,26 @@ client-bypass-protocol = false
 "
 	set_ocserv_config "$config"
 
-	show_routes
-	show_nft_ruleset
-	echo "Ping testing before VPN connection..."
-	expect_ok ping_ext
-	expect_err ping_int
-	echo "HTTP GET testing before VPN connection..."
-	expect_ok curl_ext
-	expect_err curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	echo "Testing before VPN connection..."
+	test_expect_ok_err
 
 	# connect vpn
 	connect_vpn
-	show_routes
-	show_nft_ruleset
 
-	echo "Ping testing after VPN connection..."
-	expect_ok ping_ext
-	expect_ok ping_int
-	echo "HTTP GET testing after VPN connection..."
-	expect_ok curl_ext
-	expect_ok curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	echo "Testing after VPN connection..."
+	test_expect_ok_ok
 
 	# reconnect vpn
 	reconnect_vpn
-	show_routes
-	show_nft_ruleset
 
-	echo "Ping testing after reconnecting VPN..."
-	expect_ok ping_ext
-	expect_ok ping_int
-	echo "HTTP GET testing after reconnecting VPN..."
-	expect_ok curl_ext
-	expect_ok curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	echo "Testing after reconnecting VPN..."
+	test_expect_ok_ok
 
 	# disconnect vpn
 	disconnect_vpn
-	show_routes
-	show_nft_ruleset
 
-	echo "Ping testing after disconnecting VPN..."
-	expect_ok ping_ext
-	expect_err ping_int
-	echo "HTTP GET testing after disconnecting VPN..."
-	expect_ok curl_ext
-	expect_err curl_int
-
-	# check errors in log
-	expect_ok get_log_errors
+	echo "Testing after disconnecting VPN..."
+	test_expect_ok_err
 }
 
 # run test with split routing for ext-web.
