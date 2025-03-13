@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # executables
-PODMAN=podman
-PODMAN_COMPOSE=podman-compose
-#NSENTER=nsenter
+PODMAN="podman"
+PODMAN_COMPOSE="podman-compose"
+#NSENTER="nsenter"
+GREP="grep"
 
 # networks
 NETWORK_EXT_NAME="oc-daemon-test_ext"
@@ -117,7 +118,34 @@ connect_vpn() {
 		-ca ca-cert.pem \
 		-key client-key.pem \
 		-cert client-cert.pem \
-		-server "$OCSERV_NAME"
+		-server "$OCSERV_NAME" \
+		connect
+}
+
+# disconnect vpn
+disconnect_vpn() {
+	echo "Disconnecting from VPN..."
+	$PODMAN exec "$DEB12_NAME" oc-client \
+		-ca ca-cert.pem \
+		-key client-key.pem \
+		-cert client-cert.pem \
+		-server "$OCSERV_NAME" \
+		disconnect
+}
+
+# reconnect vpn
+reconnect_vpn() {
+	# TODO: FIXME
+	echo "Reconnecting to VPN..."
+	#$PODMAN exec "$DEB12_NAME" oc-client \
+	#	-ca ca-cert.pem \
+	#	-key client-key.pem \
+	#	-cert client-cert.pem \
+	#	-server "$OCSERV_NAME" \
+	#	reconnect
+	disconnect_vpn
+	sleep 1
+	connect_vpn
 }
 
 # ping external web server
@@ -229,10 +257,10 @@ get_log_errors() {
 	log=$(get_oc_daemon_log)
 
 	local errors
-	errors=$(grep "level=error" <<< "$log")
+	errors=$($GREP "level=error" <<< "$log")
 
 	for i in "${ignore_errors[@]}"; do
-		errors=$(grep -v "$i" <<< "$errors")
+		errors=$($GREP -v "$i" <<< "$errors")
 	done
 
 	echo "$errors"
@@ -286,6 +314,36 @@ run_test_default() {
 	# check errors in log
 	expect_ok get_log_errors
 
+	# reconnect vpn
+	reconnect_vpn
+	show_routes
+	show_nft_ruleset
+
+	echo "Ping testing after reconnecting VPN..."
+	expect_err ping_ext
+	expect_ok ping_int
+	echo "HTTP GET testing after reconnecting VPN..."
+	expect_err curl_ext
+	expect_ok curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
+
+	# diconnect vpn
+	disconnect_vpn
+	show_routes
+	show_nft_ruleset
+
+	echo "Ping testing after disconnecting VPN..."
+	expect_ok ping_ext
+	expect_err ping_int
+	echo "HTTP GET testing after disconnecting VPN..."
+	expect_ok curl_ext
+	expect_err curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
+
 	echo "Shutting down test..."
 	stop_containers
 }
@@ -320,6 +378,36 @@ run_test_default_ipv6() {
 	echo "HTTP GET testing after VPN connection..."
 	expect_err curl_ext
 	expect_ok curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
+
+	# reconnect vpn
+	reconnect_vpn
+	show_routes
+	show_nft_ruleset
+
+	echo "Ping testing after reconnecting VPN..."
+	expect_err ping_ext
+	expect_ok ping_int
+	echo "HTTP GET testing after reconnecting VPN..."
+	expect_err curl_ext
+	expect_ok curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
+
+	# disconnect vpn
+	disconnect_vpn
+	show_routes
+	show_nft_ruleset
+
+	echo "Ping testing after disconnecting VPN..."
+	expect_ok ping_ext
+	expect_err ping_int
+	echo "HTTP GET testing after disconnecting VPN..."
+	expect_ok curl_ext
+	expect_err curl_int
 
 	# check errors in log
 	expect_ok get_log_errors
@@ -414,6 +502,36 @@ client-bypass-protocol = false
 	# check errors in log
 	expect_ok get_log_errors
 
+	# reconnect vpn
+	reconnect_vpn
+	show_routes
+	show_nft_ruleset
+
+	echo "Ping testing after reconnecting VPN..."
+	expect_ok ping_ext
+	expect_ok ping_int
+	echo "HTTP GET testing after reconnecting VPN..."
+	expect_ok curl_ext
+	expect_ok curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
+
+	# disconnect vpn
+	disconnect_vpn
+	show_routes
+	show_nft_ruleset
+
+	echo "Ping testing after disconnecting VPN..."
+	expect_ok ping_ext
+	expect_err ping_int
+	echo "HTTP GET testing after disconnecting VPN..."
+	expect_ok curl_ext
+	expect_err curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
+
 	echo "Shutting down test..."
 	stop_containers
 }
@@ -503,6 +621,36 @@ client-bypass-protocol = false
 	# check errors in log
 	expect_ok get_log_errors
 
+	# reconnect vpn
+	reconnect_vpn
+	show_routes
+	show_nft_ruleset
+
+	echo "Ping testing after reconnecting VPN..."
+	expect_ok ping_ext
+	expect_ok ping_int
+	echo "HTTP GET testing after reconnecting VPN..."
+	expect_ok curl_ext
+	expect_ok curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
+
+	# disconnect vpn
+	disconnect_vpn
+	show_routes
+	show_nft_ruleset
+
+	echo "Ping testing after disconnecting VPN..."
+	expect_ok ping_ext
+	expect_err ping_int
+	echo "HTTP GET testing after disconnecting VPN..."
+	expect_ok curl_ext
+	expect_err curl_int
+
+	# check errors in log
+	expect_ok get_log_errors
+
 	echo "Shutting down test..."
 	stop_containers_ipv6
 }
@@ -545,8 +693,12 @@ TEST_RUNS=(
 )
 
 # run tests
+NUM_TESTS=${#TEST_RUNS[@]}
 for i in "${TEST_RUNS[@]}"; do
 	((TESTS++))
+	echo "==============================="
+	echo "Test $TESTS/$NUM_TESTS: $i"
+	echo "==============================="
 	$i
 	show_summary
 done
