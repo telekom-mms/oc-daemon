@@ -16,6 +16,10 @@ DEB12_NAME="deb12"
 WEB_EXT_NAME="ext-web"
 WEB_INT_NAME="int-web"
 
+###############################################################################
+###                                 Helpers                                 ###
+###############################################################################
+
 # number of tests, OKs and fails
 TESTS=0
 OKS=0
@@ -194,17 +198,6 @@ expect_ok() {
 	fi
 }
 
-# TODO: test ipv6
-# TODO: test ipv4 and ipv6
-# TODO: test split routing with ipv4 and ipv6
-# TODO: test always on/trafpol
-# TODO: test profile update (from server?)?
-# TODO: test TND?
-# TODO: test Captive Portal Detection?
-# TODO: test restart daemon
-# TODO: test reconnect
-# TODO: test disconnect
-
 # set ocserv config
 set_ocserv_config() {
 	echo "Setting new ocserv config..."
@@ -280,7 +273,22 @@ show_summary() {
 	echo "==============================="
 }
 
-# run test with default settings in ocserv.conf
+###############################################################################
+###                               Test Cases                                ###
+###############################################################################
+
+# TODO: test ipv6
+# TODO: test ipv4 and ipv6
+# TODO: test split routing with ipv4 and ipv6
+# TODO: test always on/trafpol
+# TODO: test profile update (from server?)?
+# TODO: test TND?
+# TODO: test Captive Portal Detection?
+# TODO: test restart daemon
+# TODO: test reconnect
+# TODO: test disconnect
+
+# run test with default settings in ocserv.conf.
 run_test_default() {
 	echo "Setting up test..."
 	start_containers
