@@ -52,6 +52,11 @@ func (c ConnectionState) Connected() bool {
 	return c == ConnectionStateConnected
 }
 
+// Disconnected returns whether ConnectionState is state "disconnected".
+func (c ConnectionState) Disconnected() bool {
+	return c == ConnectionStateDisconnected
+}
+
 // String returns ConnectionState as string.
 func (c ConnectionState) String() string {
 	switch c {

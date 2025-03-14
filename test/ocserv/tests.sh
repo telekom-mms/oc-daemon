@@ -139,17 +139,13 @@ disconnect_vpn() {
 
 # reconnect vpn
 reconnect_vpn() {
-	# TODO: FIXME
 	echo "Reconnecting to VPN..."
-	#$PODMAN exec "$DEB12_NAME" oc-client \
-	#	-ca ca-cert.pem \
-	#	-key client-key.pem \
-	#	-cert client-cert.pem \
-	#	-server "$OCSERV_NAME" \
-	#	reconnect
-	disconnect_vpn
-	sleep 1
-	connect_vpn
+	$PODMAN exec "$DEB12_NAME" oc-client \
+		-ca ca-cert.pem \
+		-key client-key.pem \
+		-cert client-cert.pem \
+		-server "$OCSERV_NAME" \
+		reconnect
 }
 
 # ping external web server
@@ -214,6 +210,17 @@ set_ocserv_config() {
 
 	# check
 	$PODMAN exec "$OCSERV_NAME" cat /etc/ocserv/ocserv.conf
+}
+
+# show oc-client status on deb12
+show_oc_client_status() {
+	$PODMAN exec "$DEB12_NAME" oc-client \
+		-ca ca-cert.pem \
+		-key client-key.pem \
+		-cert client-cert.pem \
+		-server "$OCSERV_NAME" \
+		status \
+		-verbose
 }
 
 # show routes on deb12
@@ -285,10 +292,11 @@ show_summary() {
 # TODO: test TND?
 # TODO: test Captive Portal Detection?
 # TODO: test restart daemon
-# TODO: test reconnect
-# TODO: test disconnect
+# TODO: test reconnect, reconnect when not connected?
+# TODO: test disconnect, disconnect when not connected?
 
 test_expect_ok_err() {
+	show_oc_client_status
 	show_routes
 	show_nft_ruleset
 	expect_ok ping_ext
@@ -299,6 +307,7 @@ test_expect_ok_err() {
 }
 
 test_expect_err_ok() {
+	show_oc_client_status
 	show_routes
 	show_nft_ruleset
 	expect_err ping_ext
@@ -309,6 +318,7 @@ test_expect_err_ok() {
 }
 
 test_expect_ok_ok() {
+	show_oc_client_status
 	show_routes
 	show_nft_ruleset
 	expect_ok ping_ext
