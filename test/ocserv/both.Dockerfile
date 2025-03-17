@@ -26,6 +26,14 @@ certtool --generate-certificate \
 	--template /client.tmpl \
 	--outfile /client-cert.pem
 
+## builder for oc-daemon debian package
+#FROM goreleaser/goreleaser AS pkg
+#
+#RUN --mount=type=bind,source=.,target=/code,rw \
+#cd /code && \
+#goreleaser release --snapshot --clean && \
+#cp dist/*.deb /
+
 # ocserv
 FROM debian:12-slim AS ocserv
 
@@ -46,6 +54,7 @@ FROM debian:12-slim AS oc-daemon
 
 COPY --from=certs /ca-cert.pem /client-key.pem /client-cert.pem /
 COPY dist/oc-daemon*.deb /
+#COPY --from=pkg /oc-daemon*.deb /
 
 RUN \
 apt-get update && \
