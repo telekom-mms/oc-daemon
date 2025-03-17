@@ -120,6 +120,8 @@ func reconnectVPN() error {
 		if err := disconnectVPN(); err != nil {
 			return err
 		}
+		// TODO: workaround, remove again
+		time.Sleep(3 * reconnectSleep)
 	}
 
 	// wait for status to switch to untrusted network and not running

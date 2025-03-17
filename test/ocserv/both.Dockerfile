@@ -59,7 +59,7 @@ COPY dist/oc-daemon*.deb /
 RUN \
 apt-get update && \
 apt-get install -y /*.deb && \
-apt-get install -y procps systemd systemd-sysv systemd-resolved iputils-ping curl && \
+apt-get install -y procps systemd systemd-sysv systemd-resolved iputils-ping curl musl && \
 systemctl enable oc-daemon.service
 
 CMD [ "/sbin/init" ]
