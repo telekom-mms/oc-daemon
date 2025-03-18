@@ -505,6 +505,54 @@ test_restart() {
 	stop_containers
 }
 
+# run test with reconnect
+test_reconnect() {
+	echo "Setting up test..."
+	start_containers
+	get_settings
+	configure_routing
+
+	# check errors in log before doing anything
+	expect_ok get_log_errors
+
+	# check errors in log after reconnect without vpn connection
+	reconnect_vpn
+	sleep 3
+	expect_ok get_log_errors
+
+	# check errors in log after reconnect with vpn connection
+	reconnect_vpn
+	sleep 3
+	expect_ok get_log_errors
+
+	echo "Shutting down test..."
+	stop_containers
+}
+
+# run test with disconnect
+test_disconnect() {
+	echo "Setting up test..."
+	start_containers
+	get_settings
+	configure_routing
+
+	# check errors in log before doing anything
+	expect_ok get_log_errors
+
+	# check errors in log after disconnect without vpn connection
+	disconnect_vpn
+	sleep 3
+	expect_ok get_log_errors
+
+	# check errors in log after reconnect with vpn connection
+	connect_vpn
+	disconnect_vpn
+	sleep 3
+	expect_ok get_log_errors
+
+	echo "Shutting down test..."
+	stop_containers
+}
 # define test cases/runs
 TEST_RUNS=(
 	test_default
@@ -512,6 +560,8 @@ TEST_RUNS=(
 	test_splitrt
 	test_splitrt_ipv6
 	test_restart
+	test_reconnect
+	test_disconnect
 )
 
 ###############################################################################
@@ -524,8 +574,10 @@ run_test() {
 	echo "==============================="
 	echo "Test $TESTS/$NUM_TESTS: $i"
 	echo "==============================="
+	# TODO: show time?
 	$1
 	show_summary
+	# TODO: show time?
 }
 
 # run all tests

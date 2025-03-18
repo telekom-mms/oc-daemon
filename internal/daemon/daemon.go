@@ -337,6 +337,7 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 
 // disconnectVPN disconnects from the VPN.
 func (d *Daemon) disconnectVPN() {
+	// TODO: check running?
 	// update status
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnecting)
 	//d.setStatusOCRunning(false)
