@@ -356,7 +356,7 @@ run_test_default_common() {
 }
 
 # run test with default settings in ocserv.conf.
-run_test_default() {
+test_default() {
 	echo "Setting up test..."
 	start_containers
 
@@ -367,7 +367,7 @@ run_test_default() {
 }
 
 # run test with default settings in ocserv.conf, ipv6 version.
-run_test_default_ipv6() {
+test_default_ipv6() {
 	echo "Setting up test..."
 	start_containers_ipv6
 
@@ -457,7 +457,7 @@ client-bypass-protocol = false
 }
 
 # run test with split routing for ext-web.
-run_test_splitrt() {
+test_splitrt() {
 	echo "Setting up test..."
 	start_containers
 
@@ -467,7 +467,7 @@ run_test_splitrt() {
 	stop_containers
 }
 # run test with split routing for ext-web, ipv6 version
-run_test_splitrt_ipv6() {
+test_splitrt_ipv6() {
 	echo "Setting up test..."
 	start_containers_ipv6
 
@@ -478,7 +478,7 @@ run_test_splitrt_ipv6() {
 }
 
 # run test with with restart
-run_test_restart() {
+test_restart() {
 	echo "Setting up test..."
 	start_containers
 	get_settings
@@ -507,23 +507,65 @@ run_test_restart() {
 
 # define test cases/runs
 TEST_RUNS=(
-	run_test_default
-	run_test_default_ipv6
-	run_test_splitrt
-	run_test_splitrt_ipv6
-	run_test_restart
+	test_default
+	test_default_ipv6
+	test_splitrt
+	test_splitrt_ipv6
+	test_restart
 )
 
-# run tests
-NUM_TESTS=${#TEST_RUNS[@]}
-for i in "${TEST_RUNS[@]}"; do
+###############################################################################
+###                                Startup                                  ###
+###############################################################################
+
+# helper to run a single test
+run_test() {
 	((TESTS++))
 	echo "==============================="
 	echo "Test $TESTS/$NUM_TESTS: $i"
 	echo "==============================="
-	$i
+	$1
 	show_summary
-done
+}
+
+# run all tests
+run_all_tests() {
+	NUM_TESTS=${#TEST_RUNS[@]}
+	for i in "${TEST_RUNS[@]}"; do
+		run_test "$i"
+	done
+}
+
+# run specific test
+run_specific_test() {
+	NUM_TESTS=1
+	run_test "$1"
+}
+
+# show usage
+show_usage() {
+	echo "run with \"all\" or one of:"
+	echo "${TEST_RUNS[@]}"
+}
+
+# check command line arguments
+if [ "$#" -ne 1 ]; then
+	show_usage
+	exit 2
+fi
+
+# handle command "list"
+if [ "$1" = "list" ]; then
+	echo "${TEST_RUNS[@]}"
+	exit 0
+fi
+
+# run all tests or specific test
+if [ "$1" = "all" ]; then
+	run_all_tests
+else
+	run_specific_test "$1"
+fi
 
 # return error if a test failed
 if [ $FAILS -ne 0 ]; then
