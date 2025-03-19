@@ -5,6 +5,7 @@ PODMAN="podman"
 PODMAN_COMPOSE="podman-compose"
 #NSENTER="nsenter"
 GREP="grep"
+DATE="date"
 
 # networks
 NETWORK_EXT_NAME="oc-daemon-test_ext"
@@ -518,12 +519,12 @@ test_reconnect() {
 	# check errors in log after reconnect without vpn connection
 	reconnect_vpn
 	sleep 3
-	expect_ok get_log_errors
+	test_expect_err_ok
 
 	# check errors in log after reconnect with vpn connection
 	reconnect_vpn
 	sleep 3
-	expect_ok get_log_errors
+	test_expect_err_ok
 
 	echo "Shutting down test..."
 	stop_containers
@@ -542,17 +543,18 @@ test_disconnect() {
 	# check errors in log after disconnect without vpn connection
 	disconnect_vpn
 	sleep 3
-	expect_ok get_log_errors
+	test_expect_ok_err
 
 	# check errors in log after reconnect with vpn connection
 	connect_vpn
 	disconnect_vpn
 	sleep 3
-	expect_ok get_log_errors
+	test_expect_ok_err
 
 	echo "Shutting down test..."
 	stop_containers
 }
+
 # define test cases/runs
 TEST_RUNS=(
 	test_default
@@ -574,10 +576,11 @@ run_test() {
 	echo "==============================="
 	echo "Test $TESTS/$NUM_TESTS: $i"
 	echo "==============================="
-	# TODO: show time?
+	echo "$($DATE) - Starting test"
+	local start_time=$SECONDS
 	$1
 	show_summary
-	# TODO: show time?
+	echo "$($DATE) - Test done, $(( SECONDS - start_time))s, total ${SECONDS}s"
 }
 
 # run all tests
