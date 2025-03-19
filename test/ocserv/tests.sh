@@ -116,8 +116,15 @@ configure_routing() {
 	$PODMAN exec "$WEB_INT_NAME" ip route show
 }
 
-# connect vpn
-connect_vpn() {
+# connect vpn, default settings
+connect_vpn_default() {
+	echo "Connecting to VPN..."
+	$PODMAN exec "$DEB12_NAME" oc-client \
+		connect
+}
+
+# connect vpn, with settings from command line
+connect_vpn_cmdline() {
 	echo "Connecting to VPN..."
 	$PODMAN exec "$DEB12_NAME" oc-client \
 		-ca ca-cert.pem \
@@ -127,8 +134,15 @@ connect_vpn() {
 		connect
 }
 
-# disconnect vpn
-disconnect_vpn() {
+# disconnect vpn, default settings
+disconnect_vpn_default() {
+	echo "Disconnecting from VPN..."
+	$PODMAN exec "$DEB12_NAME" oc-client \
+		disconnect
+}
+
+# disconnect vpn, settings from command line
+disconnect_vpn_cmdline() {
 	echo "Disconnecting from VPN..."
 	$PODMAN exec "$DEB12_NAME" oc-client \
 		-ca ca-cert.pem \
@@ -138,8 +152,15 @@ disconnect_vpn() {
 		disconnect
 }
 
-# reconnect vpn
-reconnect_vpn() {
+# reconnect vpn, default settings
+reconnect_vpn_default() {
+	echo "Reconnecting to VPN..."
+	$PODMAN exec "$DEB12_NAME" oc-client \
+		reconnect
+}
+
+# reconnect vpn, settings from command line
+reconnect_vpn_cmdline() {
 	echo "Reconnecting to VPN..."
 	$PODMAN exec "$DEB12_NAME" oc-client \
 		-ca ca-cert.pem \
@@ -338,19 +359,19 @@ run_test_default_common() {
 	test_expect_ok_err
 
 	# connect vpn
-	connect_vpn
+	connect_vpn_cmdline
 
 	echo "Testing after VPN connection..."
 	test_expect_err_ok
 
 	# reconnect vpn
-	reconnect_vpn
+	reconnect_vpn_cmdline
 
 	echo "Testing after reconnecting VPN..."
 	test_expect_err_ok
 
 	# diconnect vpn
-	disconnect_vpn
+	disconnect_vpn_cmdline
 
 	echo "Testing after disconnecting VPN..."
 	test_expect_ok_err
@@ -439,19 +460,19 @@ client-bypass-protocol = false
 	test_expect_ok_err
 
 	# connect vpn
-	connect_vpn
+	connect_vpn_cmdline
 
 	echo "Testing after VPN connection..."
 	test_expect_ok_ok
 
 	# reconnect vpn
-	reconnect_vpn
+	reconnect_vpn_cmdline
 
 	echo "Testing after reconnecting VPN..."
 	test_expect_ok_ok
 
 	# disconnect vpn
-	disconnect_vpn
+	disconnect_vpn_cmdline
 
 	echo "Testing after disconnecting VPN..."
 	test_expect_ok_err
@@ -494,7 +515,7 @@ test_restart() {
 	expect_ok get_log_errors
 
 	# check errors in log after connecting vpn
-	connect_vpn
+	connect_vpn_cmdline
 	sleep 3
 	expect_ok get_log_errors
 
@@ -517,12 +538,12 @@ test_reconnect() {
 	expect_ok get_log_errors
 
 	# check errors in log after reconnect without vpn connection
-	reconnect_vpn
+	reconnect_vpn_cmdline
 	sleep 3
 	test_expect_err_ok
 
 	# check errors in log after reconnect with vpn connection
-	reconnect_vpn
+	reconnect_vpn_cmdline
 	sleep 3
 	test_expect_err_ok
 
@@ -541,13 +562,13 @@ test_disconnect() {
 	expect_ok get_log_errors
 
 	# check errors in log after disconnect without vpn connection
-	disconnect_vpn
+	disconnect_vpn_cmdline
 	sleep 3
 	test_expect_ok_err
 
 	# check errors in log after reconnect with vpn connection
-	connect_vpn
-	disconnect_vpn
+	connect_vpn_cmdline
+	disconnect_vpn_cmdline
 	sleep 3
 	test_expect_ok_err
 
