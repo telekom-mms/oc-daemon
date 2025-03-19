@@ -26,9 +26,14 @@ TESTS=0
 OKS=0
 FAILS=0
 
+# print test output
+out() {
+	echo "=== $($DATE): $1"
+}
+
 # start networks and containers
 start_containers() {
-	echo "Starting networks and containers..."
+	out "Starting networks and containers..."
 	COMPOSE_PARALLEL_LIMIT=1 $PODMAN_COMPOSE \
 		--file "$PWD/test/ocserv/compose.yml" \
 		up \
@@ -38,7 +43,7 @@ start_containers() {
 
 # start networks and containers, ipv6 version
 start_containers_ipv6() {
-	echo "Starting networks and containers..."
+	out "Starting networks and containers..."
 	COMPOSE_PARALLEL_LIMIT=1 $PODMAN_COMPOSE \
 		--file "$PWD/test/ocserv/compose-ipv6.yml" \
 		up \
@@ -48,13 +53,13 @@ start_containers_ipv6() {
 
 # shut down networks and containers
 stop_containers() {
-	echo "Stopping networks and containers..."
+	out "Stopping networks and containers..."
 	$PODMAN_COMPOSE --file "$PWD/test/ocserv/compose.yml" down
 }
 
 # shut down networks and containers, ipv6_version
 stop_containers_ipv6() {
-	echo "Stopping networks and containers..."
+	out "Stopping networks and containers..."
 	$PODMAN_COMPOSE --file "$PWD/test/ocserv/compose-ipv6.yml" down
 }
 
@@ -88,28 +93,28 @@ get_settings() {
 		$WEB_INT_NAME)
 
 	# print infos about containers
-	echo "Networks:"
-	echo "- $NETWORK_EXT_NAME"
-	echo "- $NETWORK_INT_NAME"
-	echo "Containers:"
-	echo "- $OCSERV_NAME:"
-	echo "    PID: $OCSERV_PID"
-	echo "    IP_EXT: $OCSERV_IP_EXT"
-	echo "    IP_INT: $OCSERV_IP_INT"
-	echo "- $DEB12_NAME:"
-	echo "    PID: $DEB12_PID"
-	echo "    IP_EXT: $DEB12_IP_EXT"
-	echo "- $WEB_EXT_NAME:"
-	echo "    PID: $WEB_EXT_PID"
-	echo "    IP_EXT: $WEB_EXT_IP_EXT"
-	echo "- $WEB_INT_NAME:"
-	echo "    PID: $WEB_INT_PID"
-	echo "    IP_INT: $WEB_INT_IP_INT"
+	out "Networks:"
+	out "- $NETWORK_EXT_NAME"
+	out "- $NETWORK_INT_NAME"
+	out "Containers:"
+	out "- $OCSERV_NAME:"
+	out "    PID: $OCSERV_PID"
+	out "    IP_EXT: $OCSERV_IP_EXT"
+	out "    IP_INT: $OCSERV_IP_INT"
+	out "- $DEB12_NAME:"
+	out "    PID: $DEB12_PID"
+	out "    IP_EXT: $DEB12_IP_EXT"
+	out "- $WEB_EXT_NAME:"
+	out "    PID: $WEB_EXT_PID"
+	out "    IP_EXT: $WEB_EXT_IP_EXT"
+	out "- $WEB_INT_NAME:"
+	out "    PID: $WEB_INT_PID"
+	out "    IP_INT: $WEB_INT_IP_INT"
 }
 
 # configure routing
 configure_routing() {
-	echo "Configuring routing in containers..."
+	out "Configuring routing in containers..."
 	#sudo $NSENTER -n -t "$WEB_INT_PID" ip route add default via "$OCSERV_IP_INT"
 	#sudo $NSENTER -n -t "$WEB_INT_PID" ip route show
 	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IP_INT"
@@ -118,14 +123,14 @@ configure_routing() {
 
 # connect vpn, default settings
 connect_vpn_default() {
-	echo "Connecting to VPN..."
+	out "Connecting to VPN..."
 	$PODMAN exec "$DEB12_NAME" oc-client \
 		connect
 }
 
 # connect vpn, with settings from command line
 connect_vpn_cmdline() {
-	echo "Connecting to VPN..."
+	out "Connecting to VPN..."
 	$PODMAN exec "$DEB12_NAME" oc-client \
 		-ca ca-cert.pem \
 		-key client-key.pem \
@@ -136,14 +141,14 @@ connect_vpn_cmdline() {
 
 # disconnect vpn, default settings
 disconnect_vpn_default() {
-	echo "Disconnecting from VPN..."
+	out "Disconnecting from VPN..."
 	$PODMAN exec "$DEB12_NAME" oc-client \
 		disconnect
 }
 
 # disconnect vpn, settings from command line
 disconnect_vpn_cmdline() {
-	echo "Disconnecting from VPN..."
+	out "Disconnecting from VPN..."
 	$PODMAN exec "$DEB12_NAME" oc-client \
 		-ca ca-cert.pem \
 		-key client-key.pem \
@@ -154,14 +159,14 @@ disconnect_vpn_cmdline() {
 
 # reconnect vpn, default settings
 reconnect_vpn_default() {
-	echo "Reconnecting to VPN..."
+	out "Reconnecting to VPN..."
 	$PODMAN exec "$DEB12_NAME" oc-client \
 		reconnect
 }
 
 # reconnect vpn, settings from command line
 reconnect_vpn_cmdline() {
-	echo "Reconnecting to VPN..."
+	out "Reconnecting to VPN..."
 	$PODMAN exec "$DEB12_NAME" oc-client \
 		-ca ca-cert.pem \
 		-key client-key.pem \
@@ -170,37 +175,66 @@ reconnect_vpn_cmdline() {
 		reconnect
 }
 
+# save oc-client user settings
+save_oc_client_user_settings() {
+	out "Saving oc-client user settings..."
+	$PODMAN exec "$DEB12_NAME" oc-client \
+		-ca ca-cert.pem \
+		-key client-key.pem \
+		-cert client-cert.pem \
+		-server "$OCSERV_NAME" \
+		save
+
+	# check
+	$PODMAN exec "$DEB12_NAME" sh -c "cat ~/.config/oc-daemon/oc-client.json"
+}
+
+# save oc-client system settings
+save_oc_client_system_settings() {
+	out "Saving oc-client system settings..."
+	local config="{
+	\\\"ClientCertificate\\\": \\\"/client-cert.pem\\\",
+	\\\"ClientKey\\\": \\\"/client-key.pem\\\",
+	\\\"CACertificate\\\": \\\"/ca-cert.pem\\\",
+	\\\"VPNServer\\\": \\\"$OCSERV_NAME\\\"
+}"
+	$PODMAN exec "$DEB12_NAME" sh -c "echo \"$config\" > /var/lib/oc-daemon/oc-client.json"
+
+	## check
+	$PODMAN exec "$DEB12_NAME" cat /var/lib/oc-daemon/oc-client.json
+}
+
 # ping external web server
 ping_ext() {
-	echo "Pinging external web server"
+	out "Pinging external web server"
 	$PODMAN exec "$DEB12_NAME" ping -c 3 "$WEB_EXT_IP_EXT"
 }
 
 # ping internal web server
 ping_int() {
-	echo "Pinging internal web server"
+	out "Pinging internal web server"
 	$PODMAN exec "$DEB12_NAME" ping -c 3 "$WEB_INT_IP_INT"
 }
 
 # curl external web server
 curl_ext() {
-	echo "HTTP GET external web server"
+	out "HTTP GET external web server"
 	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "$WEB_EXT_IP_EXT" > /dev/null
 }
 
 # curl internal web server
 curl_int() {
-	echo "HTTP GET internal web server"
+	out "HTTP GET internal web server"
 	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "$WEB_INT_IP_INT" > /dev/null
 }
 
 # run command in first argument and check whether return code is an error
 expect_err() {
 	if $1; then
-		echo "FAIL: Line ${LINENO}/${BASH_LINENO[*]}: $1 should return error"
+		out "FAIL: Line ${LINENO}/${BASH_LINENO[*]}: $1 should return error"
 		((FAILS++))
 	else
-		echo "OK: Line ${LINENO}/${BASH_LINENO[*]}: $1 returned error as expected"
+		out "OK: Line ${LINENO}/${BASH_LINENO[*]}: $1 returned error as expected"
 		((OKS++))
 	fi
 }
@@ -208,17 +242,17 @@ expect_err() {
 # run command in first argument and check whether return code is OK/no error
 expect_ok() {
 	if ! $1; then
-		echo "FAIL: Line ${LINENO}/${BASH_LINENO[*]}: $1 should not return error"
+		out "FAIL: Line ${LINENO}/${BASH_LINENO[*]}: $1 should not return error"
 		((FAILS++))
 	else
-		echo "OK: Line ${LINENO}/${BASH_LINENO[*]}: $1 returned no error as expected"
+		out "OK: Line ${LINENO}/${BASH_LINENO[*]}: $1 returned no error as expected"
 		((OKS++))
 	fi
 }
 
 # set ocserv config
 set_ocserv_config() {
-	echo "Setting new ocserv config..."
+	out "Setting new ocserv config..."
 	local config=$1
 
 	# write it to ocserv
@@ -285,7 +319,7 @@ get_log_errors() {
 		errors=$($GREP -v "$i" <<< "$errors")
 	done
 
-	echo "$errors"
+	out "$errors"
 	if [ -n "${errors}" ];then
 		return 1
 	fi
@@ -355,47 +389,47 @@ run_test_default_common() {
 	get_settings
 	configure_routing
 
-	echo "Testing before VPN connection..."
+	out "Testing before VPN connection..."
 	test_expect_ok_err
 
 	# connect vpn
 	connect_vpn_cmdline
 
-	echo "Testing after VPN connection..."
+	out "Testing after VPN connection..."
 	test_expect_err_ok
 
 	# reconnect vpn
 	reconnect_vpn_cmdline
 
-	echo "Testing after reconnecting VPN..."
+	out "Testing after reconnecting VPN..."
 	test_expect_err_ok
 
 	# diconnect vpn
 	disconnect_vpn_cmdline
 
-	echo "Testing after disconnecting VPN..."
+	out "Testing after disconnecting VPN..."
 	test_expect_ok_err
 }
 
 # run test with default settings in ocserv.conf.
 test_default() {
-	echo "Setting up test..."
+	out "Setting up test..."
 	start_containers
 
 	run_test_default_common
 
-	echo "Shutting down test..."
+	out "Shutting down test..."
 	stop_containers
 }
 
 # run test with default settings in ocserv.conf, ipv6 version.
 test_default_ipv6() {
-	echo "Setting up test..."
+	out "Setting up test..."
 	start_containers_ipv6
 
 	run_test_default_common
 
-	echo "Shutting down test..."
+	out "Shutting down test..."
 	stop_containers_ipv6
 }
 
@@ -456,52 +490,52 @@ client-bypass-protocol = false
 "
 	set_ocserv_config "$config"
 
-	echo "Testing before VPN connection..."
+	out "Testing before VPN connection..."
 	test_expect_ok_err
 
 	# connect vpn
 	connect_vpn_cmdline
 
-	echo "Testing after VPN connection..."
+	out "Testing after VPN connection..."
 	test_expect_ok_ok
 
 	# reconnect vpn
 	reconnect_vpn_cmdline
 
-	echo "Testing after reconnecting VPN..."
+	out "Testing after reconnecting VPN..."
 	test_expect_ok_ok
 
 	# disconnect vpn
 	disconnect_vpn_cmdline
 
-	echo "Testing after disconnecting VPN..."
+	out "Testing after disconnecting VPN..."
 	test_expect_ok_err
 }
 
 # run test with split routing for ext-web.
 test_splitrt() {
-	echo "Setting up test..."
+	out "Setting up test..."
 	start_containers
 
 	run_test_splitrt_common
 
-	echo "Shutting down test..."
+	out "Shutting down test..."
 	stop_containers
 }
 # run test with split routing for ext-web, ipv6 version
 test_splitrt_ipv6() {
-	echo "Setting up test..."
+	out "Setting up test..."
 	start_containers_ipv6
 
 	run_test_splitrt_common
 
-	echo "Shutting down test..."
+	out "Shutting down test..."
 	stop_containers_ipv6
 }
 
 # run test with with restart
 test_restart() {
-	echo "Setting up test..."
+	out "Setting up test..."
 	start_containers
 	get_settings
 	configure_routing
@@ -523,13 +557,13 @@ test_restart() {
 	restart_oc_daemon
 	expect_ok get_log_errors
 
-	echo "Shutting down test..."
+	out "Shutting down test..."
 	stop_containers
 }
 
 # run test with reconnect
 test_reconnect() {
-	echo "Setting up test..."
+	out "Setting up test..."
 	start_containers
 	get_settings
 	configure_routing
@@ -547,13 +581,13 @@ test_reconnect() {
 	sleep 3
 	test_expect_err_ok
 
-	echo "Shutting down test..."
+	out "Shutting down test..."
 	stop_containers
 }
 
 # run test with disconnect
 test_disconnect() {
-	echo "Setting up test..."
+	out "Setting up test..."
 	start_containers
 	get_settings
 	configure_routing
@@ -572,7 +606,56 @@ test_disconnect() {
 	sleep 3
 	test_expect_ok_err
 
-	echo "Shutting down test..."
+	out "Shutting down test..."
+	stop_containers
+}
+
+# run test with oc-client config
+test_occlient_config() {
+	out "Setting up test..."
+	start_containers
+	get_settings
+	configure_routing
+
+	# test with system settings
+	out "Testing with system settings..."
+	save_oc_client_system_settings
+
+	# connect vpn
+	connect_vpn_default
+	out "Testing with system settings, after VPN connection..."
+	test_expect_err_ok
+
+	# reconnect vpn
+	reconnect_vpn_default
+	out "Testing with system settings, after reconnecting VPN..."
+	test_expect_err_ok
+
+	# diconnect vpn
+	disconnect_vpn_default
+	out "Testing with system settings, after disconnecting VPN..."
+	test_expect_ok_err
+
+	# test with user settings
+	out "Testing with user settings..."
+	save_oc_client_user_settings
+
+	# connect vpn
+	connect_vpn_default
+	out "Testing with user settings, after VPN connection..."
+	test_expect_err_ok
+
+	# reconnect vpn
+	reconnect_vpn_default
+	out "Testing with user settings, after reconnecting VPN..."
+	test_expect_err_ok
+
+	# diconnect vpn
+	disconnect_vpn_default
+	out "Testing with user settings, after disconnecting VPN..."
+	test_expect_ok_err
+
+	out "Shutting down test..."
 	stop_containers
 }
 
@@ -585,6 +668,7 @@ TEST_RUNS=(
 	test_restart
 	test_reconnect
 	test_disconnect
+	test_occlient_config
 )
 
 ###############################################################################
