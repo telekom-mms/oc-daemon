@@ -36,6 +36,8 @@ services:
     networks:
       - ext
     container_name: deb12
+    environment:
+      - GOCOVERDIR=/gocover
   ext-web:
     image:
       docker.io/library/caddy

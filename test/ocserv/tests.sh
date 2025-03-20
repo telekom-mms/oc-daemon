@@ -5,7 +5,7 @@ PODMAN="podman"
 PODMAN_COMPOSE="podman-compose"
 #NSENTER="nsenter"
 GREP="grep"
-DATE="date"
+DATE="date --rfc-3339=seconds"
 
 # networks
 NETWORK_EXT_NAME="oc-daemon-test_ext"
@@ -295,6 +295,11 @@ restart_oc_daemon() {
 	$PODMAN exec "$DEB12_NAME" systemctl restart oc-daemon.service
 }
 
+# stop oc-daemon on deb12
+stop_oc_daemon() {
+	$PODMAN exec "$DEB12_NAME" systemctl stop oc-daemon.service
+}
+
 # get oc-daemon log on deb12
 get_oc_daemon_log() {
 	$PODMAN exec "$DEB12_NAME" journalctl -u oc-daemon.service
@@ -319,21 +324,46 @@ get_log_errors() {
 		errors=$($GREP -v "$i" <<< "$errors")
 	done
 
-	out "$errors"
 	if [ -n "${errors}" ];then
+		out "$errors"
 		return 1
 	fi
 }
 
+# directories for GOCOVER files in container and on host
+GOCOVERDIR="/gocover"
+HOST_GOCOVERDIR="$PWD/test/ocserv/gocover/$(date +%s)"
+
+# save GOCOVER directory
+save_gocover_dir() {
+	local dir="${HOST_GOCOVERDIR}/${TESTS}"
+	mkdir -p "$dir"
+	$PODMAN cp "${DEB12_NAME}:${GOCOVERDIR}/." "$dir"
+}
+
+# show GOCOVER percentage
+show_gocover_percent() {
+	local covdirs=""
+	for i in $(seq 1 "$NUM_TESTS"); do
+		if [ "$i" -eq 1 ]; then
+			covdirs=$HOST_GOCOVERDIR/$i
+		else
+			covdirs=$covdirs,$HOST_GOCOVERDIR/$i
+		fi
+	done
+	out "go tool covdata percent -i $covdirs"
+	go tool covdata percent -i "$covdirs"
+}
+
 # show test summary
 show_summary() {
-	echo "==============================="
-	echo "=== Cumulative Test Summary ==="
-	echo "==============================="
-	echo "Tests: $TESTS"
-	echo "OKs: $OKS"
-	echo "FAILs: $FAILS"
-	echo "==============================="
+	out "==============================="
+	out "=== Cumulative Test Summary ==="
+	out "==============================="
+	out "Tests: $TESTS"
+	out "OKs: $OKS"
+	out "FAILs: $FAILS"
+	out "==============================="
 }
 
 ###############################################################################
@@ -419,6 +449,8 @@ test_default() {
 	run_test_default_common
 
 	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
 	stop_containers
 }
 
@@ -430,6 +462,8 @@ test_default_ipv6() {
 	run_test_default_common
 
 	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
 	stop_containers_ipv6
 }
 
@@ -520,6 +554,8 @@ test_splitrt() {
 	run_test_splitrt_common
 
 	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
 	stop_containers
 }
 # run test with split routing for ext-web, ipv6 version
@@ -530,6 +566,8 @@ test_splitrt_ipv6() {
 	run_test_splitrt_common
 
 	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
 	stop_containers_ipv6
 }
 
@@ -558,6 +596,8 @@ test_restart() {
 	expect_ok get_log_errors
 
 	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
 	stop_containers
 }
 
@@ -582,6 +622,8 @@ test_reconnect() {
 	test_expect_err_ok
 
 	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
 	stop_containers
 }
 
@@ -607,6 +649,8 @@ test_disconnect() {
 	test_expect_ok_err
 
 	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
 	stop_containers
 }
 
@@ -656,6 +700,8 @@ test_occlient_config() {
 	test_expect_ok_err
 
 	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
 	stop_containers
 }
 
@@ -678,14 +724,14 @@ TEST_RUNS=(
 # helper to run a single test
 run_test() {
 	((TESTS++))
-	echo "==============================="
-	echo "Test $TESTS/$NUM_TESTS: $i"
-	echo "==============================="
-	echo "$($DATE) - Starting test"
+	out "==============================="
+	out "Test $TESTS/$NUM_TESTS: $i"
+	out "==============================="
+	out "Starting test"
 	local start_time=$SECONDS
 	$1
 	show_summary
-	echo "$($DATE) - Test done, $(( SECONDS - start_time))s, total ${SECONDS}s"
+	out "Test done, $(( SECONDS - start_time))s, total ${SECONDS}s"
 }
 
 # run all tests
@@ -726,6 +772,9 @@ if [ "$1" = "all" ]; then
 else
 	run_specific_test "$1"
 fi
+
+# show coverage percentage
+show_gocover_percent
 
 # return error if a test failed
 if [ $FAILS -ne 0 ]; then

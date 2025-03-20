@@ -60,6 +60,9 @@ RUN \
 apt-get update && \
 apt-get install -y /*.deb && \
 apt-get install -y procps systemd systemd-sysv systemd-resolved iputils-ping curl musl && \
-systemctl enable oc-daemon.service
+systemctl enable oc-daemon.service && \
+mkdir /gocover && \
+mkdir /etc/systemd/system/oc-daemon.service.d && \
+echo "[Service]\nEnvironment=\"GOCOVERDIR=/gocover\"" > /etc/systemd/system/oc-daemon.service.d/gocover.conf
 
 CMD [ "/sbin/init" ]
