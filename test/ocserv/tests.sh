@@ -378,16 +378,10 @@ show_summary() {
 ###                               Test Cases                                ###
 ###############################################################################
 
-# TODO: test ipv6
-# TODO: test ipv4 and ipv6
-# TODO: test split routing with ipv4 and ipv6
 # TODO: test always on/trafpol
 # TODO: test profile update (from server?)?
 # TODO: test TND?
 # TODO: test Captive Portal Detection?
-# TODO: test restart daemon
-# TODO: test reconnect, reconnect when not connected?
-# TODO: test disconnect, disconnect when not connected?
 
 test_expect_ok_err() {
 	show_oc_client_status
@@ -729,6 +723,11 @@ test_profile_alwayson() {
 	connect_vpn_cmdline
 	out "Testing after VPN connection..."
 	test_expect_err_ok
+
+	# set xml profile again
+	set_profile
+	sleep 1
+	test_expect_ok_err
 
 	out "Shutting down test..."
 	stop_oc_daemon
