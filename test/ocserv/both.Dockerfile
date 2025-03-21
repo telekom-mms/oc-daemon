@@ -1,7 +1,13 @@
 # builder for certificates
 FROM debian:12-slim AS certs
 
-COPY test/ocserv/ca.tmpl test/ocserv/server.tmpl test/ocserv/client.tmpl /
+COPY \
+test/ocserv/ca.tmpl \
+test/ocserv/server.tmpl \
+test/ocserv/client.tmpl \
+test/ocserv/web-ext.tmpl \
+test/ocserv/web-int.tmpl \
+/
 
 RUN \
 apt-get update && \
@@ -24,7 +30,21 @@ certtool --generate-certificate \
 	--load-ca-certificate /ca-cert.pem \
 	--load-ca-privkey /ca-key.pem \
 	--template /client.tmpl \
-	--outfile /client-cert.pem
+	--outfile /client-cert.pem && \
+certtool --generate-privkey --outfile /web-ext-key.pem && \
+certtool --generate-certificate \
+	--load-privkey /web-ext-key.pem \
+	--load-ca-certificate /ca-cert.pem \
+	--load-ca-privkey /ca-key.pem \
+	--template /web-ext.tmpl \
+	--outfile /web-ext-cert.pem && \
+certtool --generate-privkey --outfile /web-int-key.pem && \
+certtool --generate-certificate \
+	--load-privkey /web-int-key.pem \
+	--load-ca-certificate /ca-cert.pem \
+	--load-ca-privkey /ca-key.pem \
+	--template /web-int.tmpl \
+	--outfile /web-int-cert.pem
 
 ## builder for oc-daemon debian package
 #FROM goreleaser/goreleaser AS pkg
@@ -66,3 +86,12 @@ mkdir /etc/systemd/system/oc-daemon.service.d && \
 echo "[Service]\nEnvironment=\"GOCOVERDIR=/gocover\"" > /etc/systemd/system/oc-daemon.service.d/gocover.conf
 
 CMD [ "/sbin/init" ]
+
+# https server
+FROM caddy:latest AS web
+
+COPY test/ocserv/Caddyfile /etc/caddy/Caddyfile
+COPY --from=certs /ca-cert.pem \
+/web-ext-key.pem /web-ext-cert.pem \
+/web-int-key.pem /web-int-cert.pem \
+/

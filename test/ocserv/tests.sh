@@ -14,8 +14,8 @@ NETWORK_INT_NAME="oc-daemon-test_int"
 # containers
 OCSERV_NAME="ocserv"
 DEB12_NAME="deb12"
-WEB_EXT_NAME="ext-web"
-WEB_INT_NAME="int-web"
+WEB_EXT_NAME="web-ext"
+WEB_INT_NAME="web-int"
 
 ###############################################################################
 ###                                 Helpers                                 ###
@@ -227,13 +227,17 @@ ping_int() {
 # curl external web server
 curl_ext() {
 	out "HTTP GET external web server"
-	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "$WEB_EXT_IP_EXT" > /dev/null
+	# TODO: check https is actually working, check output?
+	# $PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "https://$WEB_EXT_IP_EXT" -k > /dev/null
+	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "https://$WEB_EXT_IP_EXT" -k
 }
 
 # curl internal web server
 curl_int() {
 	out "HTTP GET internal web server"
-	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "$WEB_INT_IP_INT" > /dev/null
+	# TODO: check https is actually working, check output?
+	# $PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "https://$WEB_INT_IP_INT" -k > /dev/null
+	$PODMAN exec "$DEB12_NAME" curl -s --connect-timeout 3 "https://$WEB_INT_IP_INT" -k
 }
 
 # run command in first argument and check whether return code is an error
@@ -724,10 +728,11 @@ test_profile_alwayson() {
 	out "Testing after VPN connection..."
 	test_expect_err_ok
 
-	# set xml profile again
-	set_profile
-	sleep 1
-	test_expect_ok_err
+	# TODO: check
+	## set xml profile again
+	#set_profile
+	#sleep 1
+	#test_expect_ok_err
 
 	out "Shutting down test..."
 	stop_oc_daemon

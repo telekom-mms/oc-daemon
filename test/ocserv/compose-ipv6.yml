@@ -34,20 +34,28 @@ services:
     container_name: deb12
     environment:
       - GOCOVERDIR=/gocover
-  ext-web:
-    image:
-      docker.io/library/caddy
+  web-ext:
+    build:
+      context: ../../
+      dockerfile: test/ocserv/both.Dockerfile
+      target: web
+    #image:
+    #  docker.io/library/caddy
     networks:
       - ext
-    container_name: ext-web
-  int-web:
-    image:
-      docker.io/library/caddy
+    container_name: web-ext
+  web-int:
+    build:
+      context: ../../
+      dockerfile: test/ocserv/both.Dockerfile
+      target: web
+    #image:
+    #  docker.io/library/caddy
     cap_add:
       - NET_ADMIN
     networks:
       - int
-    container_name: int-web
+    container_name: web-int
 
 networks:
   ext:

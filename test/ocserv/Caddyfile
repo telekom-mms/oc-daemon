@@ -1,0 +1,18 @@
+#web-ext:443 {
+#:444 {
+:443 {
+	tls /web-ext-cert.pem /web-ext-key.pem
+	#root * /usr/share/caddy
+	#file_server
+	respond <<MSG
+	hello from web server
+
+	MSG
+}
+
+#web-int:443 {
+##:445 {
+#	tls /web-int-cert.pem /web-int-key.pem
+#	root * /usr/share/caddy
+#	file_server
+#}
