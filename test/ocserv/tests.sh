@@ -204,6 +204,14 @@ save_oc_client_system_settings() {
 	$PODMAN exec "$DEB12_NAME" cat /var/lib/oc-daemon/oc-client.json
 }
 
+# set xml profile
+set_profile() {
+	out "Setting XML profile..."
+	$PODMAN cp \
+		"$PWD/test/ocserv/test-profile.xml" \
+		"${DEB12_NAME}:/var/lib/oc-daemon/profile.xml"
+}
+
 # ping external web server
 ping_ext() {
 	out "Pinging external web server"
@@ -705,6 +713,29 @@ test_occlient_config() {
 	stop_containers
 }
 
+# run test with xml profile, always on enabled
+test_profile_alwayson() {
+	out "Setting up test..."
+	start_containers
+	get_settings
+	configure_routing
+
+	# set xml profile
+	set_profile
+	sleep 1
+	test_expect_ok_err
+
+	# connect vpn
+	connect_vpn_cmdline
+	out "Testing after VPN connection..."
+	test_expect_err_ok
+
+	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
+	stop_containers
+}
+
 # define test cases/runs
 TEST_RUNS=(
 	test_default
@@ -715,6 +746,7 @@ TEST_RUNS=(
 	test_reconnect
 	test_disconnect
 	test_occlient_config
+	test_profile_alwayson
 )
 
 ###############################################################################
