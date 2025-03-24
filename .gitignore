@@ -11,6 +11,6 @@
 # Ignore dist
 dist/
 # Ignore our executables
-oc-client
-oc-daemon
-oc-daemon-vpncscript
+/oc-client
+/oc-daemon
+/oc-daemon-vpncscript
