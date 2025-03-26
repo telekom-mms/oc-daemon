@@ -337,10 +337,15 @@ func (d *Daemon) connectVPN(login *logininfo.LoginInfo) {
 
 // disconnectVPN disconnects from the VPN.
 func (d *Daemon) disconnectVPN() {
+	// check if vpn is flagged as running
+	if !d.status.OCRunning.Running() {
+		log.WithField("error", "vpn not running").
+			Error("Daemon disconnect error")
+		return
+	}
+
 	// update status
 	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnecting)
-	d.setStatusOCRunning(false)
-	d.setStatusOCPID(0)
 
 	// stop runner
 	if d.runner == nil {
@@ -404,16 +409,9 @@ func (d *Daemon) updateVPNConfigDown() {
 	// TODO: only call this from Runner Event only and remove down message?
 	// or potentially calling this twice is better than not at all?
 
-	// check if vpn is still flagged as running
-	if d.status.OCRunning.Running() {
-		log.WithField("error", "vpn still running").
-			Error("Daemon config down error")
-		return
-	}
-
-	// check if vpn is still flagged as connected
-	if d.status.ConnectionState.Connected() {
-		log.WithField("error", "vpn still connected").
+	// check if vpn is still flagged as connecting or connected
+	if d.status.ConnectionState.Connecting() || d.status.ConnectionState.Connected() {
+		log.WithField("error", "vpn still connecting or connected").
 			Error("Daemon config down error")
 		return
 	}
@@ -430,7 +428,6 @@ func (d *Daemon) updateVPNConfigDown() {
 
 	// save config
 	d.setStatusVPNConfig(nil)
-	d.setStatusConnectionState(vpnstatus.ConnectionStateDisconnected)
 	d.setStatusServer("")
 	d.setStatusServerIP("")
 	d.setStatusConnectedAt(0)

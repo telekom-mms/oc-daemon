@@ -42,6 +42,26 @@ func TestTrustedNetworkString(t *testing.T) {
 	}
 }
 
+// TestConnectionStateConnecting tests Connecting of ConnectionState.
+func TestConnectionStateConnecting(t *testing.T) {
+	// test not connecting
+	for i, notConnecting := range []ConnectionState{
+		ConnectionStateUnknown,
+		ConnectionStateDisconnected,
+		ConnectionStateConnected,
+		ConnectionStateDisconnecting,
+	} {
+		if notConnecting.Connecting() {
+			t.Errorf("should not be connecting: %d, %s", i, notConnecting)
+		}
+	}
+
+	// test connecting
+	if !ConnectionStateConnecting.Connecting() {
+		t.Errorf("should be connecting: %s", ConnectionStateConnecting)
+	}
+}
+
 // TestConnectionStateConnected tests Connected of ConnectionState.
 func TestConnectionStateConnected(t *testing.T) {
 	// test not connected
@@ -59,6 +79,26 @@ func TestConnectionStateConnected(t *testing.T) {
 	// test connected
 	if !ConnectionStateConnected.Connected() {
 		t.Errorf("should be connected: %s", ConnectionStateConnected)
+	}
+}
+
+// TestConnectionStateDisconnected tests Disconnected of ConnectionState.
+func TestConnectionStateDisconnected(t *testing.T) {
+	// test not disconnected
+	for i, notDisconnected := range []ConnectionState{
+		ConnectionStateUnknown,
+		ConnectionStateConnecting,
+		ConnectionStateConnected,
+		ConnectionStateDisconnecting,
+	} {
+		if notDisconnected.Disconnected() {
+			t.Errorf("should not be disconnected: %d, %s", i, notDisconnected)
+		}
+	}
+
+	// test disconnected
+	if !ConnectionStateDisconnected.Disconnected() {
+		t.Errorf("should be disconnected: %s", ConnectionStateDisconnected)
 	}
 }
 
