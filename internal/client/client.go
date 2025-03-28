@@ -131,7 +131,7 @@ func reconnectVPN() error {
 		}
 
 		if !status.TrustedNetwork.Trusted() &&
-			!status.ConnectionState.Connected() &&
+			status.ConnectionState.Disconnected() &&
 			!status.OCRunning.Running() {
 			// authenticate and connect
 			return connectVPN()
