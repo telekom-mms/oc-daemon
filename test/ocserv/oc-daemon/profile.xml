@@ -27,11 +27,11 @@
 	</ClientInitialization>
 	<ServerList>
 		<HostEntry>
-			<HostName>ocserv</HostName>
-			<HostAddress>ocserv</HostAddress>
+			<HostName>oc-daemon-test-ocserv</HostName>
+			<HostAddress>oc-daemon-test-ocserv</HostAddress>
 			<UserGroup></UserGroup>
 			<LoadBalancingServerList>
-				<HostAddress>ocserv</HostAddress>
+				<HostAddress>oc-daemon-test-ocserv</HostAddress>
 			</LoadBalancingServerList>
 		</HostEntry>
 	</ServerList>

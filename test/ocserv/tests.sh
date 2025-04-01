@@ -8,14 +8,14 @@ GREP="grep"
 DATE="date --rfc-3339=seconds"
 
 # networks
-NETWORK_EXT_NAME="oc-daemon-test_ext"
-NETWORK_INT_NAME="oc-daemon-test_int"
+NETWORK_EXT_NAME="oc-daemon-test-ext"
+NETWORK_INT_NAME="oc-daemon-test-int"
 
 # containers
-OCSERV_NAME="ocserv"
-DEB12_NAME="deb12"
-WEB_EXT_NAME="web-ext"
-WEB_INT_NAME="web-int"
+OCSERV_NAME="oc-daemon-test-ocserv"
+OC_DAEMON_NAME="oc-daemon-test-oc-daemon"
+WEB_EXT_NAME="oc-daemon-test-web-ext"
+WEB_INT_NAME="oc-daemon-test-web-int"
 
 ###############################################################################
 ###                                 Helpers                                 ###
@@ -74,11 +74,11 @@ get_settings() {
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
 		$OCSERV_NAME)
 
-	# deb12
-	DEB12_PID=$($PODMAN inspect --format "{{.State.Pid}}" $DEB12_NAME)
-	DEB12_IP_EXT=$($PODMAN inspect \
+	# oc-daemon
+	OC_DAEMON_PID=$($PODMAN inspect --format "{{.State.Pid}}" $OC_DAEMON_NAME)
+	OC_DAEMON_IP_EXT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
-		$DEB12_NAME)
+		$OC_DAEMON_NAME)
 
 	# web-ext
 	WEB_EXT_PID=$($PODMAN inspect --format "{{.State.Pid}}" $WEB_EXT_NAME)
@@ -101,9 +101,9 @@ get_settings() {
 	out "    PID: $OCSERV_PID"
 	out "    IP_EXT: $OCSERV_IP_EXT"
 	out "    IP_INT: $OCSERV_IP_INT"
-	out "- $DEB12_NAME:"
-	out "    PID: $DEB12_PID"
-	out "    IP_EXT: $DEB12_IP_EXT"
+	out "- $OC_DAEMON_NAME:"
+	out "    PID: $OC_DAEMON_PID"
+	out "    IP_EXT: $OC_DAEMON_IP_EXT"
 	out "- $WEB_EXT_NAME:"
 	out "    PID: $WEB_EXT_PID"
 	out "    IP_EXT: $WEB_EXT_IP_EXT"
@@ -124,14 +124,14 @@ configure_routing() {
 # connect vpn, default settings
 connect_vpn_default() {
 	out "Connecting to VPN..."
-	$PODMAN exec "$DEB12_NAME" oc-client \
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client \
 		connect
 }
 
 # connect vpn, with settings from command line
 connect_vpn_cmdline() {
 	out "Connecting to VPN..."
-	$PODMAN exec "$DEB12_NAME" oc-client \
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client \
 		-ca ca-cert.pem \
 		-key client-key.pem \
 		-cert client-cert.pem \
@@ -142,14 +142,14 @@ connect_vpn_cmdline() {
 # disconnect vpn, default settings
 disconnect_vpn_default() {
 	out "Disconnecting from VPN..."
-	$PODMAN exec "$DEB12_NAME" oc-client \
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client \
 		disconnect
 }
 
 # disconnect vpn, settings from command line
 disconnect_vpn_cmdline() {
 	out "Disconnecting from VPN..."
-	$PODMAN exec "$DEB12_NAME" oc-client \
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client \
 		-ca ca-cert.pem \
 		-key client-key.pem \
 		-cert client-cert.pem \
@@ -160,14 +160,14 @@ disconnect_vpn_cmdline() {
 # reconnect vpn, default settings
 reconnect_vpn_default() {
 	out "Reconnecting to VPN..."
-	$PODMAN exec "$DEB12_NAME" oc-client \
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client \
 		reconnect
 }
 
 # reconnect vpn, settings from command line
 reconnect_vpn_cmdline() {
 	out "Reconnecting to VPN..."
-	$PODMAN exec "$DEB12_NAME" oc-client \
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client \
 		-ca ca-cert.pem \
 		-key client-key.pem \
 		-cert client-cert.pem \
@@ -178,7 +178,7 @@ reconnect_vpn_cmdline() {
 # save oc-client user settings
 save_oc_client_user_settings() {
 	out "Saving oc-client user settings..."
-	$PODMAN exec "$DEB12_NAME" oc-client \
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client \
 		-ca ca-cert.pem \
 		-key client-key.pem \
 		-cert client-cert.pem \
@@ -186,7 +186,7 @@ save_oc_client_user_settings() {
 		save
 
 	# check
-	$PODMAN exec "$DEB12_NAME" sh -c "cat ~/.config/oc-daemon/oc-client.json"
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "cat ~/.config/oc-daemon/oc-client.json"
 }
 
 # save oc-client system settings
@@ -198,10 +198,10 @@ save_oc_client_system_settings() {
 	\"CACertificate\": \"/ca-cert.pem\",
 	\"VPNServer\": \"$OCSERV_NAME\"
 }"
-	$PODMAN exec "$DEB12_NAME" sh -c "echo '$config' > /var/lib/oc-daemon/oc-client.json"
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$config' > /var/lib/oc-daemon/oc-client.json"
 
 	# check
-	$PODMAN exec "$DEB12_NAME" cat /var/lib/oc-daemon/oc-client.json
+	$PODMAN exec "$OC_DAEMON_NAME" cat /var/lib/oc-daemon/oc-client.json
 }
 
 # set xml profile
@@ -215,7 +215,7 @@ set_profile() {
 
 	# read fingerprint
 	local sum
-	sum=$($PODMAN exec "$DEB12_NAME" cat "/$web-cert.sum")
+	sum=$($PODMAN exec "$web" cat "/web-cert.sum")
 
 	# set finterprint in profile
 	profile=${profile/CERT_HASH/"$sum"}
@@ -226,29 +226,29 @@ set_profile() {
 	# set profile
 	#$PODMAN cp \
 	#	"$PWD/test/ocserv/oc-daemon/profile.xml" \
-	#	"${DEB12_NAME}:/var/lib/oc-daemon/profile.xml"
-	$PODMAN exec "$DEB12_NAME" sh -c "echo '$profile' > /var/lib/oc-daemon/profile.xml"
+	#	"${OC_DAEMON_NAME}:/var/lib/oc-daemon/profile.xml"
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$profile' > /var/lib/oc-daemon/profile.xml"
 
 	# check
-	$PODMAN exec "$DEB12_NAME" cat /var/lib/oc-daemon/profile.xml
+	$PODMAN exec "$OC_DAEMON_NAME" cat /var/lib/oc-daemon/profile.xml
 }
 
 # ping external web server
 ping_ext() {
 	out "Pinging external web server"
-	$PODMAN exec "$DEB12_NAME" ping -c 3 "$WEB_EXT_IP_EXT"
+	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_EXT_IP_EXT"
 }
 
 # ping internal web server
 ping_int() {
 	out "Pinging internal web server"
-	$PODMAN exec "$DEB12_NAME" ping -c 3 "$WEB_INT_IP_INT"
+	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_INT_IP_INT"
 }
 
 # curl external web server
 curl_ext() {
 	out "HTTP GET external web server"
-	$PODMAN exec "$DEB12_NAME" curl -v \
+	$PODMAN exec "$OC_DAEMON_NAME" curl -v \
 		--silent \
 		--connect-timeout 3 \
 		"https://$WEB_EXT_NAME" \
@@ -259,7 +259,7 @@ curl_ext() {
 # curl internal web server
 curl_int() {
 	out "HTTP GET internal web server"
-	$PODMAN exec "$DEB12_NAME" curl -v \
+	$PODMAN exec "$OC_DAEMON_NAME" curl -v \
 		--silent \
 		--connect-timeout 3 \
 		"https://$WEB_INT_NAME" \
@@ -307,9 +307,9 @@ set_ocserv_config() {
 	$PODMAN exec "$OCSERV_NAME" cat /etc/ocserv/ocserv.conf
 }
 
-# show oc-client status on deb12
+# show oc-client status on oc-daemon
 show_oc_client_status() {
-	$PODMAN exec "$DEB12_NAME" oc-client \
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client \
 		-ca ca-cert.pem \
 		-key client-key.pem \
 		-cert client-cert.pem \
@@ -318,33 +318,33 @@ show_oc_client_status() {
 		-verbose
 }
 
-# show routes on deb12
+# show routes on oc-daemon
 show_routes() {
-	$PODMAN exec "$DEB12_NAME" ip -4 route show table all
-	$PODMAN exec "$DEB12_NAME" ip -6 route show table all
+	$PODMAN exec "$OC_DAEMON_NAME" ip -4 route show table all
+	$PODMAN exec "$OC_DAEMON_NAME" ip -6 route show table all
 }
 
-# show nftables ruleset on deb12
+# show nftables ruleset on oc-daemon
 show_nft_ruleset() {
-	$PODMAN exec "$DEB12_NAME" nft list ruleset
+	$PODMAN exec "$OC_DAEMON_NAME" nft list ruleset
 }
 
-# restart oc-daemon on deb12
+# restart oc-daemon on oc-daemon
 restart_oc_daemon() {
-	$PODMAN exec "$DEB12_NAME" systemctl restart oc-daemon.service
+	$PODMAN exec "$OC_DAEMON_NAME" systemctl restart oc-daemon.service
 }
 
-# stop oc-daemon on deb12
+# stop oc-daemon on oc-daemon
 stop_oc_daemon() {
-	$PODMAN exec "$DEB12_NAME" systemctl stop oc-daemon.service
+	$PODMAN exec "$OC_DAEMON_NAME" systemctl stop oc-daemon.service
 }
 
-# get oc-daemon log on deb12
+# get oc-daemon log on oc-daemon
 get_oc_daemon_log() {
-	$PODMAN exec "$DEB12_NAME" journalctl -u oc-daemon.service
+	$PODMAN exec "$OC_DAEMON_NAME" journalctl -u oc-daemon.service
 }
 
-# get errors in oc-daemon log on deb12.
+# get errors in oc-daemon log on oc-daemon.
 # returns error if an error is found in log.
 # ignores some pre-defined errors, see ignore_errors
 get_log_errors() {
@@ -377,7 +377,7 @@ HOST_GOCOVERDIR="$PWD/test/ocserv/gocover/$(date +%s)"
 save_gocover_dir() {
 	local dir="${HOST_GOCOVERDIR}/${TESTS}"
 	mkdir -p "$dir"
-	$PODMAN cp "${DEB12_NAME}:${GOCOVERDIR}/." "$dir"
+	$PODMAN cp "${OC_DAEMON_NAME}:${GOCOVERDIR}/." "$dir"
 }
 
 # show GOCOVER percentage

@@ -15,8 +15,8 @@ services:
     networks:
       - ext
       - int
-    container_name: ocserv
-  deb12:
+    container_name: oc-daemon-test-ocserv
+  oc-daemon:
     build:
       context: ../../../
       dockerfile: test/ocserv/podman/Dockerfile
@@ -30,7 +30,7 @@ services:
       - "/dev/net/tun:/dev/net/tun"
     networks:
       - ext
-    container_name: deb12
+    container_name: oc-daemon-test-oc-daemon
     environment:
       - GOCOVERDIR=/gocover
   web-ext:
@@ -40,7 +40,7 @@ services:
       target: web-ext
     networks:
       - ext
-    container_name: web-ext
+    container_name: oc-daemon-test-web-ext
   web-int:
     build:
       context: ../../../
@@ -50,10 +50,12 @@ services:
       - NET_ADMIN
     networks:
       - int
-    container_name: web-int
+    container_name: oc-daemon-test-web-int
 
 networks:
   ext:
     internal: true
+    name: oc-daemon-test-ext
   int:
     internal: true
+    name: oc-daemon-test-int

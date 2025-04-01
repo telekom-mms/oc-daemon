@@ -15,32 +15,40 @@
 The test setup is shown in the following figure:
 
 ```
-.................................................
-: oc-daemon-test_ext    :    oc-daemon-test_int :
-:                       :                       :
-:   _________           :                       :
-:  |         |__        :                       :
-:  | deb12   |  |   ____:___        _________   :
-:  |_________|  |  |        |      |         |  :
-:               |__| ocserv |______| web-int |  :
-:   _________   |  |________|      |_________|  :
-:  |         |  |       :                       :
-:  | web-ext |__|       :                       :
-:  |_________|          :                       :
-:                       :                       :
-:.......................:.......................:
+..........................................................................
+: oc-daemon-test-                   :                    oc-daemon-test- :
+: ext                               :                                int :
+:                                   :                                    :
+:   _________________               :                                    :
+:  |                 |__            :                                    :
+:  | oc-daemon-test- |  |   ________:________        _________________   :
+:  | oc-daemon       |  |  |                 |      |                 |  :
+:  |_________________|  |  | oc-daemon-test- |      | oc-daemon-test- |  :
+:                       |__| ocserv          |______| web-int         |  :
+:   _________________   |  |_________________|      |_________________|  :
+:  |                 |  |           :                                    :
+:  | oc-daemon-test- |__|           :                                    :
+:  | web-ext         |              :                                    :
+:  |_________________|              :                                    :
+:                                   :                                    :
+:...................................:....................................:
 ```
 
-The test setup consists of the two networks `oc-daemon-test_ext` and
-`oc-daemon-test_int` as well as the four nodes (services, containers) `deb12`,
-`web-ext`, `ocserv` and `web-int`. `deb12` and `web-ext` are only in network
-`oc-daemon-test_ext`. `web-int` is only in network `oc-daemon-test_int`.
-`ocserv` is in both networks. `deb12` runs OC-Daemon and acts as VPN client.
-`ocserv` runs ocserv and acts as VPN server. `web-ext` and `web-int` both run
-Caddy and act as Webserver with HTTPS, so they can also be used as TND servers.
-`ocserv` connects VPN clients to the network `oc-daemon-test_int` and, thus, to
-`web-int`. So, `deb12` can reach `web-int` when it is connected to the VPN via
-`ocserv`. Otherwise, it can only reach `web-ext`.
+The test setup consists of the two networks `oc-daemon-test-ext` and
+`oc-daemon-test-int` as well as the four nodes (services, containers)
+`oc-daemon-test-oc-daemon`, `oc-daemon-test-web-ext`, `oc-daemon-test-ocserv`
+and `oc-daemon-test-web-int`. For brevity, the common prefix `oc-daemon-test-`
+in the names is omitted in the following description. `oc-daemon` and `web-ext`
+are only in network `ext`. `web-int` is only in network `int`. `ocserv` is in
+both networks. `oc-daemon` runs OC-Daemon and acts as VPN client.  `ocserv`
+runs [ocserv][ocserv] and acts as VPN server. `web-ext` and `web-int` both run
+[Caddy][caddy] and act as Webserver with HTTPS, so they can also be used as TND
+servers. `ocserv` connects VPN clients to the network `int` and, thus, to
+`web-int`. So, `oc-daemon` can reach `web-int` when it is connected to the VPN
+via `ocserv`. Otherwise, it can only reach `web-ext`.
+
+[ocserv]: https://ocserv.openconnect-vpn.net/
+[caddy]: https://caddyserver.com/
 
 ## Building OC-Daemon for Tests
 

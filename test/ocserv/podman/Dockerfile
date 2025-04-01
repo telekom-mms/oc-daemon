@@ -1,10 +1,10 @@
 # builder for certificates
-FROM debian:12-slim AS certs
+FROM docker.io/library/debian:12-slim AS certs
 
 COPY \
 test/ocserv/certs/ca.tmpl \
-test/ocserv/certs/server.tmpl \
-test/ocserv/certs/client.tmpl \
+test/ocserv/certs/ocserv.tmpl \
+test/ocserv/certs/oc-daemon.tmpl \
 test/ocserv/certs/web-ext.tmpl \
 test/ocserv/certs/web-int.tmpl \
 /
@@ -22,14 +22,14 @@ certtool --generate-certificate \
 	--load-privkey /server-key.pem \
 	--load-ca-certificate /ca-cert.pem \
 	--load-ca-privkey /ca-key.pem \
-	--template /server.tmpl \
+	--template /ocserv.tmpl \
 	--outfile /server-cert.pem && \
 certtool --generate-privkey --outfile /client-key.pem && \
 certtool --generate-certificate \
 	--load-privkey /client-key.pem \
 	--load-ca-certificate /ca-cert.pem \
 	--load-ca-privkey /ca-key.pem \
-	--template /client.tmpl \
+	--template /oc-daemon.tmpl \
 	--outfile /client-cert.pem && \
 certtool --generate-privkey --outfile /web-ext-key.pem && \
 certtool --generate-certificate \
@@ -55,7 +55,7 @@ certtool --fingerprint \
 	--outfile=/web-int-cert.sum
 
 # ocserv
-FROM debian:12-slim AS ocserv
+FROM docker.io/library/debian:12-slim AS ocserv
 
 EXPOSE 443/tcp
 EXPOSE 443/udp
@@ -70,10 +70,9 @@ COPY test/ocserv/ocserv/ocserv.conf /etc/ocserv/
 CMD ["ocserv", "-f"]
 
 # oc-daemon
-FROM debian:12-slim AS oc-daemon
+FROM docker.io/library/debian:12-slim AS oc-daemon
 
-COPY --from=certs /ca-cert.pem /client-key.pem /client-cert.pem \
-web-ext-cert.sum web-int-cert.sum /
+COPY --from=certs /ca-cert.pem /client-key.pem /client-cert.pem /
 
 COPY dist/oc-daemon*.deb /
 
@@ -89,17 +88,19 @@ echo "[Service]\nEnvironment=\"GOCOVERDIR=/gocover\"" > /etc/systemd/system/oc-d
 CMD [ "/sbin/init" ]
 
 # web-ext
-FROM caddy:latest AS web-ext
+FROM docker.io/library/caddy:latest AS web-ext
 
 COPY test/ocserv/web/Caddyfile /etc/caddy/Caddyfile
 COPY --from=certs /ca-cert.pem /
 COPY --from=certs /web-ext-key.pem /web-key.pem
 COPY --from=certs /web-ext-cert.pem /web-cert.pem
+COPY --from=certs /web-ext-cert.sum /web-cert.sum
 
 # web-int
-FROM caddy:latest AS web-int
+FROM docker.io/library/caddy:latest AS web-int
 
 COPY test/ocserv/web/Caddyfile /etc/caddy/Caddyfile
 COPY --from=certs /ca-cert.pem /
 COPY --from=certs /web-int-key.pem /web-key.pem
 COPY --from=certs /web-int-cert.pem /web-cert.pem
+COPY --from=certs /web-int-cert.sum /web-cert.sum
