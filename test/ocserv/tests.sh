@@ -391,7 +391,10 @@ show_gocover_percent() {
 		fi
 	done
 	out "go tool covdata percent -i $covdirs"
-	go tool covdata percent -i "$covdirs"
+	while read -r line
+	do
+		    out "$line"
+	done < <(go tool covdata percent -i "$covdirs")
 }
 
 # show test summary
@@ -840,7 +843,7 @@ TEST_RUNS=(
 run_test() {
 	((TESTS++))
 	out "==============================="
-	out "Test $TESTS/$NUM_TESTS: $i"
+	out "Test $TESTS/$NUM_TESTS: $1"
 	out "==============================="
 	out "Starting test"
 	local start_time=$SECONDS
@@ -855,12 +858,14 @@ run_all_tests() {
 	for i in "${TEST_RUNS[@]}"; do
 		run_test "$i"
 	done
+	show_gocover_percent
 }
 
 # run specific test
 run_specific_test() {
 	NUM_TESTS=1
 	run_test "$1"
+	show_gocover_percent
 }
 
 # show usage
@@ -883,13 +888,10 @@ fi
 
 # run all tests or specific test
 if [ "$1" = "all" ]; then
-	run_all_tests
+	run_all_tests 2>&1 | tee tests.log | grep "^==="
 else
-	run_specific_test "$1"
+	run_specific_test "$1" 2>&1 | tee tests.log | grep "^==="
 fi
-
-# show coverage percentage
-show_gocover_percent
 
 # return error if a test failed
 if [ $FAILS -ne 0 ]; then
