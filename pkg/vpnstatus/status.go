@@ -47,9 +47,19 @@ const (
 	ConnectionStateDisconnecting
 )
 
+// Connecting returns whether ConnectionState is state "connecting".
+func (c ConnectionState) Connecting() bool {
+	return c == ConnectionStateConnecting
+}
+
 // Connected returns whether ConnectionState is state "connected".
 func (c ConnectionState) Connected() bool {
 	return c == ConnectionStateConnected
+}
+
+// Disconnected returns whether ConnectionState is state "disconnected".
+func (c ConnectionState) Disconnected() bool {
+	return c == ConnectionStateDisconnected
 }
 
 // String returns ConnectionState as string.
