@@ -870,8 +870,21 @@ run_specific_test() {
 
 # show usage
 show_usage() {
-	echo "run with \"all\" or one of:"
-	echo "${TEST_RUNS[@]}"
+	echo "Usage of $0:"
+	echo "  help"
+	echo "        show this help"
+	echo "  list"
+	echo "        list all available tests"
+	echo "  up"
+	echo "        start test setup without running any tests,"
+	echo "        remember to stop before running any tests"
+	echo "  down"
+	echo "        stop previously started test setup"
+	echo "  all"
+	echo "        run all tests"
+	echo "  <test>"
+	echo "        run specific test, one of:"
+	echo "       " "${TEST_RUNS[@]}"
 }
 
 # check command line arguments
@@ -880,18 +893,39 @@ if [ "$#" -ne 1 ]; then
 	exit 2
 fi
 
-# handle command "list"
-if [ "$1" = "list" ]; then
-	echo "${TEST_RUNS[@]}"
-	exit 0
-fi
-
-# run all tests or specific test
-if [ "$1" = "all" ]; then
-	run_all_tests 2>&1 | tee tests.log | grep "^==="
-else
-	run_specific_test "$1" 2>&1 | tee tests.log | grep "^==="
-fi
+# parse command
+case "$1" in
+	help)
+		# handle command "help"
+		show_usage
+		exit 0
+		;;
+	list)
+		# handle command "list"
+		echo "${TEST_RUNS[@]}"
+		exit 0
+		;;
+	up)
+		# handle command "up"
+		start_containers
+		;;
+	down)
+		# handle command "down"
+		stop_containers
+		;;
+	all)
+		# handle command "all"
+		run_all_tests 2>&1 | tee tests.log | grep "^==="
+		;;
+	*)
+		# handle specific test
+		if [[ ! " ${TEST_RUNS[*]} " =~ [[:space:]]$1[[:space:]] ]]; then
+			    echo "unknown test"
+			    exit 1
+		fi
+		run_specific_test "$1" 2>&1 | tee tests.log | grep "^==="
+		;;
+esac
 
 # return error if a test failed
 if [ $FAILS -ne 0 ]; then
