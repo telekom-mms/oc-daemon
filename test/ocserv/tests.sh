@@ -17,6 +17,9 @@ OC_DAEMON_NAME="oc-daemon-test-oc-daemon"
 WEB_EXT_NAME="oc-daemon-test-web-ext"
 WEB_INT_NAME="oc-daemon-test-web-int"
 
+# log file
+LOG_FILE="test/ocserv/tests.log"
+
 ###############################################################################
 ###                                 Helpers                                 ###
 ###############################################################################
@@ -915,7 +918,7 @@ case "$1" in
 		;;
 	all)
 		# handle command "all"
-		run_all_tests 2>&1 | tee tests.log | grep "^==="
+		run_all_tests 2>&1 | tee $LOG_FILE | grep "^==="
 		;;
 	*)
 		# handle specific test
@@ -923,7 +926,7 @@ case "$1" in
 			    echo "unknown test"
 			    exit 1
 		fi
-		run_specific_test "$1" 2>&1 | tee tests.log | grep "^==="
+		run_specific_test "$1" 2>&1 | tee $LOG_FILE | grep "^==="
 		;;
 esac
 

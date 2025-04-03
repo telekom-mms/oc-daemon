@@ -46,6 +46,8 @@ servers. `ocserv` connects VPN clients to the network `int` and, thus, to
 `web-int`. So, `oc-daemon` can reach `web-int` when it is connected to the VPN
 via `ocserv`. Otherwise, it can only reach `web-ext`.
 
+ext acts as external/untrusted network, int as internal/trusted network.
+
 [ocserv]: https://ocserv.openconnect-vpn.net/
 [caddy]: https://caddyserver.com/
 
