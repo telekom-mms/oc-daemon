@@ -1,5 +1,8 @@
 # Tests with ocserv
 
+These tests test OC-Daemon with [ocserv][ocserv] in a test setup with two
+networks and multiple nodes created with podman-compose.
+
 ## Requirements
 
 - podman
@@ -7,8 +10,17 @@
   - [rootless][rootless] with configured [subuid/subgid][subuid] for your user
 - podman-compose
 
-[rootless]: https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md
-[subuid]: https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md#etcsubuid-and-etcsubgid-configuration 
+## Quick Run
+
+Run in the root directory of the Git repository:
+
+- Build Debian package with `./scripts/build-podman-test.sh`
+- Run all tests with `./test/ocserv/tests.sh all`
+
+Important: remember to re-build the Debian package before running the tests
+when the OC-Daemon code changed.
+
+See Examples below for other build options, running specific tests etc.
 
 ## Test Setup
 
@@ -39,19 +51,35 @@ The test setup consists of the two networks `oc-daemon-test-ext` and
 and `oc-daemon-test-web-int`. For brevity, the common prefix `oc-daemon-test-`
 in the names is omitted in the following description. `oc-daemon` and `web-ext`
 are only in network `ext`. `web-int` is only in network `int`. `ocserv` is in
-both networks. `oc-daemon` runs OC-Daemon and acts as VPN client.  `ocserv`
-runs [ocserv][ocserv] and acts as VPN server. `web-ext` and `web-int` both run
-[Caddy][caddy] and act as Webserver with HTTPS, so they can also be used as TND
-servers. `ocserv` connects VPN clients to the network `int` and, thus, to
+both networks. `oc-daemon` runs OC-Daemon and acts as VPN client. `ocserv` runs
+[ocserv][ocserv] and acts as VPN server. `web-ext` and `web-int` both run
+[Caddy][caddy] and act as web servers with HTTPS, so they can also be used as
+TND servers. `ocserv` connects VPN clients to the network `int` and, thus, to
 `web-int`. So, `oc-daemon` can reach `web-int` when it is connected to the VPN
-via `ocserv`. Otherwise, it can only reach `web-ext`.
+via `ocserv`. Otherwise, it can only reach `web-ext`. So, `ext` acts as
+external, untrusted network and `int` as internal, trusted network.
 
-ext acts as external/untrusted network, int as internal/trusted network.
+A test is responsible for starting and stopping the test setup and running the
+steps necessary for the specific test like setting a configuration, connecting
+and disconnecting the VPN as well as running checks. For example, a test can
+run steps similar to the following:
 
-[ocserv]: https://ocserv.openconnect-vpn.net/
-[caddy]: https://caddyserver.com/
+- start networks and containers
+- configure routing on `ocserv`
+- run checks without VPN connection on `oc-daemon`
+  - connectivity to `web-ext` and `web-int` with ping and curl
+  - errors in OC-Daemon logs
+- establish VPN connection on `oc-daemon`
+- run checks with VPN connection on `oc-daemon`
+  - connectivity to `web-ext` and `web-int` with ping and curl
+  - errors in OC-Daemon logs
+- stop networks and containers
 
-## Building OC-Daemon for Tests
+See test cases in `tests.sh` for more info on the specific tests.
+
+## Examples
+
+### Building OC-Daemon for Tests
 
 Building Debian package of regular OC-Daemon version:
 
@@ -59,13 +87,14 @@ Building Debian package of regular OC-Daemon version:
 $ ./scripts/build-podman.sh
 ```
 
-Building Debian package of OC-Daemon with race detector and coverage enabled:
+Building Debian package of OC-Daemon with race detector and coverage enabled
+(recommended for testing):
 
 ```console
 $ ./scripts/build-podman-test.sh
 ```
 
-## Running all Tests
+### Running all Tests
 
 Running all tests, showing all output:
 
@@ -73,14 +102,7 @@ Running all tests, showing all output:
 $ ./test/ocserv/tests.sh all
 ```
 
-Running all tests, piping all output into a file called `log`, not showing
-output of other programs:
-
-```console
-$ ./test/ocserv/tests.sh all 2>&1 | tee log | grep "^==="
-```
-
-## Listing available Tests
+### Listing available Tests
 
 Listing all available test:
 
@@ -91,7 +113,7 @@ test_reconnect test_disconnect test_occlient_config test_profile_alwayson
 test_profile_tnd
 ```
 
-## Running specific Test
+### Running specific Test
 
 Running specific test `test_default`, showing all output:
 
@@ -99,9 +121,28 @@ Running specific test `test_default`, showing all output:
 $ ./test/ocserv/tests.sh test_default
 ```
 
-Running specific test `test_default`, piping all output into a file called
-`log`, not showing output of other programs:
+### Viewing more Test Output
+
+You can view more detailed test output in the log file
+`./tests/ocserv/tests.log`.
+
+### Starting and Stopping Test Setup
+
+Starting the test setup without running any tests, e.g., for debugging:
 
 ```console
-$ ./test/ocserv/tests.sh test_default 2>&1 | tee log | grep "^==="
+$ ./test/ocserv/tests.sh up
 ```
+
+Remember to stop the test setup before running tests.
+
+Stopping the test setup:
+
+```console
+$ ./test/ocserv/tests.sh down
+```
+
+[ocserv]: https://ocserv.openconnect-vpn.net/
+[rootless]: https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md
+[subuid]: https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md#etcsubuid-and-etcsubgid-configuration
+[caddy]: https://caddyserver.com/
