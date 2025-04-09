@@ -1,0 +1,151 @@
+version: 2
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - id: oc-client
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/oc-client/main.go
+    binary: oc-client
+    flags:
+      - -race
+      - -cover
+    ldflags:
+      - -s -w -X github.com/telekom-mms/oc-daemon/internal/daemon.Version={{.Version}}-{{.Commit}}
+  - id: oc-daemon
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/oc-daemon/main.go
+    binary: oc-daemon
+    flags:
+      - -race
+      - -cover
+    ldflags:
+      - -s -w -X github.com/telekom-mms/oc-daemon/internal/daemon.Version={{.Version}}-{{.Commit}}
+  - id: oc-daemon-vpncscript
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+    main: ./cmd/oc-daemon-vpncscript/main.go
+    binary: oc-daemon-vpncscript
+    flags:
+      - -race
+      - -cover
+    ldflags:
+      - -s -w -X github.com/telekom-mms/oc-daemon/internal/daemon.Version={{.Version}}-{{.Commit}}
+archives:
+  - formats:
+      - tar.gz
+    wrap_in_directory: true
+    files:
+      - src: init/oc-daemon.service
+        dst: systemd/oc-daemon.service
+        info:
+          mode: 0644
+      - src: configs/oc-client.json
+        dst: examples/oc-client.json
+        info:
+          mode: 0644
+      - src: configs/oc-daemon.json
+        dst: examples/oc-daemon.json
+        info:
+          mode: 0644
+      - src: configs/dbus/com.telekom_mms.oc_daemon.Daemon.conf
+        dst: dbus/com.telekom_mms.oc_daemon.Daemon.conf
+        info:
+          mode: 0644
+      - docs
+      - README.md
+      - LICENSE
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  version_template: "{{ incpatch .Version }}-n{{ .Timestamp }}"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+nfpms:
+  - package_name: oc-daemon
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
+    vendor: Deutsche Telekom MMS GmbH
+    maintainer: The MMS Linux Dev Team <mmslinux-dev@t-systems-mms.com>
+    description: |-
+      OpenConnect Daemon
+      Wraps OpenConnect to enhance functionality for corporate Linux clients.
+    license: MIT
+    formats:
+      - deb
+    dependencies:
+      - "nftables"
+      - "openconnect"
+      - "init-system-helpers (>= 1.62)"
+    bindir: /usr/bin
+    section: net
+    # important: this makes the package non native
+    release: "1"
+    priority: important
+    # chglog init -> generates changelog.yml
+    # chglog add --version v#.#.# -> after every tag, call in hook above?
+    # activate if https://github.com/goreleaser/nfpm/pull/656 is merged and used in goreleaser
+    # -> remove overrides
+    # changelog: "changelog.yml"
+    scripts:
+      postinstall: build/package/postinstall.sh
+      preremove: build/package/preremove.sh
+      postremove: build/package/postremove.sh
+    deb:
+      lintian_overrides:
+        - "no-manual-page"
+        - "no-changelog"
+        - "statically-linked-binary"
+    contents:
+      - src: init/oc-daemon.service
+        dst: /lib/systemd/system/
+        file_info:
+          mode: 0644
+      - src: configs/dbus/com.telekom_mms.oc_daemon.Daemon.conf
+        dst: /usr/share/dbus-1/system.d/
+        file_info:
+          mode: 0644
+      - src: configs/oc-client.json
+        dst: /usr/share/doc/oc-daemon/examples/
+        file_info:
+          mode: 0644
+      - src: configs/oc-daemon.json
+        dst: /usr/share/doc/oc-daemon/examples/
+        file_info:
+          mode: 0644
+      - src: copyright
+        dst: /usr/share/doc/oc-daemon/
+        file_info:
+          mode: 0644
+      - src: docs
+        dst: /usr/share/doc/oc-daemon/docs
+        file_info:
+          mode: 0755
+      - src: README.md
+        dst: /usr/share/doc/oc-daemon/
+        file_info:
+          mode: 0644
+      - src: LICENSE
+        dst: /usr/share/doc/oc-daemon/
+        file_info:
+          mode: 0644
+release:
+  prerelease: auto
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
