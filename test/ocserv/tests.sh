@@ -205,9 +205,8 @@ save_oc_client_system_settings() {
 	$PODMAN exec "$OC_DAEMON_NAME" cat /var/lib/oc-daemon/oc-client.json
 }
 
-# set xml profile
-set_profile() {
-	out "Setting XML profile..."
+# get profile with WEB_SERVER and CERT_HASH set for web
+get_profile() {
 	local web=$1
 
 	# read profile
@@ -224,11 +223,51 @@ set_profile() {
 	# set https server in profile
 	profile=${profile/WEB_SERVER/"$web"}
 
+	echo "$profile"
+}
+
+# set xml profile on oc-daemon
+set_profile_oc_daemon() {
+	out "Setting XML profile on oc-daemon..."
+	local web=$1
+
+	# get profile
+	local profile
+	profile=$(get_profile "$web")
+
 	# set profile
 	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$profile' > /var/lib/oc-daemon/profile.xml"
 
 	# check
 	$PODMAN exec "$OC_DAEMON_NAME" cat /var/lib/oc-daemon/profile.xml
+}
+
+# set xml profile on ocserv
+set_profile_ocserv() {
+	out "Setting XML profile on ocserv..."
+	local profile=$1
+
+	# set profile
+	$PODMAN exec "$OCSERV_NAME" sh -c "echo '$profile' > /var/lib/ocserv/profile.xml"
+
+	# check
+	$PODMAN exec "$OCSERV_NAME" cat /var/lib/ocserv/profile.xml
+}
+
+# compare profile with profile.xml on oc-daemon.
+# returns error if profiles are not equal
+is_equal_profile_oc_daemon() {
+	local profile=$1
+
+	local profile_ocd
+	profile_ocd=$($PODMAN exec "$OC_DAEMON_NAME" cat /var/lib/oc-daemon/profile.xml)
+	if [ "$profile" != "$profile_ocd" ]; then
+		out "profile:"
+		out "$profile"
+		out "profile on oc-daemon:"
+		out "$profile_ocd"
+		return 1
+	fi
 }
 
 # ping external web server
@@ -267,7 +306,7 @@ curl_int() {
 
 # run command in first argument and check whether return code is an error
 expect_err() {
-	if $1; then
+	if "$@"; then
 		out "FAIL: Line ${LINENO}/${BASH_LINENO[*]}: $1 should return error"
 		((FAILS++))
 	else
@@ -278,7 +317,7 @@ expect_err() {
 
 # run command in first argument and check whether return code is OK/no error
 expect_ok() {
-	if ! $1; then
+	if ! "$@"; then
 		out "FAIL: Line ${LINENO}/${BASH_LINENO[*]}: $1 should not return error"
 		((FAILS++))
 	else
@@ -745,7 +784,7 @@ test_profile_alwayson() {
 	configure_routing
 
 	# set xml profile
-	set_profile $WEB_INT_NAME
+	set_profile_oc_daemon $WEB_INT_NAME
 	sleep 1
 	test_expect_ok_err
 
@@ -765,7 +804,7 @@ test_profile_alwayson() {
 	test_expect_err_ok
 
 	# set xml profile again, should not change anything
-	set_profile $WEB_INT_NAME
+	set_profile_oc_daemon $WEB_INT_NAME
 	sleep 1
 	test_expect_err_ok
 
@@ -784,7 +823,7 @@ test_profile_tnd() {
 
 	# set xml profile, when oc-daemon is already running
 	# set external web server in profile, pretend to be in trusted network
-	set_profile $WEB_EXT_NAME
+	set_profile_oc_daemon $WEB_EXT_NAME
 	sleep 1
 	test_expect_ok_err
 
@@ -804,7 +843,7 @@ test_profile_tnd() {
 	test_expect_ok_err
 
 	# set internal web server in profile, not in a trusted network
-	set_profile $WEB_INT_NAME
+	set_profile_oc_daemon $WEB_INT_NAME
 	sleep 1
 	test_expect_ok_err
 
@@ -812,6 +851,98 @@ test_profile_tnd() {
 	connect_vpn_cmdline
 	out "Testing after VPN connection after switching to internal server..."
 	test_expect_err_ok
+
+	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
+	stop_containers
+}
+
+# run test with xml profile, profile from server
+test_profile_server() {
+	out "Setting up test..."
+	start_containers
+	get_settings
+	configure_routing
+
+	# write profile.xml to ocserv
+	local profile
+	profile=$(get_profile $WEB_EXT_NAME)
+	set_profile_ocserv "$profile"
+
+	# set ocserv.conf with user-profile=profile.xml on ocserv
+	local config="# profile.xml config
+auth = \"certificate\"
+tcp-port = 443
+udp-port = 443
+run-as-user = ocserv
+run-as-group = ocserv
+socket-file = /run/ocserv-socket
+chroot-dir = /var/lib/ocserv
+server-cert = /etc/ocserv/server-cert.pem
+server-key = /etc/ocserv/server-key.pem
+ca-cert = /etc/ocserv/ca-cert.pem
+isolate-workers = true
+max-clients = 16
+max-same-clients = 2
+rate-limit-ms = 100
+server-stats-reset-time = 604800
+keepalive = 32400
+dpd = 90
+mobile-dpd = 1800
+switch-to-tcp-timeout = 25
+try-mtu-discovery = false
+cert-user-oid = 0.9.2342.19200300.100.1.1
+tls-priorities = \"NORMAL:%SERVER_PRECEDENCE:%COMPAT:-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1:-VERS-TLS1.3\"
+auth-timeout = 240
+min-reauth-time = 300
+max-ban-score = 80
+ban-reset-time = 1200
+cookie-timeout = 300
+deny-roaming = false
+rekey-time = 172800
+rekey-method = ssl
+use-occtl = true
+pid-file = /run/ocserv.pid
+log-level = 1
+device = vpns
+predictable-ips = true
+default-domain = example.com
+ipv4-network = 192.168.1.0
+ipv4-netmask = 255.255.255.0
+dns = 192.168.1.1
+ping-leases = false
+route = default
+
+# configure profile.xml
+user-profile = profile.xml
+
+cisco-client-compat = true
+dtls-legacy = true
+client-bypass-protocol = false
+"
+	set_ocserv_config "$config"
+
+	out "Testing before VPN connection..."
+	test_expect_ok_err
+
+	# connect vpn
+	connect_vpn_cmdline
+	out "Testing after VPN connection..."
+	test_expect_ok_err
+
+	# check profile on oc-daemon
+	out "Checking XML Profile on oc-daemon after connect..."
+	expect_ok is_equal_profile_oc_daemon "$profile"
+
+	# reconnect vpn
+	reconnect_vpn_cmdline
+	out "Testing after VPN connection..."
+	test_expect_ok_err
+
+	# check profile on oc-daemon
+	out "Checking XML Profile on oc-daemon after reconnect..."
+	expect_ok is_equal_profile_oc_daemon "$profile"
 
 	out "Shutting down test..."
 	stop_oc_daemon
@@ -831,6 +962,7 @@ TEST_RUNS=(
 	test_occlient_config
 	test_profile_alwayson
 	test_profile_tnd
+	test_profile_server
 )
 
 ###############################################################################
