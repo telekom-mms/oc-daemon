@@ -53,6 +53,7 @@ CPD hosts are added to the allowed IPv4/6 hosts:
 - `www.gstatic.com` (Chrome)
 - `clients3.google.com` (Chromium)
 - `nmcheck.gnome.org` (Gnome)
+- `networkcheck.kde.org` (KDE)
 
 ## ICMP
 
