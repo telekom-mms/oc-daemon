@@ -450,6 +450,7 @@ var (
 		"www.gstatic.com",               // chrome
 		"clients3.google.com",           // chromium
 		"nmcheck.gnome.org",             // gnome
+		"networkcheck.kde.org",          // kde
 	}
 
 	// PortalPorts are the default ports that are allowed to register on a

@@ -825,7 +825,7 @@ func TestConfigLoad(t *testing.T) {
 		"FirewallMark": "42111"
 	},
 	"TrafficPolicing": {
-		"AllowedHosts": ["connectivity-check.ubuntu.com", "detectportal.firefox.com", "www.gstatic.com", "clients3.google.com", "nmcheck.gnome.org"],
+		"AllowedHosts": ["connectivity-check.ubuntu.com", "detectportal.firefox.com", "www.gstatic.com", "clients3.google.com", "nmcheck.gnome.org", "networkcheck.kde.org"],
 		"PortalPorts": [80, 443],
 		"ResolveTimeout": 2000000000,
 		"ResolveTries": 3,
