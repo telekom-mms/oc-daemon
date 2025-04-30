@@ -47,6 +47,9 @@ type TrafPol struct {
 	// capPortal indicates if a captive portal is detected
 	capPortal bool
 
+	// cpdStatus is a channel for CPD status updates
+	cpdStatus chan bool
+
 	// allowed devices, addresses, names
 	allowDevs  *AllowDevs
 	allowAddrs *AllowAddrs
@@ -89,8 +92,8 @@ func (t *TrafPol) handleDNSUpdate() {
 	t.cpd.Probe()
 }
 
-// handleCPDReport handles a CPD report.
-func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
+// handleCPDReport handles a CPD report, returns whether status changed.
+func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) bool {
 	if !report.Detected {
 		// no captive portal detected
 		// check if there was a portal before
@@ -103,8 +106,9 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 			setAllowedPorts(ctx, t.config, []uint16{})
 			t.capPortal = false
 			log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
+			return true
 		}
-		return
+		return false
 	}
 
 	// add ports to allowed ports
@@ -112,7 +116,9 @@ func (t *TrafPol) handleCPDReport(ctx context.Context, report *cpd.Report) {
 		setAllowedPorts(ctx, t.config, t.config.TrafficPolicing.PortalPorts)
 		t.capPortal = true
 		log.WithField("capPortal", t.capPortal).Info("TrafPol changed CPD status")
+		return true
 	}
+	return false
 }
 
 // getAllowedHostsIPs returns the IPs of the allowed hosts,
@@ -201,6 +207,7 @@ func (t *TrafPol) handleCommand(ctx context.Context, cmd *trafPolCmd) {
 // start starts the traffic policing component.
 func (t *TrafPol) start(ctx context.Context) {
 	defer close(t.loopDone)
+	defer close(t.cpdStatus)
 	defer unsetFilterRules(ctx, t.config)
 	defer t.resolver.Stop()
 	defer t.cpd.Stop()
@@ -208,6 +215,8 @@ func (t *TrafPol) start(ctx context.Context) {
 	defer t.dnsmon.Stop()
 
 	// enter main loop
+	cpdResults := t.cpd.Results()
+	var cpdStatus chan bool
 	for {
 		select {
 		case u := <-t.devmon.Updates():
@@ -220,10 +229,21 @@ func (t *TrafPol) start(ctx context.Context) {
 			log.Debug("TrafPol got DNSMon update")
 			t.handleDNSUpdate()
 
-		case r := <-t.cpd.Results():
+		case r := <-cpdResults:
 			// CPD Result
 			log.WithField("result", r).Debug("TrafPol got CPD result")
-			t.handleCPDReport(ctx, r)
+			if t.handleCPDReport(ctx, r) {
+				// CPD status changed, pause reading CPD
+				// results, send status
+				cpdResults = nil
+				cpdStatus = t.cpdStatus
+			}
+
+		case cpdStatus <- t.capPortal:
+			// CPD status sent, resume reading CPD results, stop
+			// sending status
+			cpdResults = t.cpd.Results()
+			cpdStatus = nil
 
 		case u := <-t.resolvUp:
 			// Resolver Update
@@ -344,6 +364,11 @@ func (t *TrafPol) GetState() *State {
 	return c.state
 }
 
+// CPDStatus returns the channel for CPD status updates.
+func (t *TrafPol) CPDStatus() <-chan bool {
+	return t.cpdStatus
+}
+
 // parseAllowedHosts parses the allowed hosts and returns IP addresses and DNS names
 func parseAllowedHosts(hosts []string) (addrs []netip.Prefix, names []string) {
 	for _, h := range hosts {
@@ -393,6 +418,8 @@ func NewTrafPol(config *daemoncfg.Config) *TrafPol {
 		devmon: devmon.NewDevMon(),
 		dnsmon: dnsmon.NewDNSMon(dnsmon.NewConfig()),
 		cpd:    c,
+
+		cpdStatus: make(chan bool),
 
 		allowDevs: NewAllowDevs(),
 

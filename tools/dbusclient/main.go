@@ -43,6 +43,7 @@ func main() {
 	ocPID := dbusapi.OCPIDInvalid
 	trafPolState := dbusapi.TrafPolStateUnknown
 	allowedHosts := dbusapi.AllowedHostsInvalid
+	captivePortal := dbusapi.CaptivePortalUnknown
 	tndState := dbusapi.TNDStateUnknown
 	tndServers := dbusapi.TNDServersInvalid
 	vpnConfig := dbusapi.VPNConfigInvalid
@@ -66,6 +67,7 @@ func main() {
 	getProperty(dbusapi.PropertyOCPID, &ocPID)
 	getProperty(dbusapi.PropertyTrafPolState, &trafPolState)
 	getProperty(dbusapi.PropertyAllowedHosts, &allowedHosts)
+	getProperty(dbusapi.PropertyCaptivePortal, &captivePortal)
 	getProperty(dbusapi.PropertyTNDState, &tndState)
 	getProperty(dbusapi.PropertyTNDServers, &tndServers)
 	getProperty(dbusapi.PropertyVPNConfig, &vpnConfig)
@@ -82,6 +84,7 @@ func main() {
 	log.Println("OCPID:", ocPID)
 	log.Println("TrafPolState:", trafPolState)
 	log.Println("AllowedHosts:", allowedHosts)
+	log.Println("CaptivePortal:", captivePortal)
 	log.Println("TNDState:", tndState)
 	log.Println("TNDServers:", tndServers)
 	log.Println("VPNConfig:", vpnConfig)
@@ -172,6 +175,11 @@ func main() {
 					log.Fatal(err)
 				}
 				fmt.Println(allowedHosts)
+			case dbusapi.PropertyCaptivePortal:
+				if err := value.Store(&captivePortal); err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println(captivePortal)
 			case dbusapi.PropertyTNDState:
 				if err := value.Store(&tndState); err != nil {
 					log.Fatal(err)
@@ -223,6 +231,8 @@ func main() {
 				trafPolState = dbusapi.TrafPolStateUnknown
 			case dbusapi.PropertyAllowedHosts:
 				allowedHosts = dbusapi.AllowedHostsInvalid
+			case dbusapi.PropertyCaptivePortal:
+				captivePortal = dbusapi.CaptivePortalUnknown
 			case dbusapi.PropertyTNDState:
 				tndState = dbusapi.TNDStateUnknown
 			case dbusapi.PropertyTNDServers:

@@ -34,6 +34,7 @@ const (
 	PropertyOCPID           = "OCPID"
 	PropertyTrafPolState    = "TrafPolState"
 	PropertyAllowedHosts    = "AllowedHosts"
+	PropertyCaptivePortal   = "CaptivePortal"
 	PropertyTNDState        = "TNDState"
 	PropertyTNDServers      = "TNDServers"
 	PropertyVPNConfig       = "VPNConfig"
@@ -107,6 +108,13 @@ const (
 // Property "Allowed Hosts" values.
 var (
 	AllowedHostsInvalid []string
+)
+
+// Property "Captive Portal" states.
+const (
+	CaptivePortalUnknown uint32 = iota
+	CaptivePortalNotDetected
+	CaptivePortalDetected
 )
 
 // Property "TND State" states.
@@ -294,6 +302,7 @@ func (s *Service) start() {
 		s.props.SetMust(Interface, PropertyOCPID, OCPIDInvalid)
 		s.props.SetMust(Interface, PropertyTrafPolState, TrafPolStateUnknown)
 		s.props.SetMust(Interface, PropertyAllowedHosts, AllowedHostsInvalid)
+		s.props.SetMust(Interface, PropertyCaptivePortal, CaptivePortalUnknown)
 		s.props.SetMust(Interface, PropertyTNDState, TNDStateUnknown)
 		s.props.SetMust(Interface, PropertyTNDServers, TNDServersInvalid)
 		s.props.SetMust(Interface, PropertyVPNConfig, VPNConfigInvalid)
@@ -420,6 +429,12 @@ func (s *Service) Start() error {
 			},
 			PropertyAllowedHosts: {
 				Value:    AllowedHostsInvalid,
+				Writable: false,
+				Emit:     prop.EmitTrue,
+				Callback: nil,
+			},
+			PropertyCaptivePortal: {
+				Value:    CaptivePortalUnknown,
 				Writable: false,
 				Emit:     prop.EmitTrue,
 				Callback: nil,

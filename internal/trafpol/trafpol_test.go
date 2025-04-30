@@ -7,7 +7,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/telekom-mms/oc-daemon/internal/cmdtmpl"
@@ -54,62 +53,35 @@ func TestTrafPolHandleCPDReport(t *testing.T) {
 	tp.resolver.Start()
 	defer tp.resolver.Stop()
 
-	var nftMutex sync.Mutex
-	nftCmds := []string{}
 	oldRunCmd := cmdtmpl.RunCmd
-	cmdtmpl.RunCmd = func(_ context.Context, cmd string, stdin string,
-		args ...string) ([]byte, []byte, error) {
-
-		nftMutex.Lock()
-		defer nftMutex.Unlock()
-		nftCmds = append(nftCmds, cmd+" "+strings.Join(args, " ")+" "+stdin)
+	cmdtmpl.RunCmd = func(_ context.Context, _ string, _ string,
+		_ ...string) ([]byte, []byte, error) {
 		return nil, nil, nil
 	}
 	defer func() { cmdtmpl.RunCmd = oldRunCmd }()
 
-	getNftCmds := func() []string {
-		nftMutex.Lock()
-		defer nftMutex.Unlock()
-		return append(nftCmds[:0:0], nftCmds...)
-	}
-
 	// test not detected
 	report := &cpd.Report{}
-	tp.handleCPDReport(ctx, report)
-
-	want := []string{}
-	got := getNftCmds()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+	if tp.handleCPDReport(ctx, report) {
+		t.Error("status should not have changed")
 	}
 
 	// test detected
 	report.Detected = true
-	tp.handleCPDReport(ctx, report)
-
-	want = []string{
-		"nft -f - flush set inet oc-daemon-filter allowports\n" +
-			"add element inet oc-daemon-filter allowports { 80 }\n" +
-			"add element inet oc-daemon-filter allowports { 443 }\n",
+	if !tp.handleCPDReport(ctx, report) {
+		t.Error("status should have changed")
 	}
-	got = getNftCmds()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+
+	// test still detected
+	report.Detected = true
+	if tp.handleCPDReport(ctx, report) {
+		t.Error("status should not have changed")
 	}
 
 	// test not detected any more
 	report.Detected = false
-	tp.handleCPDReport(ctx, report)
-
-	want = []string{
-		"nft -f - flush set inet oc-daemon-filter allowports\n" +
-			"add element inet oc-daemon-filter allowports { 80 }\n" +
-			"add element inet oc-daemon-filter allowports { 443 }\n",
-		"nft -f - flush set inet oc-daemon-filter allowports\n",
-	}
-	got = getNftCmds()
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
+	if !tp.handleCPDReport(ctx, report) {
+		t.Error("status should have changed")
 	}
 }
 
@@ -128,8 +100,11 @@ func TestTrafPolStartEvents(t *testing.T) {
 	}
 	tp.devmon.Updates() <- &devmon.Update{Type: "device"}
 	tp.dnsmon.Updates() <- struct{}{}
-	tp.cpd.Results() <- &cpd.Report{}
+	tp.cpd.Results() <- &cpd.Report{Detected: true}
 	tp.resolvUp <- &ResolvedName{}
+	if !<-tp.CPDStatus() {
+		t.Error("CPD status should be true")
+	}
 	tp.Stop()
 }
 
@@ -275,6 +250,14 @@ func TestTrafPolGetState(t *testing.T) {
 	tp.Stop()
 }
 
+// TestTrafPolCPDStatus tests CPDStatus of TrafPol.
+func TestTrafPolCPDStatus(t *testing.T) {
+	tp := NewTrafPol(daemoncfg.NewConfig())
+	if tp.CPDStatus() != tp.cpdStatus {
+		t.Error("invalid CPD status")
+	}
+}
+
 // TestNewTrafPol tests NewTrafPol.
 func TestNewTrafPol(t *testing.T) {
 	c := daemoncfg.NewConfig()
@@ -286,6 +269,7 @@ func TestNewTrafPol(t *testing.T) {
 		tp.devmon == nil ||
 		tp.dnsmon == nil ||
 		tp.cpd == nil ||
+		tp.cpdStatus == nil ||
 		tp.allowDevs == nil ||
 		tp.allowAddrs == nil ||
 		tp.allowNames == nil ||
