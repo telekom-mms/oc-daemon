@@ -167,7 +167,7 @@ func TestTrafPolStartStop(t *testing.T) {
 	tp.Stop()
 }
 
-// TestTrafPolAddRemoveAllowedAddr tests AddAllowedAddr and RemoveAllowedAddr of Trafpol.
+// TestTrafPolAddRemoveAllowedAddr tests AddAllowedAddr and RemoveAllowedAddr of TrafPol.
 func TestTrafPolAddRemoveAllowedAddr(t *testing.T) {
 	// set dummy low level function for devmon
 	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
@@ -226,7 +226,7 @@ func TestTrafPolAddRemoveAllowedAddr(t *testing.T) {
 	tp.Stop()
 }
 
-// TestTrafPolGetState tests GetState of Trafpol.
+// TestTrafPolGetState tests GetState of TrafPol.
 func TestTrafPolGetState(t *testing.T) {
 	// set dummy low level function for devmon
 	oldRegisterLinkUpdates := devmon.RegisterLinkUpdates
