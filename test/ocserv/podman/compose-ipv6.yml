@@ -1,0 +1,63 @@
+# test network with ipv4 and ipv6
+name: oc-daemon-test
+
+services:
+  ocserv:
+    build:
+      context: ../../../
+      dockerfile: test/ocserv/podman/Dockerfile
+      target: ocserv
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW # for ping
+    devices:
+      - "/dev/net/tun:/dev/net/tun"
+    networks:
+      - ext
+      - int
+    container_name: oc-daemon-test-ocserv
+  oc-daemon:
+    build:
+      context: ../../../
+      dockerfile: test/ocserv/podman/Dockerfile
+      target: oc-daemon
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    devices:
+      - "/dev/net/tun:/dev/net/tun"
+    networks:
+      - ext
+    container_name: oc-daemon-test-oc-daemon
+    environment:
+      - GOCOVERDIR=/gocover
+  web-ext:
+    build:
+      context: ../../../
+      dockerfile: test/ocserv/podman/Dockerfile
+      target: web-ext
+    networks:
+      - ext
+    container_name: oc-daemon-test-web-ext
+  web-int:
+    build:
+      context: ../../../
+      dockerfile: test/ocserv/podman/Dockerfile
+      target: web-int
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - int
+    container_name: oc-daemon-test-web-int
+
+networks:
+  ext:
+    internal: true
+    enable_ipv6: true
+    name: oc-daemon-test-ext
+  int:
+    internal: true
+    enable_ipv6: true
+    name: oc-daemon-test-int
