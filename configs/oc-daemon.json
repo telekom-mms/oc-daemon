@@ -1,59 +1,77 @@
 {
-	"Verbose": false,
-	"SocketServer": {
-		"SocketFile": "/run/oc-daemon/daemon.sock",
-		"SocketOwner": "",
-		"SocketGroup": "",
-		"SocketPermissions":  "0700",
-		"RequestTimeout": 30000000000
-	},
-	"CPD": {
-		"Host": "connectivity-check.ubuntu.com",
-		"HTTPTimeout": 5000000000,
-		"ProbeCount": 3,
-		"ProbeTimer": 300000000000,
-		"ProbeTimerDetected": 15000000000
-	},
-	"DNSProxy": {
-		"Address": "127.0.0.1:4253",
-		"ListenUDP": true,
-		"ListenTCP": true
-	},
-	"OpenConnect": {
-		"OpenConnect": "openconnect",
-		"XMLProfile": "/var/lib/oc-daemon/profile.xml",
-		"VPNCScript": "/usr/bin/oc-daemon-vpncscript",
-		"VPNDevice": "oc-daemon-tun0",
-		"PIDFile": "/run/oc-daemon/openconnect.pid",
-		"PIDOwner": "",
-		"PIDGroup": "",
-		"PIDPermissions": "0600",
-		"ExtraEnv": [],
-		"ExtraArgs": []
-	},
-	"Executables": {
-		"IP": "ip",
-		"Nft": "nft",
-		"Resolvectl": "resolvectl",
-		"Sysctl": "sysctl"
-	},
-	"SplitRouting": {
-		"RoutingTable": "42111",
-		"RulePriority1": "2111",
-		"RulePriority2": "2112",
-		"FirewallMark": "42111"
-	},
-	"TrafficPolicing": {
-		"AllowedHosts": ["connectivity-check.ubuntu.com", "detectportal.firefox.com", "www.gstatic.com", "clients3.google.com", "nmcheck.gnome.org", "networkcheck.kde.org"],
-		"ResolveTimeout": 2000000000,
-		"ResolveTries": 3,
-		"ResolveTriesSleep": 1000000000,
-		"ResolveTTL": 300000000000
-	},
-	"TND": {
-		"WaitCheck": 1000000000,
-		"HTTPSTimeout": 5000000000,
-		"UntrustedTimer": 30000000000,
-		"TrustedTimer": 60000000000
-	}
+    "Verbose": false,
+    "SocketServer": {
+        "SocketFile": "/run/oc-daemon/daemon.sock",
+        "SocketOwner": "",
+        "SocketGroup": "",
+        "SocketPermissions": "0700",
+        "RequestTimeout": 30000000000
+    },
+    "CPD": {
+        "Host": "connectivity-check.ubuntu.com",
+        "HTTPTimeout": 5000000000,
+        "ProbeCount": 3,
+        "ProbeWait": 1000000000,
+        "ProbeTimer": 300000000000,
+        "ProbeTimerDetected": 15000000000
+    },
+    "DNSProxy": {
+        "Address": "127.0.0.1:4253",
+        "ListenUDP": true,
+        "ListenTCP": true
+    },
+    "OpenConnect": {
+        "OpenConnect": "openconnect",
+        "XMLProfile": "/var/lib/oc-daemon/profile.xml",
+        "VPNCScript": "/usr/bin/oc-daemon-vpncscript",
+        "VPNDevice": "oc-daemon-tun0",
+        "PIDFile": "/run/oc-daemon/openconnect.pid",
+        "PIDOwner": "",
+        "PIDGroup": "",
+        "PIDPermissions": "0600",
+        "NoProxy": true,
+        "ExtraEnv": [],
+        "ExtraArgs": []
+    },
+    "Executables": {
+        "IP": "ip",
+        "Nft": "nft",
+        "Resolvectl": "resolvectl",
+        "Sysctl": "sysctl"
+    },
+    "SplitRouting": {
+        "RoutingTable": "42111",
+        "RulePriority1": "2111",
+        "RulePriority2": "2112",
+        "FirewallMark": "42111"
+    },
+    "TrafficPolicing": {
+        "AllowedHosts": [
+            "connectivity-check.ubuntu.com",
+            "detectportal.firefox.com",
+            "www.gstatic.com",
+            "clients3.google.com",
+            "nmcheck.gnome.org",
+            "networkcheck.kde.org"
+        ],
+        "PortalPorts": [
+            80,
+            443
+        ],
+        "ResolveTimeout": 2000000000,
+        "ResolveTries": 3,
+        "ResolveTriesSleep": 1000000000,
+        "ResolveTimer": 30000000000,
+        "ResolveTTL": 300000000000
+    },
+    "TND": {
+        "WaitCheck": 1000000000,
+        "HTTPSTimeout": 5000000000,
+        "UntrustedTimer": 30000000000,
+        "TrustedTimer": 60000000000
+    },
+    "CommandLists": {
+        "ListsFile": "/var/lib/oc-daemon/command-lists.json",
+        "TemplatesFile": "/var/lib/oc-daemon/command-lists.tmpl"
+    }
 }
