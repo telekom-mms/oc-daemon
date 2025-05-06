@@ -15,8 +15,8 @@ line in `oc-client status`.
 
 ### Current Profile
 
-Currently, the log output of OC-Client contains `Location:` that also contains
-the profile name.
+If quiet output (enabled by default) is disabled, the log output of OC-Client
+contains `POST:` lines that also contain the profile name.
 
 ### Connection State
 
@@ -30,14 +30,17 @@ You can see the current IP used inside the tunnel in the `IP` line in
 
 ### Server IP
 
-The `Gateway` entry in the `VPN Config` line in `oc-client status -verbose` is
-the IP address of the server you are currently connected to.
+You can see the IP address of the server you are currently connected to in the
+`Server IP` line in `oc-client status`.
+
+Also, the `Gateway` entry in the `VPN Config` line in `oc-client status
+-verbose` is the IP address of the server you are currently connected to.
 
 ### Sent/Received Bytes
 
 You can view statistics about sent and received bytes on the tunnel device with
-`ip -statistics a show dev $DEV`, where $DEV is the VPN device name (default:
-`oc-daemon-tun0`).
+`ip -statistics address show dev $DEV`, where $DEV is the VPN device name
+(default: `oc-daemon-tun0`).
 
 ### Information about Encryption
 
