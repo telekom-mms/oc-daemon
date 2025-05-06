@@ -25,17 +25,25 @@ node /com/telekom_mms/oc_daemon/Daemon {
               in  s fingerprint,
               in  s resolve);
       Disconnect();
+      DumpState(out s state);
     signals:
     properties:
-      readonly u TrustedNetwork = 1;
-      readonly u OCRunning = 1;
-      readonly s VPNConfig = '';
       readonly s IP = '';
+      readonly u TrafPolState = 2;
+      readonly u TrustedNetwork = 1;
+      readonly as AllowedHosts = ['example.com', 'vpn1.company.net', 'vpn2.company.net', 'tnd1.company.lan', 'tnd2.company.lan', '192.168.3.3', '192.168.4.0/24'];
+      readonly u TNDState = 2;
       readonly s Server = '';
-      readonly x ConnectedAt = 0;
-      readonly u ConnectionState = 1;
+      readonly s ServerIP = '';
+      readonly u OCPID = 0;
+      readonly s VPNConfig = '';
+      readonly u CaptivePortal = 1;
       readonly s Device = '';
+      readonly u OCRunning = 1;
+      readonly x ConnectedAt = 0;
       readonly as Servers = ['VPN Server 1', 'VPN Server 2'];
+      readonly u ConnectionState = 1;
+      readonly as TNDServers = ['https://tnd1.company.lan:443:ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789', 'https://tnd2.company.lan:443:0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF'];
   };
 };
 ```
@@ -52,7 +60,18 @@ name to its IP address to bypass DNS resolution.
 
 `Disconnect()` is used to disconnect from the current VPN server.
 
+TODO: add DumpState
+
 ### Properties
+
+TODO: change order?
+TODO: add TrafPolState
+TODO: add AllowedHosts
+TODO: add TNDState
+TODO: add ServerIP
+TODO: add OCPID
+TODO: add CaptivePortal
+TODO: add TNDServers
 
 All properties emit `org.freedesktop.DBus.Properties.PropertiesChanged`
 signals.
