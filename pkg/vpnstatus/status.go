@@ -118,7 +118,7 @@ const (
 	TrafPolStateDisabled
 )
 
-// String resturns TrafPolState as string.
+// String returns TrafPolState as string.
 func (t TrafPolState) String() string {
 	switch t {
 	case TrafPolStateUnknown:
@@ -166,7 +166,7 @@ const (
 	TNDStateActive
 )
 
-// String resturns TNDState as string.
+// String returns TNDState as string.
 func (t TNDState) String() string {
 	switch t {
 	case TNDStateUnknown:
