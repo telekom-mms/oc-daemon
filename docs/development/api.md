@@ -9,6 +9,9 @@ communication with the oc-daemon-vpncscript.
 The D-Bus API is used by oc-client or other client implementations to
 communicate with the oc-daemon.
 
+TODO: update dbus api
+TODO: update other docs?
+
 ```console
 $ gdbus introspect --system --dest com.telekom_mms.oc_daemon.Daemon --object-path /com/telekom_mms/oc_daemon/Daemon
 
