@@ -19,6 +19,15 @@ type ResolvedName struct {
 	TTL  time.Duration
 }
 
+// copy returns a copy of the ResolvedName.
+func (r *ResolvedName) copy() *ResolvedName {
+	return &ResolvedName{
+		Name: r.Name,
+		IPs:  append(r.IPs[:0:0], r.IPs...),
+		TTL:  r.TTL,
+	}
+}
+
 // sleepResolveTry is used to sleep before resolve (re)tries, can be canceled.
 func (r *ResolvedName) sleepResolveTry(ctx context.Context, config *daemoncfg.TrafficPolicing) {
 	timer := time.NewTimer(config.ResolveTriesSleep)
@@ -97,7 +106,7 @@ func (r *ResolvedName) resolve(ctx context.Context, config *daemoncfg.TrafficPol
 
 		// send update over updates channel
 		select {
-		case updates <- r:
+		case updates <- r.copy():
 		case <-ctx.Done():
 		}
 		return
