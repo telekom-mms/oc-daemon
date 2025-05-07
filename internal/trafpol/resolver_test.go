@@ -2,11 +2,43 @@ package trafpol
 
 import (
 	"net/netip"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 )
+
+// TestResolvedNameCopy tests copy of ResolvedName.
+func TestResolvedNameCopy(t *testing.T) {
+	// test empty, filled
+	for _, r := range []*ResolvedName{
+		{},
+		{
+			Name: "test",
+			IPs:  []netip.Addr{netip.MustParseAddr("192.168.1.1")},
+			TTL:  10 * time.Second,
+		},
+	} {
+		want := r
+		got := want.copy()
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	}
+
+	// test modification after copy
+	r1 := &ResolvedName{}
+	r2 := r1.copy()
+	r1.Name = "test"
+	r1.IPs = []netip.Addr{netip.MustParseAddr("192.168.1.1")}
+	r1.TTL = 10 * time.Second
+
+	if reflect.DeepEqual(r1, r2) {
+		t.Error("copies should not be equal after modification")
+	}
+}
 
 // TestResolverStartStop tests Start and Stop of Resolver.
 func TestResolverStartStop(_ *testing.T) {
