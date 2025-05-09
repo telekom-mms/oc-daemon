@@ -9,7 +9,6 @@ communication with the oc-daemon-vpncscript.
 The D-Bus API is used by oc-client or other client implementations to
 communicate with the oc-daemon.
 
-TODO: update dbus api
 TODO: update other docs?
 
 ```console
@@ -28,22 +27,22 @@ node /com/telekom_mms/oc_daemon/Daemon {
       DumpState(out s state);
     signals:
     properties:
-      readonly s IP = '';
-      readonly u TrafPolState = 2;
       readonly u TrustedNetwork = 1;
-      readonly as AllowedHosts = ['example.com', 'vpn1.company.net', 'vpn2.company.net', 'tnd1.company.lan', 'tnd2.company.lan', '192.168.3.3', '192.168.4.0/24'];
-      readonly u TNDState = 2;
+      readonly u ConnectionState = 1;
+      readonly s IP = '';
+      readonly s Device = '';
       readonly s Server = '';
       readonly s ServerIP = '';
-      readonly u OCPID = 0;
-      readonly s VPNConfig = '';
-      readonly u CaptivePortal = 1;
-      readonly s Device = '';
-      readonly u OCRunning = 1;
       readonly x ConnectedAt = 0;
       readonly as Servers = ['VPN Server 1', 'VPN Server 2'];
-      readonly u ConnectionState = 1;
+      readonly u OCRunning = 1;
+      readonly u OCPID = 0;
+      readonly u TrafPolState = 2;
+      readonly as AllowedHosts = ['example.com', 'vpn1.company.net', 'vpn2.company.net', 'tnd1.company.lan', 'tnd2.company.lan', '192.168.3.3', '192.168.4.0/24'];
+      readonly u CaptivePortal = 1;
+      readonly u TNDState = 2;
       readonly as TNDServers = ['https://tnd1.company.lan:443:ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789', 'https://tnd2.company.lan:443:0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF'];
+      readonly s VPNConfig = '';
   };
 };
 ```
@@ -60,42 +59,50 @@ name to its IP address to bypass DNS resolution.
 
 `Disconnect()` is used to disconnect from the current VPN server.
 
-TODO: add DumpState
+`DumpState()` is used to retrieve the internal state of oc-daemon. The
+parameter `state` is the current state returned by oc-daemon.
 
 ### Properties
-
-TODO: change order?
-TODO: add TrafPolState
-TODO: add AllowedHosts
-TODO: add TNDState
-TODO: add ServerIP
-TODO: add OCPID
-TODO: add CaptivePortal
-TODO: add TNDServers
 
 All properties emit `org.freedesktop.DBus.Properties.PropertiesChanged`
 signals.
 
 `TrustedNetwork` indicates whether a trusted network has been detected.
 
-`OCRunning` indicates whether the OpenConnect process is running.
-
-`VPNConfig` is the VPN network configuration. For the go-representation of the
-configuration see [VPN Network Configuration](vpn-network-config.md).
-
-`IP` is the local client's IP address in the VPN.
-
-`Server` is the name of the current VPN server.
-
-`ConnectedAt` is the time when the VPN connection was established.
-
 `ConnectionState` indicates whether the VPN connection was established using
 the OpenConnect process.
+
+`IP` is the local client's IP address in the VPN.
 
 `Device` is the name of the local client's VPN network device (default:
 `oc-daemon-tun0`).
 
+`Server` is the name of the current VPN server.
+
+`ServerIP` is the IP address of the current VPN server.
+
+`ConnectedAt` is the time when the VPN connection was established.
+
 `Servers` is the list of names of available VPN servers.
+
+`OCRunning` indicates whether the OpenConnect process is running.
+
+`OCPID` is the Process ID of the running OpenConnect process.
+
+`TrafPolState` indicates whether Traffic Policing is active.
+
+`AllowedHosts` is the list of allowed hosts configured in Traffic Policing.
+
+`CaptivePortal` indicates whether a captive portal was detected by Traffic
+Policing.
+
+`TNDState` indicates whether Trusted Network Detection is active.
+
+`TNDServers` is the list of server URLs with certificate hashes configured in
+Trusted Network Detection.
+
+`VPNConfig` is the VPN network configuration. For the go-representation of the
+configuration see [VPN Network Configuration](vpn-network-config.md).
 
 ## Unix Socket API
 
