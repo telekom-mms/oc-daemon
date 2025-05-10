@@ -190,6 +190,7 @@ func printStatus(status *vpnstatus.Status) error {
 	fmt.Printf("OC PID:           %d\n", status.OCPID)
 	fmt.Printf("TrafPol State:    %s\n", status.TrafPolState)
 	fmt.Printf("Allowed Hosts:    %s\n", status.AllowedHosts)
+	fmt.Printf("Captive Portal:   %s\n", status.CaptivePortal)
 	fmt.Printf("TND State:        %s\n", status.TNDState)
 	fmt.Printf("TND Servers:      %s\n", status.TNDServers)
 

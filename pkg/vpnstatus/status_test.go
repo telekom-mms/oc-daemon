@@ -174,6 +174,23 @@ func TestTrafPolStateString(t *testing.T) {
 	}
 }
 
+// TestCaptivePortalString tests String of CaptivePortal.
+func TestCaptivePortalString(t *testing.T) {
+	for v, s := range map[CaptivePortal]string{
+		// valid
+		CaptivePortalUnknown:     "unknown",
+		CaptivePortalNotDetected: "not detected",
+		CaptivePortalDetected:    "detected",
+
+		// invalid
+		123456: "",
+	} {
+		if v.String() != s {
+			t.Errorf("got %s, want %s", v.String(), s)
+		}
+	}
+}
+
 // TestTNDStateString tests String of TNDState.
 func TestTNDStateString(t *testing.T) {
 	for v, s := range map[TNDState]string{
@@ -214,6 +231,7 @@ func TestStatusCopy(t *testing.T) {
 			OCPID:           12345,
 			TrafPolState:    TrafPolStateActive,
 			AllowedHosts:    []string{"test.example.com"},
+			CaptivePortal:   CaptivePortalNotDetected,
 			TNDState:        TNDStateActive,
 			TNDServers:      []string{"tnd1.local:abcdef..."},
 			VPNConfig:       vpnconfig.New(),

@@ -133,6 +133,29 @@ func (t TrafPolState) String() string {
 	return ""
 }
 
+// CaptivePortal is the current captive portal state.
+type CaptivePortal uint32
+
+// CaptivePortal states.
+const (
+	CaptivePortalUnknown CaptivePortal = iota
+	CaptivePortalNotDetected
+	CaptivePortalDetected
+)
+
+// String returns CaptivePortal as string.
+func (t CaptivePortal) String() string {
+	switch t {
+	case CaptivePortalUnknown:
+		return "unknown"
+	case CaptivePortalNotDetected:
+		return "not detected"
+	case CaptivePortalDetected:
+		return "detected"
+	}
+	return ""
+}
+
 // TNDState is the current TND state.
 type TNDState uint32
 
@@ -170,6 +193,7 @@ type Status struct {
 	OCPID           uint32
 	TrafPolState    TrafPolState
 	AllowedHosts    []string
+	CaptivePortal   CaptivePortal
 	TNDState        TNDState
 	TNDServers      []string
 	VPNConfig       *vpnconfig.Config
@@ -194,6 +218,7 @@ func (s *Status) Copy() *Status {
 		OCPID:           s.OCPID,
 		TrafPolState:    s.TrafPolState,
 		AllowedHosts:    append(s.AllowedHosts[:0:0], s.AllowedHosts...),
+		CaptivePortal:   s.CaptivePortal,
 		TNDState:        s.TNDState,
 		TNDServers:      append(s.TNDServers[:0:0], s.TNDServers...),
 		VPNConfig:       s.VPNConfig.Copy(),

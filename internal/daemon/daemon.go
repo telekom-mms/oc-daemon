@@ -243,6 +243,19 @@ func (d *Daemon) setStatusAllowedHosts(hosts []string) {
 	d.dbus.SetProperty(dbusapi.PropertyAllowedHosts, hosts)
 }
 
+// setStatusCaptivePortal sets the captive portal state in status.
+func (d *Daemon) setStatusCaptivePortal(capPortal vpnstatus.CaptivePortal) {
+	if d.status.CaptivePortal == capPortal {
+		// state not changed
+		return
+	}
+
+	// state changed
+	log.WithField("CaptivePortal", capPortal).Info("Daemon changed CaptivePortal status")
+	d.status.CaptivePortal = capPortal
+	d.dbus.SetProperty(dbusapi.PropertyCaptivePortal, capPortal)
+}
+
 // setStatusTNDState sets the TND state in status.
 func (d *Daemon) setStatusTNDState(state vpnstatus.TNDState) {
 	if d.status.TNDState == state {
@@ -692,6 +705,17 @@ func (d *Daemon) handleProfileUpdate() error {
 	return nil
 }
 
+// handleCPDStatusUpdate handles a CPD status update.
+func (d *Daemon) handleCPDStatusUpdate(detected bool) {
+	log.WithField("detected", detected).Debug("Daemon handling CPD status update")
+
+	if detected {
+		d.setStatusCaptivePortal(vpnstatus.CaptivePortalDetected)
+		return
+	}
+	d.setStatusCaptivePortal(vpnstatus.CaptivePortalNotDetected)
+}
+
 // cleanup cleans up after a failed shutdown.
 func (d *Daemon) cleanup(ctx context.Context) {
 	ocrunner.CleanupConnect(d.config.OpenConnect)
@@ -834,6 +858,7 @@ func (d *Daemon) startTrafPol() error {
 	// update trafpol status
 	d.setStatusTrafPolState(vpnstatus.TrafPolStateActive)
 	d.setStatusAllowedHosts(c.TrafficPolicing.AllowedHosts)
+	d.setStatusCaptivePortal(vpnstatus.CaptivePortalNotDetected)
 
 	if d.serverIP.IsValid() {
 		// VPN connection active, allow server IP
@@ -860,6 +885,7 @@ func (d *Daemon) stopTrafPol() {
 		d.setStatusTrafPolState(vpnstatus.TrafPolStateInactive)
 	}
 	d.setStatusAllowedHosts(nil)
+	d.setStatusCaptivePortal(vpnstatus.CaptivePortalUnknown)
 }
 
 // checkTrafPol checks if traffic policing should be running and
@@ -929,6 +955,9 @@ func (d *Daemon) start() {
 				d.errors <- fmt.Errorf("Daemon could not handle Profile update: %w", err)
 				return
 			}
+
+		case s := <-d.trafpol.CPDStatus():
+			d.handleCPDStatusUpdate(s)
 
 		case <-d.done:
 			log.Info("Daemon stopping")
