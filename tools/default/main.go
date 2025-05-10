@@ -59,7 +59,7 @@ func main() {
 		}
 
 		// print to stdout
-		fmt.Fprintf(os.Stdout, "%s\n", b)
+		_, _ = fmt.Fprintf(os.Stdout, "%s\n", b)
 
 	case CommandLists:
 		// sort function
@@ -78,11 +78,11 @@ func main() {
 		}
 
 		// print to stdout
-		fmt.Fprintf(os.Stdout, "%s\n", b)
+		_, _ = fmt.Fprintf(os.Stdout, "%s\n", b)
 
 	case CommandTemplates:
 		// print to stdout
-		fmt.Fprintf(os.Stdout, "%s\n", cmdtmpl.DefaultTemplate)
+		_, _ = fmt.Fprintf(os.Stdout, "%s\n", cmdtmpl.DefaultTemplate)
 
 	default:
 		// unknown, print error message to stderr
