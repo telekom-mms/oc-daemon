@@ -631,7 +631,7 @@ func (d *Daemon) handleTNDResult(trusted bool) error {
 }
 
 // handleRunnerDisconnect handles a disconnect event from the OC runner,
-// cleaning up everthing. This is also called when stopping the daemon.
+// cleaning up everything. This is also called when stopping the daemon.
 func (d *Daemon) handleRunnerDisconnect() {
 	// make sure running and connected are not set
 	d.setStatusOCRunning(false)
