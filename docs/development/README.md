@@ -17,6 +17,7 @@ Features of the current implementation:
   - TLS, DTLS
 - Authentication Methods
   - Machine Certificate + Username/Password
+  - TODO: Machine Certificate + User Certificate (with newer OpenConnect version)?
 
 ## Components
 
@@ -40,6 +41,91 @@ Features of the current implementation:
       +------------+      +------------+
       |   Client   |      | VPNCScript |
       +------------+      +------------+
+```
+
+```
+
+VPN Setup
+- Device Configuration
+- DNS Configuration
+- Split Routing
+  - Device Monitor
+  - Address Monitor
+
+DNS Proxy
+
+Traffic Policing
+- Device Monitor
+- DNS Monitor
+- Captive Portal Detection
+- DNS Resolver
+
+Trusted Network Detection
+
++---------------------------------------------------------------------------+
+| Daemon                                                                    |
+|                                                                           |
+| - Profile Monitor                                                         |
+| - Sleep Monitor                                                           |
+| - OpenConnect Runner                                                      |
+|                                                                           |
+|  +------------+  +------------+  +-------+  +--------------------------+  |
+|  | Traffic    |  | Trusted    |  | DNS   |  | VPN Setup                |  |
+|  | Policing   |  | Network    |  | Proxy |  |                          |  |
+|  |            |  | Detection  |  |       |  | +-----------+ +--------+ |  |
+|  | - Devmon   |  |            |  |       |  | | Split     | | DNS    | |  |
+|  | - DNSMon   |  |            |  |       |  | | Routing   | | Setup  | |  |
+|  | - CPD      |  |            |  |       |  | |           | +--------+ |  |
+|  | - Resolver |  |            |  |       |  | | - DevMon  | +--------+ |  |
+|  |            |  |            |  |       |  | | - AddrMon | | Device | |  |
+|  |            |  |            |  |       |  | |           | | Setup  | |  |
+|  |            |  |            |  |       |  | +-----------+ +--------+ |  |
+|  +------------+  +------------+  +-------+  +--------------------------+  |
+|                                                                           |
++---------------------[D-Bus API]----------[Socket API]---------------------+
+                           |                    |
+                           |                    |
+                     +------------+      +------------+
+                     |   Client   |      | VPNCScript |
+                     +------------+      +------------+
+
++---------------------------------------------------------------------------+
+| Daemon                                                                    |
+|                                  +--------------------------+             |
+|                                  | VPN Setup                |             |
+|                                  |                          |             |
+|                                  | +-----------+ +--------+ |             |
+|                                  | | Split     | | DNS    | |             |
+|                                  | | Routing   | | Setup  | |             |
+|                                  | |           | +--------+ |             |
+|                                  | | - DevMon  | +--------+ |             |
+|                                  | | - AddrMon | | Device | |             |
+|                                  | |           | | Setup  | |             |
+|                                  | +-----------+ +--------+ |             |
+|                                  +--------------------------+             |
+|                                                                           |
+|  +------------+  +------------+  +-------+  +-------------+  +---------+  |
+|  | Traffic    |  | Trusted    |  | DNS   |  | OpenConnect |  | Profile |  |
+|  | Policing   |  | Network    |  | Proxy |  | Runner      |  | Monitor |  |
+|  |            |  | Detection  |  |       |  |             |  |         |  |
+|  | - Devmon   |  |            |  |       |  |             |  |         |  |
+|  | - DNSMon   |  |            |  |       |  |             |  +---------+  |
+|  | - CPD      |  |            |  |       |  |             |  +---------+  |
+|  | - Resolver |  |            |  |       |  |             |  | Sleep   |  |
+|  |            |  |            |  |       |  |             |  | Monitor |  |
+|  |            |  |            |  |       |  |             |  |         |  |
+|  |            |  |            |  |       |  |             |  |         |  |
+|  +------------+  +------------+  +-------+  +-------------+  +---------+  |
+|                                                                           |
++---------------------[D-Bus API]----------[Socket API]---------------------+
+                           |                    |
+                           |                    |
+                     +------------+      +------------+
+                     |   Client   |      | VPNCScript |
+                     +------------+      +------------+
+
+
+TODO: Sub-documents D-Bus API, Socket API
 ```
 
 - [Overview](overview.md)
