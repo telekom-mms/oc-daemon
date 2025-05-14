@@ -104,3 +104,10 @@ COPY --from=certs /ca-cert.pem /
 COPY --from=certs /web-int-key.pem /web-key.pem
 COPY --from=certs /web-int-cert.pem /web-cert.pem
 COPY --from=certs /web-int-cert.sum /web-cert.sum
+
+# web-portal
+FROM docker.io/library/caddy:latest AS web-portal
+
+RUN apk add --no-cache nftables
+
+COPY test/ocserv/web/Caddyfile-cpd /etc/caddy/Caddyfile

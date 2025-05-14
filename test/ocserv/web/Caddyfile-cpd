@@ -1,0 +1,10 @@
+:80/login {
+	respond <<MSG
+	portal login
+
+	MSG
+}
+
+:80 {
+	redir / /login
+}

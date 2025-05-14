@@ -139,16 +139,32 @@ start_containers_ipv6() {
 	start_containers_common "$PWD/test/ocserv/podman/compose-ipv6.yml"
 }
 
+# start networks and containers, cpd version
+start_containers_cpd() {
+	start_containers_common  "$PWD/test/ocserv/podman/compose-cpd.yml"
+}
+
+# shut down networks and containers, common parts
+stop_containers_common() {
+	local file=$1
+
+	out "Stopping networks and containers..."
+	$PODMAN_COMPOSE --file "$file" down
+}
+
 # shut down networks and containers
 stop_containers() {
-	out "Stopping networks and containers..."
-	$PODMAN_COMPOSE --file "$PWD/test/ocserv/podman/compose.yml" down
+	stop_containers_common "$PWD/test/ocserv/podman/compose.yml"
 }
 
 # shut down networks and containers, ipv6_version
 stop_containers_ipv6() {
-	out "Stopping networks and containers..."
-	$PODMAN_COMPOSE --file "$PWD/test/ocserv/podman/compose-ipv6.yml" down
+	stop_containers_common "$PWD/test/ocserv/podman/compose-ipv6.yml"
+}
+
+# shut down networks and containers, cpd version
+stop_containers_cpd() {
+	stop_containers_common "$PWD/test/ocserv/podman/compose-cpd.yml"
 }
 
 # connect vpn, default settings
@@ -1041,6 +1057,9 @@ command_up() {
 		ipv6)
 			start_containers_ipv6
 			;;
+		cpd)
+			start_containers_cpd
+			;;
 		*)
 			show_usage
 			exit 2
@@ -1056,6 +1075,9 @@ command_down() {
 			;;
 		ipv6)
 			stop_containers_ipv6
+			;;
+		cpd)
+			stop_containers_cpd
 			;;
 		*)
 			show_usage
