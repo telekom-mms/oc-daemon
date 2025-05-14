@@ -10,6 +10,8 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW # for ping
+    sysctls:
+      - net.ipv4.ip_forward=1
     devices:
       - "/dev/net/tun:/dev/net/tun"
     networks:
@@ -29,16 +31,42 @@ services:
     devices:
       - "/dev/net/tun:/dev/net/tun"
     networks:
-      - ext
+      - ext-portal
     dns: none
     container_name: oc-daemon-test-oc-daemon
     environment:
       - GOCOVERDIR=/gocover
+  portal:
+    build:
+      context: ../../../
+      dockerfile: test/ocserv/podman/Dockerfile
+      target: portal
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    networks:
+      - ext-portal
+      - ext
+    container_name: oc-daemon-test-portal
+  conncheck:
+    build:
+      context: ../../../
+      dockerfile: test/ocserv/podman/Dockerfile
+      target: conncheck
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - ext
+    container_name: oc-daemon-test-conncheck
   web-ext:
     build:
       context: ../../../
       dockerfile: test/ocserv/podman/Dockerfile
       target: web-ext
+    cap_add:
+      - NET_ADMIN
     networks:
       - ext
     container_name: oc-daemon-test-web-ext
@@ -54,6 +82,10 @@ services:
     container_name: oc-daemon-test-web-int
 
 networks:
+  ext-portal:
+    internal: true
+    enable_ipv6: true
+    name: oc-daemon-test-ext-portal
   ext:
     internal: true
     enable_ipv6: true
