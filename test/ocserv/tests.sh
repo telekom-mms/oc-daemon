@@ -9,11 +9,14 @@ TIMESTAMP="date +%s"
 
 # networks
 NETWORK_EXT_NAME="oc-daemon-test-ext"
+NETWORK_EXT_PORTAL_NAME="oc-daemon-test-ext-portal"
 NETWORK_INT_NAME="oc-daemon-test-int"
 
 # containers
 OCSERV_NAME="oc-daemon-test-ocserv"
 OC_DAEMON_NAME="oc-daemon-test-oc-daemon"
+PORTAL_NAME="oc-daemon-test-portal"
+CONNCHECK_NAME="oc-daemon-test-conncheck"
 WEB_EXT_NAME="oc-daemon-test-web-ext"
 WEB_INT_NAME="oc-daemon-test-web-int"
 
@@ -47,9 +50,18 @@ get_settings() {
 
 	# oc-daemon
 	OC_DAEMON_PID=$($PODMAN inspect --format "{{.State.Pid}}" $OC_DAEMON_NAME)
-	OC_DAEMON_IP_EXT=$($PODMAN inspect \
-		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+	OC_DAEMON_IP_EXT_PORTAL=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
 		$OC_DAEMON_NAME)
+
+	# portal
+	PORTAL_PID=$($PODMAN inspect --format "{{.State.Pid}}" $PORTAL_NAME)
+	PORTAL_IP_EXT_PORTAL=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$PORTAL_NAME)
+	PORTAL_IP_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$PORTAL_NAME)
 
 	# web-ext
 	WEB_EXT_PID=$($PODMAN inspect --format "{{.State.Pid}}" $WEB_EXT_NAME)
@@ -66,6 +78,7 @@ get_settings() {
 	# print infos about containers
 	out "Networks:"
 	out "- $NETWORK_EXT_NAME"
+	out "- $NETWORK_EXT_PORTAL_NAME"
 	out "- $NETWORK_INT_NAME"
 	out "Containers:"
 	out "- $OCSERV_NAME:"
@@ -74,7 +87,11 @@ get_settings() {
 	out "    IP_INT: $OCSERV_IP_INT"
 	out "- $OC_DAEMON_NAME:"
 	out "    PID: $OC_DAEMON_PID"
-	out "    IP_EXT: $OC_DAEMON_IP_EXT"
+	out "    IP_EXT_PORTAL: $OC_DAEMON_IP_EXT_PORTAL"
+	out "- $PORTAL_NAME:"
+	out "    PID: $PORTAL_PID"
+	out "    IP_EXT_PORTAL: $PORTAL_IP_EXT_PORTAL"
+	out "    IP_EXT: $PORTAL_IP_EXT"
 	out "- $WEB_EXT_NAME:"
 	out "    PID: $WEB_EXT_PID"
 	out "    IP_EXT: $WEB_EXT_IP_EXT"
@@ -86,6 +103,14 @@ get_settings() {
 # configure routing
 configure_routing() {
 	out "Configuring routing in containers..."
+	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IP_INT"
+	$PODMAN exec "$WEB_INT_NAME" ip route show
+}
+
+# configure routing, CPD
+configure_routing_cpd() {
+	# TODO
+	out "Configuring routing for CPD in containers..."
 	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IP_INT"
 	$PODMAN exec "$WEB_INT_NAME" ip route show
 }
@@ -975,6 +1000,20 @@ client-bypass-protocol = false
 	stop_containers
 }
 
+# run test with CPD
+test_cpd() {
+	out "Setting up test..."
+	start_containers_cpd
+	# TODO: do we need get_settings_cpd because auf differences in network setup?
+	#get_settings
+	configure_routing_cpd
+
+	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
+	stop_containers
+}
+
 # define test cases/runs
 TEST_RUNS=(
 	test_default
@@ -988,6 +1027,7 @@ TEST_RUNS=(
 	test_profile_alwayson
 	test_profile_tnd
 	test_profile_server
+	test_cpd
 )
 
 ###############################################################################

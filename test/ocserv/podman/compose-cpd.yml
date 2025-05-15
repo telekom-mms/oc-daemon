@@ -45,6 +45,16 @@ services:
       - ext-portal
       - ext
     container_name: oc-daemon-test-portal
+  web-conncheck:
+    build:
+      context: ../../../
+      dockerfile: test/ocserv/podman/Dockerfile
+      target: web-conncheck
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - ext
+    container_name: oc-daemon-test-conncheck
     #command: [ "tail", "-f", "/dev/null" ]
   #web-portal:
   #  networks:
