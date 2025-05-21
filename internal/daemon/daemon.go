@@ -929,6 +929,11 @@ func (d *Daemon) start() {
 	// run main loop
 	log.Info("Daemon started")
 	for {
+		var cpdStatus <-chan bool
+		if d.trafpol != nil {
+			cpdStatus = d.trafpol.CPDStatus()
+		}
+
 		select {
 		case req := <-d.server.Requests():
 			d.handleClientRequest(req)
@@ -956,7 +961,7 @@ func (d *Daemon) start() {
 				return
 			}
 
-		case s := <-d.trafpol.CPDStatus():
+		case s := <-cpdStatus:
 			d.handleCPDStatusUpdate(s)
 
 		case <-d.done:
