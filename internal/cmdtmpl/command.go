@@ -83,7 +83,6 @@ table inet oc-daemon-filter {
         # set for allowed ports
         set allowports {
                 type inet_service
-                elements = { 53 }
         }
 
         chain input {
@@ -172,9 +171,13 @@ table inet oc-daemon-filter {
                         ind-neighbor-advert,
                 } counter accept
 
-                # accept traffic to allowed ports, e.g., DNS
+                # accept traffic to allowed ports
                 udp dport @allowports counter accept
                 tcp dport @allowports counter accept
+
+                # accept DNS traffic
+                udp dport 53 counter accept
+                tcp dport 53 counter accept
 
                 # accept DHCPv4 traffic
                 udp dport 67 udp sport 68 counter accept
