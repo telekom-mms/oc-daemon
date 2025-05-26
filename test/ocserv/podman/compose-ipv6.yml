@@ -30,6 +30,7 @@ services:
       - "/dev/net/tun:/dev/net/tun"
     networks:
       - ext
+    dns: none
     container_name: oc-daemon-test-oc-daemon
     environment:
       - GOCOVERDIR=/gocover
