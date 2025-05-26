@@ -122,6 +122,30 @@ configure_routing() {
 	$PODMAN exec "$WEB_INT_NAME" ip route show
 }
 
+# configure systemd-resolved on oc-daemon.
+configure_systemd_resolved() {
+	out "Configuring systemd-resolved in oc-daemon container..."
+
+	# get dns server ip
+	# assume gateway address is dns address
+	local oc_daemon_dns_ext
+	oc_daemon_dns_ext=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.Gateway}}{{end}}{{end}}" \
+		$OC_DAEMON_NAME)
+
+	# configure resolved
+	$PODMAN exec "$OC_DAEMON_NAME" ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+	$PODMAN exec "$OC_DAEMON_NAME" mkdir /etc/systemd/resolved.conf.d
+	local config="[Resolve]
+DNS=$oc_daemon_dns_ext
+Domains=dns.podman"
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$config' > /etc/systemd/resolved.conf.d/podman.conf"
+	$PODMAN exec "$OC_DAEMON_NAME" systemctl restart systemd-resolved
+
+	# check
+	$PODMAN exec "$OC_DAEMON_NAME" resolvectl status
+}
+
 # connect vpn, default settings
 connect_vpn_default() {
 	out "Connecting to VPN..."
@@ -489,6 +513,7 @@ test_expect_ok_ok() {
 test_default_common() {
 	get_settings
 	configure_routing
+	configure_systemd_resolved
 
 	out "Testing before VPN connection..."
 	test_expect_ok_err
@@ -542,6 +567,7 @@ test_default_ipv6() {
 test_splitrt_common() {
 	get_settings
 	configure_routing
+	configure_systemd_resolved
 
 	local config="# splitrt config
 auth = \"certificate\"
@@ -648,6 +674,7 @@ test_restart() {
 	start_containers
 	get_settings
 	configure_routing
+	configure_systemd_resolved
 
 	# check errors in log before doing anything
 	sleep 3
@@ -678,6 +705,7 @@ test_reconnect() {
 	start_containers
 	get_settings
 	configure_routing
+	configure_systemd_resolved
 
 	# check errors in log before doing anything
 	expect_ok get_log_errors
@@ -704,6 +732,7 @@ test_disconnect() {
 	start_containers
 	get_settings
 	configure_routing
+	configure_systemd_resolved
 
 	# check errors in log before doing anything
 	expect_ok get_log_errors
@@ -731,6 +760,7 @@ test_occlient_config() {
 	start_containers
 	get_settings
 	configure_routing
+	configure_systemd_resolved
 
 	# test with system settings
 	out "Testing with system settings..."
@@ -782,6 +812,7 @@ test_profile_alwayson() {
 	start_containers
 	get_settings
 	configure_routing
+	configure_systemd_resolved
 
 	# set xml profile
 	set_profile_oc_daemon $WEB_INT_NAME
@@ -820,6 +851,7 @@ test_profile_tnd() {
 	start_containers
 	get_settings
 	configure_routing
+	configure_systemd_resolved
 
 	# set xml profile, when oc-daemon is already running
 	# set external web server in profile, pretend to be in trusted network
@@ -864,6 +896,7 @@ test_profile_server() {
 	start_containers
 	get_settings
 	configure_routing
+	configure_systemd_resolved
 
 	# write profile.xml to ocserv
 	local profile
