@@ -34,38 +34,6 @@ out() {
 	echo "=== $($DATE): $1"
 }
 
-# start networks and containers
-start_containers() {
-	out "Starting networks and containers..."
-	COMPOSE_PARALLEL_LIMIT=1 $PODMAN_COMPOSE \
-		--file "$PWD/test/ocserv/podman/compose.yml" \
-		up \
-		--build \
-		--detach
-}
-
-# start networks and containers, ipv6 version
-start_containers_ipv6() {
-	out "Starting networks and containers..."
-	COMPOSE_PARALLEL_LIMIT=1 $PODMAN_COMPOSE \
-		--file "$PWD/test/ocserv/podman/compose-ipv6.yml" \
-		up \
-		--build \
-		--detach
-}
-
-# shut down networks and containers
-stop_containers() {
-	out "Stopping networks and containers..."
-	$PODMAN_COMPOSE --file "$PWD/test/ocserv/podman/compose.yml" down
-}
-
-# shut down networks and containers, ipv6_version
-stop_containers_ipv6() {
-	out "Stopping networks and containers..."
-	$PODMAN_COMPOSE --file "$PWD/test/ocserv/podman/compose-ipv6.yml" down
-}
-
 # get container settings
 get_settings() {
 	# ocserv
@@ -144,6 +112,43 @@ Domains=dns.podman"
 
 	# check
 	$PODMAN exec "$OC_DAEMON_NAME" resolvectl status
+}
+
+# start networks and containers, common parts
+start_containers_common() {
+	local file=$1
+
+	out "Starting networks and containers..."
+	COMPOSE_PARALLEL_LIMIT=1 $PODMAN_COMPOSE \
+		--file "$file" \
+		up \
+		--build \
+		--detach
+	get_settings
+	configure_routing
+	configure_systemd_resolved
+}
+
+# start networks and containers
+start_containers() {
+	start_containers_common "$PWD/test/ocserv/podman/compose.yml"
+}
+
+# start networks and containers, ipv6 version
+start_containers_ipv6() {
+	start_containers_common "$PWD/test/ocserv/podman/compose-ipv6.yml"
+}
+
+# shut down networks and containers
+stop_containers() {
+	out "Stopping networks and containers..."
+	$PODMAN_COMPOSE --file "$PWD/test/ocserv/podman/compose.yml" down
+}
+
+# shut down networks and containers, ipv6_version
+stop_containers_ipv6() {
+	out "Stopping networks and containers..."
+	$PODMAN_COMPOSE --file "$PWD/test/ocserv/podman/compose-ipv6.yml" down
 }
 
 # connect vpn, default settings
@@ -511,10 +516,6 @@ test_expect_ok_ok() {
 
 # common parts of tests with default settings in ocserv.conf.
 test_default_common() {
-	get_settings
-	configure_routing
-	configure_systemd_resolved
-
 	out "Testing before VPN connection..."
 	test_expect_ok_err
 
@@ -565,10 +566,6 @@ test_default_ipv6() {
 
 # common parts of tests with split routing for ext-web.
 test_splitrt_common() {
-	get_settings
-	configure_routing
-	configure_systemd_resolved
-
 	local config="# splitrt config
 auth = \"certificate\"
 tcp-port = 443
@@ -672,9 +669,6 @@ test_splitrt_ipv6() {
 test_restart() {
 	out "Setting up test..."
 	start_containers
-	get_settings
-	configure_routing
-	configure_systemd_resolved
 
 	# check errors in log before doing anything
 	sleep 3
@@ -703,9 +697,6 @@ test_restart() {
 test_reconnect() {
 	out "Setting up test..."
 	start_containers
-	get_settings
-	configure_routing
-	configure_systemd_resolved
 
 	# check errors in log before doing anything
 	expect_ok get_log_errors
@@ -730,9 +721,6 @@ test_reconnect() {
 test_disconnect() {
 	out "Setting up test..."
 	start_containers
-	get_settings
-	configure_routing
-	configure_systemd_resolved
 
 	# check errors in log before doing anything
 	expect_ok get_log_errors
@@ -758,9 +746,6 @@ test_disconnect() {
 test_occlient_config() {
 	out "Setting up test..."
 	start_containers
-	get_settings
-	configure_routing
-	configure_systemd_resolved
 
 	# test with system settings
 	out "Testing with system settings..."
@@ -810,9 +795,6 @@ test_occlient_config() {
 test_profile_alwayson() {
 	out "Setting up test..."
 	start_containers
-	get_settings
-	configure_routing
-	configure_systemd_resolved
 
 	# set xml profile
 	set_profile_oc_daemon $WEB_INT_NAME
@@ -849,9 +831,6 @@ test_profile_alwayson() {
 test_profile_tnd() {
 	out "Setting up test..."
 	start_containers
-	get_settings
-	configure_routing
-	configure_systemd_resolved
 
 	# set xml profile, when oc-daemon is already running
 	# set external web server in profile, pretend to be in trusted network
@@ -894,9 +873,6 @@ test_profile_tnd() {
 test_profile_server() {
 	out "Setting up test..."
 	start_containers
-	get_settings
-	configure_routing
-	configure_systemd_resolved
 
 	# write profile.xml to ocserv
 	local profile
