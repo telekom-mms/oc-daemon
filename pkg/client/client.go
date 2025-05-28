@@ -449,6 +449,7 @@ var authenticate = func(d *DBusClient) error {
 	caFile := fmt.Sprintf("--cafile=%s", config.CACertificate)
 	xmlConfig := fmt.Sprintf("--xmlconfig=%s", config.XMLProfile)
 	user := fmt.Sprintf("--user=%s", config.User)
+	group := fmt.Sprintf("--usergroup=%s", config.UserGroup)
 
 	parameters := []string{
 		protocol,
@@ -475,6 +476,9 @@ var authenticate = func(d *DBusClient) error {
 	}
 	if config.User != "" {
 		parameters = append(parameters, user)
+	}
+	if config.UserGroup != "" {
+		parameters = append(parameters, group)
 	}
 	if config.Password != "" {
 		// read password from stdin and switch to non-interactive mode

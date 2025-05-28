@@ -138,6 +138,7 @@ func TestLoadConfig(t *testing.T) {
 		XMLProfile:        "/some/profile",
 		VPNServer:         "server.example.com",
 		User:              "user1",
+		UserGroup:         "group1",
 
 		OpenConnect: "openconnect",
 		Protocol:    "test",
