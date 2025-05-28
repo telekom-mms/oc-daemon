@@ -74,6 +74,7 @@ func setConfig(args []string) error {
 	profile := flags.String("profile", "", "set XML profile `file`")
 	srv := flags.String("server", "", "set server `address`")
 	usr := flags.String("user", "", "set `username`")
+	group := flags.String("group", "", "set `usergroup`")
 	sys := flags.Bool("system-settings", false, "use system settings "+
 		"instead of user configuration")
 	ver := flags.Bool("version", false, "print version")
@@ -201,6 +202,11 @@ func setConfig(args []string) error {
 	// set username
 	if *usr != "" {
 		config.User = *usr
+	}
+
+	// set usergroup
+	if *group != "" {
+		config.UserGroup = *group
 	}
 
 	// reset to system settings

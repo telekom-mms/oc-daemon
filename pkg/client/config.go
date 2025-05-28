@@ -54,6 +54,7 @@ type Config struct {
 	XMLProfile        string
 	VPNServer         string
 	User              string
+	UserGroup         string
 	Password          string `json:"-"`
 
 	OpenConnect string
