@@ -134,6 +134,8 @@ func TestLoadConfig(t *testing.T) {
 	want := &Config{
 		ClientCertificate: "/some/cert",
 		ClientKey:         "/some/key",
+		UserCertificate:   "/some/user-cert",
+		UserKey:           "/some/user-key",
 		CACertificate:     "/some/ca",
 		XMLProfile:        "/some/profile",
 		VPNServer:         "server.example.com",
