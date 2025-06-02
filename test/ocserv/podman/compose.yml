@@ -29,16 +29,45 @@ services:
     devices:
       - "/dev/net/tun:/dev/net/tun"
     networks:
-      - ext
+      - ext-portal
     dns: none
     container_name: oc-daemon-test-oc-daemon
     environment:
       - GOCOVERDIR=/gocover
+  portal:
+    #image: docker.io/library/debian:12-slim
+    build:
+      context: ../../../
+      dockerfile: test/ocserv/podman/Dockerfile
+      target: web-portal
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - ext-portal
+      - ext
+    container_name: oc-daemon-test-portal
+  conncheck:
+    build:
+      context: ../../../
+      dockerfile: test/ocserv/podman/Dockerfile
+      target: web-conncheck
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - ext
+    container_name: oc-daemon-test-conncheck
+    #command: [ "tail", "-f", "/dev/null" ]
+  #web-portal:
+  #  networks:
+  #    - ext-portal
+  #  container_name: oc-daemon-test-web-portal
   web-ext:
     build:
       context: ../../../
       dockerfile: test/ocserv/podman/Dockerfile
       target: web-ext
+    cap_add:
+      - NET_ADMIN
     networks:
       - ext
     container_name: oc-daemon-test-web-ext
@@ -54,6 +83,9 @@ services:
     container_name: oc-daemon-test-web-int
 
 networks:
+  ext-portal:
+    internal: true
+    name: oc-daemon-test-ext-portal
   ext:
     internal: true
     name: oc-daemon-test-ext
