@@ -66,6 +66,8 @@ services:
       context: ../../../
       dockerfile: test/ocserv/podman/Dockerfile
       target: web-ext
+    cap_add:
+      - NET_ADMIN
     networks:
       - ext
     container_name: oc-daemon-test-web-ext

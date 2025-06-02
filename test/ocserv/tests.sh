@@ -75,6 +75,12 @@ get_settings() {
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
 		$WEB_INT_NAME)
 
+	# conncheck
+	CONNCHECK_PID=$($PODMAN inspect --format "{{.State.Pid}}" $CONNCHECK_NAME)
+	CONNCHECK_IP_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$CONNCHECK_NAME)
+
 	# print infos about containers
 	out "Networks:"
 	out "- $NETWORK_EXT_NAME"
@@ -98,32 +104,53 @@ get_settings() {
 	out "- $WEB_INT_NAME:"
 	out "    PID: $WEB_INT_PID"
 	out "    IP_INT: $WEB_INT_IP_INT"
+	out "- $CONNCHECK_NAME:"
+	out "    PID: $CONNCHECK_PID"
+	out "    IP_EXT: $CONNCHECK_IP_EXT"
 }
 
 # configure routing
 configure_routing() {
 	out "Configuring routing in containers..."
+	# web-int
 	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IP_INT"
 	$PODMAN exec "$WEB_INT_NAME" ip route show
+
+	# oc-daemon
+	$PODMAN exec "$OC_DAEMON_NAME" ip route add default via "$PORTAL_IP_EXT_PORTAL"
+	$PODMAN exec "$OC_DAEMON_NAME" ip route show
+
+	# web-ext
+	$PODMAN exec "$WEB_EXT_NAME" ip route add default via "$PORTAL_IP_EXT"
+	$PODMAN exec "$WEB_EXT_NAME" ip route show
+
+	# ocserv
+	$PODMAN exec "$OCSERV_NAME" ip route add default via "$PORTAL_IP_EXT"
+	$PODMAN exec "$OCSERV_NAME" ip route show
+
+	# conncheck
+	$PODMAN exec "$CONNCHECK_NAME" ip route add default via "$PORTAL_IP_EXT"
+	$PODMAN exec "$CONNCHECK_NAME" ip route show
 }
 
-# configure routing, CPD
-configure_routing_cpd() {
-	# TODO
-	out "Configuring routing for CPD in containers..."
-	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IP_INT"
-	$PODMAN exec "$WEB_INT_NAME" ip route show
-}
+## configure routing, CPD
+#configure_routing_cpd() {
+#	# TODO: remove?
+#	# TODO
+#	out "Configuring routing for CPD in containers..."
+#	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IP_INT"
+#	$PODMAN exec "$WEB_INT_NAME" ip route show
+#}
 
-# configure systemd-resolved on oc-daemon.
-configure_systemd_resolved() {
+# configure dns oc-daemon: systemd-resolved and /etc/hosts.
+configure_dns() {
 	out "Configuring systemd-resolved in oc-daemon container..."
 
 	# get dns server ip
 	# assume gateway address is dns address
 	local oc_daemon_dns_ext
 	oc_daemon_dns_ext=$($PODMAN inspect \
-		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.Gateway}}{{end}}{{end}}" \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.Gateway}}{{end}}{{end}}" \
 		$OC_DAEMON_NAME)
 
 	# configure resolved
@@ -135,8 +162,15 @@ Domains=dns.podman"
 	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$config' > /etc/systemd/resolved.conf.d/podman.conf"
 	$PODMAN exec "$OC_DAEMON_NAME" systemctl restart systemd-resolved
 
-	# check
+	# check resolved
 	$PODMAN exec "$OC_DAEMON_NAME" resolvectl status
+
+	# set names in /etc/hosts on oc-daemon
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$OCSERV_IP_EXT $OCSERV_NAME' >> /etc/hosts"
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$CONNCHECK_IP_EXT $CONNCHECK_NAME' >> /etc/hosts"
+
+	# check /etc/hosts
+	$PODMAN exec "$OC_DAEMON_NAME" cat /etc/hosts
 }
 
 # start networks and containers, common parts
@@ -151,7 +185,7 @@ start_containers_common() {
 		--detach
 	get_settings
 	configure_routing
-	configure_systemd_resolved
+	configure_dns
 }
 
 # start networks and containers
@@ -1006,7 +1040,7 @@ test_cpd() {
 	start_containers_cpd
 	# TODO: do we need get_settings_cpd because auf differences in network setup?
 	#get_settings
-	configure_routing_cpd
+	#configure_routing_cpd
 
 	out "Shutting down test..."
 	stop_oc_daemon
