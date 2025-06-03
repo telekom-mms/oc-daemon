@@ -228,6 +228,8 @@ Domains=dns.podman"
 		$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$CONNCHECK_IPv6_EXT $CONNCHECK_NAME' >> /etc/hosts"
 	fi
 
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$WEB_INT_IPv4_INT $WEB_INT_NAME' >> /etc/hosts"
+
 	# check /etc/hosts
 	$PODMAN exec "$OC_DAEMON_NAME" cat /etc/hosts
 }
@@ -257,10 +259,10 @@ start_containers_ipv6() {
 	start_containers_common "$PWD/test/ocserv/podman/compose-ipv6.yml"
 }
 
-# start networks and containers, cpd version
-start_containers_cpd() {
-	start_containers_common  "$PWD/test/ocserv/podman/compose-cpd.yml"
-}
+## start networks and containers, cpd version
+#start_containers_cpd() {
+#	start_containers_common  "$PWD/test/ocserv/podman/compose-cpd.yml"
+#}
 
 # shut down networks and containers, common parts
 stop_containers_common() {
@@ -280,10 +282,10 @@ stop_containers_ipv6() {
 	stop_containers_common "$PWD/test/ocserv/podman/compose-ipv6.yml"
 }
 
-# shut down networks and containers, cpd version
-stop_containers_cpd() {
-	stop_containers_common "$PWD/test/ocserv/podman/compose-cpd.yml"
-}
+## shut down networks and containers, cpd version
+#stop_containers_cpd() {
+#	stop_containers_common "$PWD/test/ocserv/podman/compose-cpd.yml"
+#}
 
 # connect vpn, default settings
 connect_vpn_default() {
@@ -1096,15 +1098,20 @@ client-bypass-protocol = false
 # run test with CPD
 test_cpd() {
 	out "Setting up test..."
-	start_containers_cpd
+	#start_containers_cpd
+	start_containers
 	# TODO: do we need get_settings_cpd because auf differences in network setup?
 	#get_settings
 	#configure_routing_cpd
 
-	out "Shutting down test..."
-	stop_oc_daemon
-	save_gocover_dir
-	stop_containers
+	save_oc_client_system_settings
+	set_profile_oc_daemon $WEB_INT_NAME
+
+	# TODO: stop test again
+	#out "Shutting down test..."
+	#stop_oc_daemon
+	#save_gocover_dir
+	#stop_containers
 }
 
 # define test cases/runs
@@ -1190,9 +1197,9 @@ command_up() {
 		ipv6)
 			start_containers_ipv6
 			;;
-		cpd)
-			start_containers_cpd
-			;;
+		#cpd)
+		#	start_containers_cpd
+		#	;;
 		*)
 			show_usage
 			exit 2
@@ -1209,9 +1216,9 @@ command_down() {
 		ipv6)
 			stop_containers_ipv6
 			;;
-		cpd)
-			stop_containers_cpd
-			;;
+		#cpd)
+		#	stop_containers_cpd
+		#	;;
 		*)
 			show_usage
 			exit 2

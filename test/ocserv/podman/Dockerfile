@@ -79,7 +79,7 @@ COPY dist/oc-daemon*.deb /
 RUN \
 apt-get update && \
 apt-get install -y /*.deb && \
-apt-get install -y procps systemd systemd-sysv systemd-resolved iputils-ping curl musl && \
+apt-get install -y procps systemd systemd-sysv systemd-resolved iputils-ping curl musl vim && \
 systemctl enable oc-daemon.service && \
 mkdir /gocover && \
 mkdir /etc/systemd/system/oc-daemon.service.d && \
