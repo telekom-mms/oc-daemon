@@ -42,6 +42,8 @@ services:
       target: web-portal
     cap_add:
       - NET_ADMIN
+    sysctls:
+      - net.ipv6.conf.all.forwarding=1
     networks:
       - ext-portal
       - ext

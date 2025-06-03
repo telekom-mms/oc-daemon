@@ -41,44 +41,68 @@ out() {
 get_settings() {
 	# ocserv
 	OCSERV_PID=$($PODMAN inspect --format "{{.State.Pid}}" $OCSERV_NAME)
-	OCSERV_IP_EXT=$($PODMAN inspect \
+	OCSERV_IPv4_EXT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
 		$OCSERV_NAME)
-	OCSERV_IP_INT=$($PODMAN inspect \
+	OCSERV_IPv6_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
+		$OCSERV_NAME)
+	OCSERV_IPv4_INT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$OCSERV_NAME)
+	OCSERV_IPv6_INT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
 		$OCSERV_NAME)
 
 	# oc-daemon
 	OC_DAEMON_PID=$($PODMAN inspect --format "{{.State.Pid}}" $OC_DAEMON_NAME)
-	OC_DAEMON_IP_EXT_PORTAL=$($PODMAN inspect \
+	OC_DAEMON_IPv4_EXT_PORTAL=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$OC_DAEMON_NAME)
+	OC_DAEMON_IPv6_EXT_PORTAL=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
 		$OC_DAEMON_NAME)
 
 	# portal
 	PORTAL_PID=$($PODMAN inspect --format "{{.State.Pid}}" $PORTAL_NAME)
-	PORTAL_IP_EXT_PORTAL=$($PODMAN inspect \
+	PORTAL_IPv4_EXT_PORTAL=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
 		$PORTAL_NAME)
-	PORTAL_IP_EXT=$($PODMAN inspect \
+	PORTAL_IPv6_EXT_PORTAL=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
+		$PORTAL_NAME)
+	PORTAL_IPv4_EXT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$PORTAL_NAME)
+	PORTAL_IPv6_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
 		$PORTAL_NAME)
 
 	# web-ext
 	WEB_EXT_PID=$($PODMAN inspect --format "{{.State.Pid}}" $WEB_EXT_NAME)
-	WEB_EXT_IP_EXT=$($PODMAN inspect \
+	WEB_EXT_IPv4_EXT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$WEB_EXT_NAME)
+	WEB_EXT_IPv6_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
 		$WEB_EXT_NAME)
 
 	# web-int
 	WEB_INT_PID=$($PODMAN inspect --format "{{.State.Pid}}" $WEB_INT_NAME)
-	WEB_INT_IP_INT=$($PODMAN inspect \
+	WEB_INT_IPv4_INT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$WEB_INT_NAME)
+	WEB_INT_IPv6_INT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
 		$WEB_INT_NAME)
 
 	# conncheck
 	CONNCHECK_PID=$($PODMAN inspect --format "{{.State.Pid}}" $CONNCHECK_NAME)
-	CONNCHECK_IP_EXT=$($PODMAN inspect \
+	CONNCHECK_IPv4_EXT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$CONNCHECK_NAME)
+	CONNCHECK_IPv6_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
 		$CONNCHECK_NAME)
 
 	# print infos about containers
@@ -89,48 +113,76 @@ get_settings() {
 	out "Containers:"
 	out "- $OCSERV_NAME:"
 	out "    PID: $OCSERV_PID"
-	out "    IP_EXT: $OCSERV_IP_EXT"
-	out "    IP_INT: $OCSERV_IP_INT"
+	out "    IPv4_EXT: $OCSERV_IPv4_EXT"
+	out "    IPv6_EXT: $OCSERV_IPv6_EXT"
+	out "    IPv4_INT: $OCSERV_IPv4_INT"
+	out "    IPv6_INT: $OCSERV_IPv6_INT"
 	out "- $OC_DAEMON_NAME:"
 	out "    PID: $OC_DAEMON_PID"
-	out "    IP_EXT_PORTAL: $OC_DAEMON_IP_EXT_PORTAL"
+	out "    IPv4_EXT_PORTAL: $OC_DAEMON_IPv4_EXT_PORTAL"
+	out "    IPv6_EXT_PORTAL: $OC_DAEMON_IPv6_EXT_PORTAL"
 	out "- $PORTAL_NAME:"
 	out "    PID: $PORTAL_PID"
-	out "    IP_EXT_PORTAL: $PORTAL_IP_EXT_PORTAL"
-	out "    IP_EXT: $PORTAL_IP_EXT"
+	out "    IPv4_EXT_PORTAL: $PORTAL_IPv4_EXT_PORTAL"
+	out "    IPv6_EXT_PORTAL: $PORTAL_IPv6_EXT_PORTAL"
+	out "    IPv4_EXT: $PORTAL_IPv4_EXT"
+	out "    IPv6_EXT: $PORTAL_IPv6_EXT"
 	out "- $WEB_EXT_NAME:"
 	out "    PID: $WEB_EXT_PID"
-	out "    IP_EXT: $WEB_EXT_IP_EXT"
+	out "    IPv4_EXT: $WEB_EXT_IPv4_EXT"
+	out "    IPv6_EXT: $WEB_EXT_IPv6_EXT"
 	out "- $WEB_INT_NAME:"
 	out "    PID: $WEB_INT_PID"
-	out "    IP_INT: $WEB_INT_IP_INT"
+	out "    IPv4_INT: $WEB_INT_IPv4_INT"
+	out "    IPv6_INT: $WEB_INT_IPv6_INT"
 	out "- $CONNCHECK_NAME:"
 	out "    PID: $CONNCHECK_PID"
-	out "    IP_EXT: $CONNCHECK_IP_EXT"
+	out "    IPv4_EXT: $CONNCHECK_IPv4_EXT"
+	out "    IPv6_EXT: $CONNCHECK_IPv6_EXT"
 }
 
 # configure routing
 configure_routing() {
 	out "Configuring routing in containers..."
 	# web-int
-	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IP_INT"
-	$PODMAN exec "$WEB_INT_NAME" ip route show
+	$PODMAN exec "$WEB_INT_NAME" ip -4 route add default via "$OCSERV_IPv4_INT"
+	$PODMAN exec "$WEB_INT_NAME" ip -4 route show
+	if [ -n "$WEB_INT_IPv6_INT" ]; then
+		$PODMAN exec "$WEB_INT_NAME" ip -6 route add default via "$OCSERV_IPv6_INT"
+		$PODMAN exec "$WEB_INT_NAME" ip -6 route show
+	fi
 
 	# oc-daemon
-	$PODMAN exec "$OC_DAEMON_NAME" ip route add default via "$PORTAL_IP_EXT_PORTAL"
-	$PODMAN exec "$OC_DAEMON_NAME" ip route show
+	$PODMAN exec "$OC_DAEMON_NAME" ip -4 route add default via "$PORTAL_IPv4_EXT_PORTAL"
+	$PODMAN exec "$OC_DAEMON_NAME" ip -4 route show
+	if [ -n "$OC_DAEMON_IPv6_EXT_PORTAL" ]; then
+		$PODMAN exec "$OC_DAEMON_NAME" ip -6 route add default via "$PORTAL_IPv6_EXT_PORTAL"
+		$PODMAN exec "$OC_DAEMON_NAME" ip -6 route show
+	fi
 
 	# web-ext
-	$PODMAN exec "$WEB_EXT_NAME" ip route add default via "$PORTAL_IP_EXT"
-	$PODMAN exec "$WEB_EXT_NAME" ip route show
+	$PODMAN exec "$WEB_EXT_NAME" ip -4 route add default via "$PORTAL_IPv4_EXT"
+	$PODMAN exec "$WEB_EXT_NAME" ip -4 route show
+	if [ -n "$WEB_EXT_IPv6_EXT" ]; then
+		$PODMAN exec "$WEB_EXT_NAME" ip -6 route add default via "$PORTAL_IPv6_EXT"
+		$PODMAN exec "$WEB_EXT_NAME" ip -6 route show
+	fi
 
 	# ocserv
-	$PODMAN exec "$OCSERV_NAME" ip route add default via "$PORTAL_IP_EXT"
-	$PODMAN exec "$OCSERV_NAME" ip route show
+	$PODMAN exec "$OCSERV_NAME" ip -4 route add default via "$PORTAL_IPv4_EXT"
+	$PODMAN exec "$OCSERV_NAME" ip -4 route show
+	if [ -n "$OCSERV_IPv6_EXT" ]; then
+		$PODMAN exec "$OCSERV_NAME" ip -6 route add default via "$PORTAL_IPv6_EXT"
+		$PODMAN exec "$OCSERV_NAME" ip -6 route show
+	fi
 
 	# conncheck
-	$PODMAN exec "$CONNCHECK_NAME" ip route add default via "$PORTAL_IP_EXT"
-	$PODMAN exec "$CONNCHECK_NAME" ip route show
+	$PODMAN exec "$CONNCHECK_NAME" ip -4 route add default via "$PORTAL_IPv4_EXT"
+	$PODMAN exec "$CONNCHECK_NAME" ip -4 route show
+	if [ -n "$CONNCHECK_IPv6_EXT" ]; then
+		$PODMAN exec "$CONNCHECK_NAME" ip -6 route add default via "$PORTAL_IPv6_EXT"
+		$PODMAN exec "$CONNCHECK_NAME" ip -6 route show
+	fi
 }
 
 ## configure routing, CPD
@@ -138,7 +190,7 @@ configure_routing() {
 #	# TODO: remove?
 #	# TODO
 #	out "Configuring routing for CPD in containers..."
-#	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IP_INT"
+#	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IPv4_INT"
 #	$PODMAN exec "$WEB_INT_NAME" ip route show
 #}
 
@@ -166,8 +218,15 @@ Domains=dns.podman"
 	$PODMAN exec "$OC_DAEMON_NAME" resolvectl status
 
 	# set names in /etc/hosts on oc-daemon
-	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$OCSERV_IP_EXT $OCSERV_NAME' >> /etc/hosts"
-	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$CONNCHECK_IP_EXT $CONNCHECK_NAME' >> /etc/hosts"
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$OCSERV_IPv4_EXT $OCSERV_NAME' >> /etc/hosts"
+	if [ -n "$OCSERV_IPv6_EXT" ]; then
+		$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$OCSERV_IPv6_EXT $OCSERV_NAME' >> /etc/hosts"
+	fi
+
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$CONNCHECK_IPv4_EXT $CONNCHECK_NAME' >> /etc/hosts"
+	if [ -n "$CONNCHECK_IPv6_EXT" ]; then
+		$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$CONNCHECK_IPv6_EXT $CONNCHECK_NAME' >> /etc/hosts"
+	fi
 
 	# check /etc/hosts
 	$PODMAN exec "$OC_DAEMON_NAME" cat /etc/hosts
@@ -377,13 +436,13 @@ is_equal_profile_oc_daemon() {
 # ping external web server
 ping_ext() {
 	out "Pinging external web server"
-	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_EXT_IP_EXT"
+	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_EXT_IPv4_EXT"
 }
 
 # ping internal web server
 ping_int() {
 	out "Pinging internal web server"
-	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_INT_IP_INT"
+	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_INT_IPv4_INT"
 }
 
 # curl external web server
@@ -393,7 +452,7 @@ curl_ext() {
 		--silent \
 		--connect-timeout 3 \
 		"https://$WEB_EXT_NAME" \
-		--resolve "$WEB_EXT_NAME:443:$WEB_EXT_IP_EXT" \
+		--resolve "$WEB_EXT_NAME:443:$WEB_EXT_IPv4_EXT" \
 		--cacert /ca-cert.pem
 }
 
@@ -404,7 +463,7 @@ curl_int() {
 		--silent \
 		--connect-timeout 3 \
 		"https://$WEB_INT_NAME" \
-		--resolve "$WEB_INT_NAME:443:$WEB_INT_IP_INT" \
+		--resolve "$WEB_INT_NAME:443:$WEB_INT_IPv4_INT" \
 		--cacert /ca-cert.pem
 }
 
@@ -685,7 +744,7 @@ ping-leases = false
 
 # configure routing
 route = default
-no-route = $WEB_EXT_IP_EXT/32
+no-route = $WEB_EXT_IPv4_EXT/32
 
 cisco-client-compat = true
 dtls-legacy = true
