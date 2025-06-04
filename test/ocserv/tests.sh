@@ -1095,6 +1095,38 @@ client-bypass-protocol = false
 	stop_containers
 }
 
+# set oc-daemon config, with cpd.
+set_oc_daemon_config_cpd() {
+	local config="{
+	\"CPD\": {
+		\"Host\": \"$CONNCHECK_NAME\"
+	}
+}"
+	out "Setting oc-daemon.json on oc-daemon..."
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$config' > /var/lib/oc-daemon/oc-daemon.json"
+	$PODMAN exec "$OC_DAEMON_NAME" cat /var/lib/oc-daemon/oc-daemon.json
+}
+
+# enable captive portal, emulate logged out state
+enable_captive_portal() {
+	local ruleset="table ip nat {
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		tcp dport 80 redirect to :80
+	}
+}"
+	out "Enabling captive portal..."
+	$PODMAN exec "$PORTAL_NAME" nft -f - "$ruleset"
+	$PODMAN exec "$PORTAL_NAME" nft list ruleset
+}
+
+# disable captive portal, emulate logged in state
+disable_captive_portal() {
+	out "Disabling captive portal..."
+	$PODMAN exec "$PORTAL_NAME" nft flush ruleset
+	$PODMAN exec "$PORTAL_NAME" nft list ruleset
+}
+
 # run test with CPD
 test_cpd() {
 	out "Setting up test..."
@@ -1104,14 +1136,25 @@ test_cpd() {
 	#get_settings
 	#configure_routing_cpd
 
+	enable_captive_portal
 	save_oc_client_system_settings
 	set_profile_oc_daemon $WEB_INT_NAME
+	set_oc_daemon_config_cpd
+	restart_oc_daemon
+	sleep 10
+
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose
+
+	disable_captive_portal
+	sleep 20
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose
+
 
 	# TODO: stop test again
-	#out "Shutting down test..."
-	#stop_oc_daemon
-	#save_gocover_dir
-	#stop_containers
+	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
+	stop_containers
 }
 
 # define test cases/runs
