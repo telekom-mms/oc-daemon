@@ -393,7 +393,7 @@ func parseAllowedHosts(hosts []string) (addrs []netip.Prefix, names []string) {
 // NewTrafPol returns a new traffic policing component.
 func NewTrafPol(config *daemoncfg.Config) *TrafPol {
 	// create cpd
-	c := cpd.NewCPD(daemoncfg.NewCPD())
+	c := cpd.NewCPD(config.CPD)
 
 	// get allowed addrs and names
 	hosts := append(config.TrafficPolicing.AllowedHosts, c.Hosts()...)
