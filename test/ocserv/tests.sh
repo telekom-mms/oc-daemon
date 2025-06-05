@@ -229,6 +229,7 @@ Domains=dns.podman"
 	fi
 
 	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$WEB_INT_IPv4_INT $WEB_INT_NAME' >> /etc/hosts"
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$WEB_EXT_IPv4_EXT $WEB_EXT_NAME' >> /etc/hosts"
 
 	# check /etc/hosts
 	$PODMAN exec "$OC_DAEMON_NAME" cat /etc/hosts
@@ -1098,8 +1099,11 @@ client-bypass-protocol = false
 # set oc-daemon config, with cpd.
 set_oc_daemon_config_cpd() {
 	local config="{
+	\"Verbose\": true,
 	\"CPD\": {
-		\"Host\": \"$CONNCHECK_NAME\"
+		\"Host\": \"$CONNCHECK_NAME\",
+		\"ProbeTimer\": 5000000000,
+		\"ProbeTimerDetected\": 2000000000
 	}
 }"
 	out "Setting oc-daemon.json on oc-daemon..."
@@ -1109,6 +1113,7 @@ set_oc_daemon_config_cpd() {
 
 # enable captive portal, emulate logged out state
 enable_captive_portal() {
+	# TODO block other traffic
 	local ruleset="table ip nat {
 	chain prerouting {
 		type nat hook prerouting priority dstnat; policy accept;
@@ -1127,12 +1132,17 @@ disable_captive_portal() {
 	$PODMAN exec "$PORTAL_NAME" nft list ruleset
 }
 
+# returns whether captive portal is detected on oc-daemon
+is_detected_captive_portal() {
+	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose | $GREP "Captive Portal:   detected"
+}
+
 # run test with CPD
 test_cpd() {
 	out "Setting up test..."
 	#start_containers_cpd
 	start_containers
-	# TODO: do we need get_settings_cpd because auf differences in network setup?
+	# TODO: do we need get_settings_cpd because of differences in network setup?
 	#get_settings
 	#configure_routing_cpd
 
@@ -1144,11 +1154,13 @@ test_cpd() {
 	sleep 10
 
 	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose
+	expect_ok is_detected_captive_portal
 
 	disable_captive_portal
-	sleep 20
+	sleep 10
 	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose
-
+	$PODMAN exec "$OC_DAEMON_NAME" journalctl -b -u oc-daemon
+	expect_err is_detected_captive_portal
 
 	# TODO: stop test again
 	out "Shutting down test..."
