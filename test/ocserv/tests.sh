@@ -651,6 +651,18 @@ test_expect_ok_ok() {
 	expect_ok get_log_errors
 }
 
+# run tests and expect external server ERR and internal ERR
+test_expect_err_err() {
+	show_oc_client_status
+	show_routes
+	show_nft_ruleset
+	expect_err ping_ext
+	expect_err ping_int
+	expect_err curl_ext
+	expect_err curl_int
+	expect_ok get_log_errors
+}
+
 # common parts of tests with default settings in ocserv.conf.
 test_default_common() {
 	out "Testing before VPN connection..."
@@ -1113,11 +1125,13 @@ set_oc_daemon_config_cpd() {
 
 # enable captive portal, emulate logged out state
 enable_captive_portal() {
-	# TODO block other traffic
-	local ruleset="table ip nat {
+	local ruleset="table inet portal {
 	chain prerouting {
 		type nat hook prerouting priority dstnat; policy accept;
 		tcp dport 80 redirect to :80
+	}
+	chain forward {
+		type filter hook forward priority filter; policy drop;
 	}
 }"
 	out "Enabling captive portal..."
@@ -1155,12 +1169,18 @@ test_cpd() {
 
 	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose
 	expect_ok is_detected_captive_portal
+	test_expect_err_err
+	connect_vpn_default
+	test_expect_err_err
 
 	disable_captive_portal
 	sleep 10
 	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose
 	$PODMAN exec "$OC_DAEMON_NAME" journalctl -b -u oc-daemon
 	expect_err is_detected_captive_portal
+	test_expect_ok_err
+	connect_vpn_default
+	test_expect_err_ok
 
 	# TODO: stop test again
 	out "Shutting down test..."
