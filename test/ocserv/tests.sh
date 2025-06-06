@@ -185,15 +185,6 @@ configure_routing() {
 	fi
 }
 
-## configure routing, CPD
-#configure_routing_cpd() {
-#	# TODO: remove?
-#	# TODO
-#	out "Configuring routing for CPD in containers..."
-#	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IPv4_INT"
-#	$PODMAN exec "$WEB_INT_NAME" ip route show
-#}
-
 # configure dns oc-daemon: systemd-resolved and /etc/hosts.
 configure_dns() {
 	out "Configuring systemd-resolved in oc-daemon container..."
@@ -260,11 +251,6 @@ start_containers_ipv6() {
 	start_containers_common "$PWD/test/ocserv/podman/compose-ipv6.yml"
 }
 
-## start networks and containers, cpd version
-#start_containers_cpd() {
-#	start_containers_common  "$PWD/test/ocserv/podman/compose-cpd.yml"
-#}
-
 # shut down networks and containers, common parts
 stop_containers_common() {
 	local file=$1
@@ -282,11 +268,6 @@ stop_containers() {
 stop_containers_ipv6() {
 	stop_containers_common "$PWD/test/ocserv/podman/compose-ipv6.yml"
 }
-
-## shut down networks and containers, cpd version
-#stop_containers_cpd() {
-#	stop_containers_common "$PWD/test/ocserv/podman/compose-cpd.yml"
-#}
 
 # connect vpn, default settings
 connect_vpn_default() {
@@ -434,6 +415,51 @@ is_equal_profile_oc_daemon() {
 		out "$profile_ocd"
 		return 1
 	fi
+}
+
+# set oc-daemon config, with cpd.
+set_oc_daemon_config_cpd() {
+	local config="{
+	\"CPD\": {
+		\"Host\": \"$CONNCHECK_NAME\",
+		\"ProbeTimer\": 5000000000,
+		\"ProbeTimerDetected\": 2000000000
+	}
+}"
+	out "Setting oc-daemon.json on oc-daemon..."
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$config' > /var/lib/oc-daemon/oc-daemon.json"
+	$PODMAN exec "$OC_DAEMON_NAME" cat /var/lib/oc-daemon/oc-daemon.json
+}
+
+# enable captive portal, emulate logged out state
+enable_captive_portal() {
+	local ruleset="table inet portal {
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		tcp dport 80 redirect to :80
+	}
+	chain forward {
+		type filter hook forward priority filter; policy drop;
+	}
+}"
+	out "Enabling captive portal..."
+	$PODMAN exec "$PORTAL_NAME" nft -f - "$ruleset"
+	$PODMAN exec "$PORTAL_NAME" nft list ruleset
+}
+
+# disable captive portal, emulate logged in state
+disable_captive_portal() {
+	out "Disabling captive portal..."
+	$PODMAN exec "$PORTAL_NAME" nft flush ruleset
+	$PODMAN exec "$PORTAL_NAME" nft list ruleset
+}
+
+# returns whether captive portal is detected on oc-daemon
+is_detected_captive_portal() {
+	local status
+	status=$($PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose)
+	echo "$status"
+	echo "$status" | $GREP "Captive Portal:   detected"
 }
 
 # ping external web server
@@ -1108,81 +1134,48 @@ client-bypass-protocol = false
 	stop_containers
 }
 
-# set oc-daemon config, with cpd.
-set_oc_daemon_config_cpd() {
-	local config="{
-	\"Verbose\": true,
-	\"CPD\": {
-		\"Host\": \"$CONNCHECK_NAME\",
-		\"ProbeTimer\": 5000000000,
-		\"ProbeTimerDetected\": 2000000000
-	}
-}"
-	out "Setting oc-daemon.json on oc-daemon..."
-	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$config' > /var/lib/oc-daemon/oc-daemon.json"
-	$PODMAN exec "$OC_DAEMON_NAME" cat /var/lib/oc-daemon/oc-daemon.json
-}
-
-# enable captive portal, emulate logged out state
-enable_captive_portal() {
-	local ruleset="table inet portal {
-	chain prerouting {
-		type nat hook prerouting priority dstnat; policy accept;
-		tcp dport 80 redirect to :80
-	}
-	chain forward {
-		type filter hook forward priority filter; policy drop;
-	}
-}"
-	out "Enabling captive portal..."
-	$PODMAN exec "$PORTAL_NAME" nft -f - "$ruleset"
-	$PODMAN exec "$PORTAL_NAME" nft list ruleset
-}
-
-# disable captive portal, emulate logged in state
-disable_captive_portal() {
-	out "Disabling captive portal..."
-	$PODMAN exec "$PORTAL_NAME" nft flush ruleset
-	$PODMAN exec "$PORTAL_NAME" nft list ruleset
-}
-
-# returns whether captive portal is detected on oc-daemon
-is_detected_captive_portal() {
-	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose | $GREP "Captive Portal:   detected"
-}
-
 # run test with CPD
 test_cpd() {
 	out "Setting up test..."
-	#start_containers_cpd
 	start_containers
-	# TODO: do we need get_settings_cpd because of differences in network setup?
-	#get_settings
-	#configure_routing_cpd
 
+	# enable captive portal
+	# pretend we are logged out and do not have network access
 	enable_captive_portal
+
+	# configure oc-daemon incl. cpd
 	save_oc_client_system_settings
 	set_profile_oc_daemon $WEB_INT_NAME
 	set_oc_daemon_config_cpd
 	restart_oc_daemon
+
 	sleep 10
 
-	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose
+	# check if portal is detected
 	expect_ok is_detected_captive_portal
+	# make sure we cannot reach any web-ext and web-int
 	test_expect_err_err
+	# make sure we cannot connect and
+	# cannot reach web-ext and web-int
 	connect_vpn_default
 	test_expect_err_err
 
+	# disable captive portal
+	# pretend we are logged in and have network access now
 	disable_captive_portal
+
 	sleep 10
-	$PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose
-	$PODMAN exec "$OC_DAEMON_NAME" journalctl -b -u oc-daemon
+
+	# make sure portal is not detected any more
 	expect_err is_detected_captive_portal
+
+	# make sure we can reach web-ext now
 	test_expect_ok_err
+	# make sure we can connect now and
+	# can reach web-int now
 	connect_vpn_default
 	test_expect_err_ok
 
-	# TODO: stop test again
 	out "Shutting down test..."
 	stop_oc_daemon
 	save_gocover_dir
@@ -1272,9 +1265,6 @@ command_up() {
 		ipv6)
 			start_containers_ipv6
 			;;
-		#cpd)
-		#	start_containers_cpd
-		#	;;
 		*)
 			show_usage
 			exit 2
@@ -1291,9 +1281,6 @@ command_down() {
 		ipv6)
 			stop_containers_ipv6
 			;;
-		#cpd)
-		#	stop_containers_cpd
-		#	;;
 		*)
 			show_usage
 			exit 2

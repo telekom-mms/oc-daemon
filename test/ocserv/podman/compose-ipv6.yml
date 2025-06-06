@@ -35,7 +35,6 @@ services:
     environment:
       - GOCOVERDIR=/gocover
   portal:
-    #image: docker.io/library/debian:12-slim
     build:
       context: ../../../
       dockerfile: test/ocserv/podman/Dockerfile
@@ -58,11 +57,6 @@ services:
     networks:
       - ext
     container_name: oc-daemon-test-conncheck
-    #command: [ "tail", "-f", "/dev/null" ]
-  #web-portal:
-  #  networks:
-  #    - ext-portal
-  #  container_name: oc-daemon-test-web-portal
   web-ext:
     build:
       context: ../../../
