@@ -112,7 +112,7 @@ RUN apk add --no-cache nftables
 
 COPY test/ocserv/web/Caddyfile-portal /etc/caddy/Caddyfile
 
-# web-portal
+# web-conncheck
 FROM docker.io/library/caddy:latest AS web-conncheck
 
 COPY test/ocserv/web/Caddyfile-conncheck /etc/caddy/Caddyfile
