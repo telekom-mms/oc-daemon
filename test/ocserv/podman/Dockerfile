@@ -104,3 +104,24 @@ COPY --from=certs /ca-cert.pem /
 COPY --from=certs /web-int-key.pem /web-key.pem
 COPY --from=certs /web-int-cert.pem /web-cert.pem
 COPY --from=certs /web-int-cert.sum /web-cert.sum
+
+# portal
+FROM docker.io/library/debian:12-slim AS portal
+
+EXPOSE 80/tcp
+EXPOSE 443/tcp
+EXPOSE 443/udp
+EXPOSE 2019/tcp
+
+RUN \
+apt-get update && \
+apt-get install -y nftables caddy
+
+COPY test/ocserv/web/Caddyfile-portal /etc/caddy/Caddyfile
+
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+
+# conncheck
+FROM docker.io/library/caddy:latest AS conncheck
+
+COPY test/ocserv/web/Caddyfile-conncheck /etc/caddy/Caddyfile

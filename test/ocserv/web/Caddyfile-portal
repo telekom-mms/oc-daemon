@@ -1,0 +1,7 @@
+:80/login {
+	respond "portal login"
+}
+
+:80 {
+	redir / /login
+}

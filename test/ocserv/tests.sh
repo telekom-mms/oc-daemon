@@ -9,11 +9,14 @@ TIMESTAMP="date +%s"
 
 # networks
 NETWORK_EXT_NAME="oc-daemon-test-ext"
+NETWORK_EXT_PORTAL_NAME="oc-daemon-test-ext-portal"
 NETWORK_INT_NAME="oc-daemon-test-int"
 
 # containers
 OCSERV_NAME="oc-daemon-test-ocserv"
 OC_DAEMON_NAME="oc-daemon-test-oc-daemon"
+PORTAL_NAME="oc-daemon-test-portal"
+CONNCHECK_NAME="oc-daemon-test-conncheck"
 WEB_EXT_NAME="oc-daemon-test-web-ext"
 WEB_INT_NAME="oc-daemon-test-web-int"
 
@@ -38,67 +41,159 @@ out() {
 get_settings() {
 	# ocserv
 	OCSERV_PID=$($PODMAN inspect --format "{{.State.Pid}}" $OCSERV_NAME)
-	OCSERV_IP_EXT=$($PODMAN inspect \
+	OCSERV_IPv4_EXT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
 		$OCSERV_NAME)
-	OCSERV_IP_INT=$($PODMAN inspect \
+	OCSERV_IPv6_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
+		$OCSERV_NAME)
+	OCSERV_IPv4_INT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$OCSERV_NAME)
+	OCSERV_IPv6_INT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
 		$OCSERV_NAME)
 
 	# oc-daemon
 	OC_DAEMON_PID=$($PODMAN inspect --format "{{.State.Pid}}" $OC_DAEMON_NAME)
-	OC_DAEMON_IP_EXT=$($PODMAN inspect \
-		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+	OC_DAEMON_IPv4_EXT_PORTAL=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
 		$OC_DAEMON_NAME)
+	OC_DAEMON_IPv6_EXT_PORTAL=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
+		$OC_DAEMON_NAME)
+
+	# portal
+	PORTAL_PID=$($PODMAN inspect --format "{{.State.Pid}}" $PORTAL_NAME)
+	PORTAL_IPv4_EXT_PORTAL=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$PORTAL_NAME)
+	PORTAL_IPv6_EXT_PORTAL=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
+		$PORTAL_NAME)
+	PORTAL_IPv4_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$PORTAL_NAME)
+	PORTAL_IPv6_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
+		$PORTAL_NAME)
 
 	# web-ext
 	WEB_EXT_PID=$($PODMAN inspect --format "{{.State.Pid}}" $WEB_EXT_NAME)
-	WEB_EXT_IP_EXT=$($PODMAN inspect \
+	WEB_EXT_IPv4_EXT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$WEB_EXT_NAME)
+	WEB_EXT_IPv6_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
 		$WEB_EXT_NAME)
 
 	# web-int
 	WEB_INT_PID=$($PODMAN inspect --format "{{.State.Pid}}" $WEB_INT_NAME)
-	WEB_INT_IP_INT=$($PODMAN inspect \
+	WEB_INT_IPv4_INT=$($PODMAN inspect \
 		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
 		$WEB_INT_NAME)
+	WEB_INT_IPv6_INT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_INT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
+		$WEB_INT_NAME)
+
+	# conncheck
+	CONNCHECK_PID=$($PODMAN inspect --format "{{.State.Pid}}" $CONNCHECK_NAME)
+	CONNCHECK_IPv4_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.IPAddress}}{{end}}{{end}}" \
+		$CONNCHECK_NAME)
+	CONNCHECK_IPv6_EXT=$($PODMAN inspect \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.GlobalIPv6Address}}{{end}}{{end}}" \
+		$CONNCHECK_NAME)
 
 	# print infos about containers
 	out "Networks:"
 	out "- $NETWORK_EXT_NAME"
+	out "- $NETWORK_EXT_PORTAL_NAME"
 	out "- $NETWORK_INT_NAME"
 	out "Containers:"
 	out "- $OCSERV_NAME:"
 	out "    PID: $OCSERV_PID"
-	out "    IP_EXT: $OCSERV_IP_EXT"
-	out "    IP_INT: $OCSERV_IP_INT"
+	out "    IPv4_EXT: $OCSERV_IPv4_EXT"
+	out "    IPv6_EXT: $OCSERV_IPv6_EXT"
+	out "    IPv4_INT: $OCSERV_IPv4_INT"
+	out "    IPv6_INT: $OCSERV_IPv6_INT"
 	out "- $OC_DAEMON_NAME:"
 	out "    PID: $OC_DAEMON_PID"
-	out "    IP_EXT: $OC_DAEMON_IP_EXT"
+	out "    IPv4_EXT_PORTAL: $OC_DAEMON_IPv4_EXT_PORTAL"
+	out "    IPv6_EXT_PORTAL: $OC_DAEMON_IPv6_EXT_PORTAL"
+	out "- $PORTAL_NAME:"
+	out "    PID: $PORTAL_PID"
+	out "    IPv4_EXT_PORTAL: $PORTAL_IPv4_EXT_PORTAL"
+	out "    IPv6_EXT_PORTAL: $PORTAL_IPv6_EXT_PORTAL"
+	out "    IPv4_EXT: $PORTAL_IPv4_EXT"
+	out "    IPv6_EXT: $PORTAL_IPv6_EXT"
 	out "- $WEB_EXT_NAME:"
 	out "    PID: $WEB_EXT_PID"
-	out "    IP_EXT: $WEB_EXT_IP_EXT"
+	out "    IPv4_EXT: $WEB_EXT_IPv4_EXT"
+	out "    IPv6_EXT: $WEB_EXT_IPv6_EXT"
 	out "- $WEB_INT_NAME:"
 	out "    PID: $WEB_INT_PID"
-	out "    IP_INT: $WEB_INT_IP_INT"
+	out "    IPv4_INT: $WEB_INT_IPv4_INT"
+	out "    IPv6_INT: $WEB_INT_IPv6_INT"
+	out "- $CONNCHECK_NAME:"
+	out "    PID: $CONNCHECK_PID"
+	out "    IPv4_EXT: $CONNCHECK_IPv4_EXT"
+	out "    IPv6_EXT: $CONNCHECK_IPv6_EXT"
 }
 
 # configure routing
 configure_routing() {
 	out "Configuring routing in containers..."
-	$PODMAN exec "$WEB_INT_NAME" ip route add default via "$OCSERV_IP_INT"
-	$PODMAN exec "$WEB_INT_NAME" ip route show
+	# web-int
+	$PODMAN exec "$WEB_INT_NAME" ip -4 route add default via "$OCSERV_IPv4_INT"
+	$PODMAN exec "$WEB_INT_NAME" ip -4 route show
+	if [ -n "$WEB_INT_IPv6_INT" ]; then
+		$PODMAN exec "$WEB_INT_NAME" ip -6 route add default via "$OCSERV_IPv6_INT"
+		$PODMAN exec "$WEB_INT_NAME" ip -6 route show
+	fi
+
+	# oc-daemon
+	$PODMAN exec "$OC_DAEMON_NAME" ip -4 route add default via "$PORTAL_IPv4_EXT_PORTAL"
+	$PODMAN exec "$OC_DAEMON_NAME" ip -4 route show
+	if [ -n "$OC_DAEMON_IPv6_EXT_PORTAL" ]; then
+		$PODMAN exec "$OC_DAEMON_NAME" ip -6 route add default via "$PORTAL_IPv6_EXT_PORTAL"
+		$PODMAN exec "$OC_DAEMON_NAME" ip -6 route show
+	fi
+
+	# web-ext
+	$PODMAN exec "$WEB_EXT_NAME" ip -4 route add default via "$PORTAL_IPv4_EXT"
+	$PODMAN exec "$WEB_EXT_NAME" ip -4 route show
+	if [ -n "$WEB_EXT_IPv6_EXT" ]; then
+		$PODMAN exec "$WEB_EXT_NAME" ip -6 route add default via "$PORTAL_IPv6_EXT"
+		$PODMAN exec "$WEB_EXT_NAME" ip -6 route show
+	fi
+
+	# ocserv
+	$PODMAN exec "$OCSERV_NAME" ip -4 route add default via "$PORTAL_IPv4_EXT"
+	$PODMAN exec "$OCSERV_NAME" ip -4 route show
+	if [ -n "$OCSERV_IPv6_EXT" ]; then
+		$PODMAN exec "$OCSERV_NAME" ip -6 route add default via "$PORTAL_IPv6_EXT"
+		$PODMAN exec "$OCSERV_NAME" ip -6 route show
+	fi
+
+	# conncheck
+	$PODMAN exec "$CONNCHECK_NAME" ip -4 route add default via "$PORTAL_IPv4_EXT"
+	$PODMAN exec "$CONNCHECK_NAME" ip -4 route show
+	if [ -n "$CONNCHECK_IPv6_EXT" ]; then
+		$PODMAN exec "$CONNCHECK_NAME" ip -6 route add default via "$PORTAL_IPv6_EXT"
+		$PODMAN exec "$CONNCHECK_NAME" ip -6 route show
+	fi
 }
 
-# configure systemd-resolved on oc-daemon.
-configure_systemd_resolved() {
+# configure dns on oc-daemon: systemd-resolved and /etc/hosts.
+configure_dns() {
 	out "Configuring systemd-resolved in oc-daemon container..."
 
 	# get dns server ip
 	# assume gateway address is dns address
 	local oc_daemon_dns_ext
 	oc_daemon_dns_ext=$($PODMAN inspect \
-		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_NAME\"}}{{\$v.Gateway}}{{end}}{{end}}" \
+		--format "{{range \$k,\$v := .NetworkSettings.Networks}}{{if eq \$k \"$NETWORK_EXT_PORTAL_NAME\"}}{{\$v.Gateway}}{{end}}{{end}}" \
 		$OC_DAEMON_NAME)
 
 	# configure resolved
@@ -110,8 +205,25 @@ Domains=dns.podman"
 	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$config' > /etc/systemd/resolved.conf.d/podman.conf"
 	$PODMAN exec "$OC_DAEMON_NAME" systemctl restart systemd-resolved
 
-	# check
+	# check resolved
 	$PODMAN exec "$OC_DAEMON_NAME" resolvectl status
+
+	# set names in /etc/hosts on oc-daemon
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$OCSERV_IPv4_EXT $OCSERV_NAME' >> /etc/hosts"
+	if [ -n "$OCSERV_IPv6_EXT" ]; then
+		$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$OCSERV_IPv6_EXT $OCSERV_NAME' >> /etc/hosts"
+	fi
+
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$CONNCHECK_IPv4_EXT $CONNCHECK_NAME' >> /etc/hosts"
+	if [ -n "$CONNCHECK_IPv6_EXT" ]; then
+		$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$CONNCHECK_IPv6_EXT $CONNCHECK_NAME' >> /etc/hosts"
+	fi
+
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$WEB_INT_IPv4_INT $WEB_INT_NAME' >> /etc/hosts"
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$WEB_EXT_IPv4_EXT $WEB_EXT_NAME' >> /etc/hosts"
+
+	# check /etc/hosts
+	$PODMAN exec "$OC_DAEMON_NAME" cat /etc/hosts
 }
 
 # start networks and containers, common parts
@@ -126,7 +238,7 @@ start_containers_common() {
 		--detach
 	get_settings
 	configure_routing
-	configure_systemd_resolved
+	configure_dns
 }
 
 # start networks and containers
@@ -139,16 +251,22 @@ start_containers_ipv6() {
 	start_containers_common "$PWD/test/ocserv/podman/compose-ipv6.yml"
 }
 
+# shut down networks and containers, common parts
+stop_containers_common() {
+	local file=$1
+
+	out "Stopping networks and containers..."
+	$PODMAN_COMPOSE --file "$file" down
+}
+
 # shut down networks and containers
 stop_containers() {
-	out "Stopping networks and containers..."
-	$PODMAN_COMPOSE --file "$PWD/test/ocserv/podman/compose.yml" down
+	stop_containers_common "$PWD/test/ocserv/podman/compose.yml"
 }
 
 # shut down networks and containers, ipv6_version
 stop_containers_ipv6() {
-	out "Stopping networks and containers..."
-	$PODMAN_COMPOSE --file "$PWD/test/ocserv/podman/compose-ipv6.yml" down
+	stop_containers_common "$PWD/test/ocserv/podman/compose-ipv6.yml"
 }
 
 # connect vpn, default settings
@@ -299,16 +417,61 @@ is_equal_profile_oc_daemon() {
 	fi
 }
 
+# set oc-daemon config, with cpd.
+set_oc_daemon_config_cpd() {
+	local config="{
+	\"CPD\": {
+		\"Host\": \"$CONNCHECK_NAME\",
+		\"ProbeTimer\": 5000000000,
+		\"ProbeTimerDetected\": 2000000000
+	}
+}"
+	out "Setting oc-daemon.json on oc-daemon..."
+	$PODMAN exec "$OC_DAEMON_NAME" sh -c "echo '$config' > /var/lib/oc-daemon/oc-daemon.json"
+	$PODMAN exec "$OC_DAEMON_NAME" cat /var/lib/oc-daemon/oc-daemon.json
+}
+
+# enable captive portal, emulate logged out state
+enable_captive_portal() {
+	local ruleset="table inet portal {
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		tcp dport 80 redirect to :80
+	}
+	chain forward {
+		type filter hook forward priority filter; policy drop;
+	}
+}"
+	out "Enabling captive portal..."
+	$PODMAN exec "$PORTAL_NAME" nft -f - "$ruleset"
+	$PODMAN exec "$PORTAL_NAME" nft list ruleset
+}
+
+# disable captive portal, emulate logged in state
+disable_captive_portal() {
+	out "Disabling captive portal..."
+	$PODMAN exec "$PORTAL_NAME" nft flush ruleset
+	$PODMAN exec "$PORTAL_NAME" nft list ruleset
+}
+
+# returns whether captive portal is detected on oc-daemon
+is_detected_captive_portal() {
+	local status
+	status=$($PODMAN exec "$OC_DAEMON_NAME" oc-client status -verbose)
+	echo "$status"
+	echo "$status" | $GREP "Captive Portal:   detected"
+}
+
 # ping external web server
 ping_ext() {
 	out "Pinging external web server"
-	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_EXT_IP_EXT"
+	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_EXT_IPv4_EXT"
 }
 
 # ping internal web server
 ping_int() {
 	out "Pinging internal web server"
-	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_INT_IP_INT"
+	$PODMAN exec "$OC_DAEMON_NAME" ping -c 3 "$WEB_INT_IPv4_INT"
 }
 
 # curl external web server
@@ -318,7 +481,7 @@ curl_ext() {
 		--silent \
 		--connect-timeout 3 \
 		"https://$WEB_EXT_NAME" \
-		--resolve "$WEB_EXT_NAME:443:$WEB_EXT_IP_EXT" \
+		--resolve "$WEB_EXT_NAME:443:$WEB_EXT_IPv4_EXT" \
 		--cacert /ca-cert.pem
 }
 
@@ -329,7 +492,7 @@ curl_int() {
 		--silent \
 		--connect-timeout 3 \
 		"https://$WEB_INT_NAME" \
-		--resolve "$WEB_INT_NAME:443:$WEB_INT_IP_INT" \
+		--resolve "$WEB_INT_NAME:443:$WEB_INT_IPv4_INT" \
 		--cacert /ca-cert.pem
 }
 
@@ -514,6 +677,18 @@ test_expect_ok_ok() {
 	expect_ok get_log_errors
 }
 
+# run tests and expect external server ERR and internal ERR
+test_expect_err_err() {
+	show_oc_client_status
+	show_routes
+	show_nft_ruleset
+	expect_err ping_ext
+	expect_err ping_int
+	expect_err curl_ext
+	expect_err curl_int
+	expect_ok get_log_errors
+}
+
 # common parts of tests with default settings in ocserv.conf.
 test_default_common() {
 	out "Testing before VPN connection..."
@@ -610,7 +785,7 @@ ping-leases = false
 
 # configure routing
 route = default
-no-route = $WEB_EXT_IP_EXT/32
+no-route = $WEB_EXT_IPv4_EXT/32
 
 cisco-client-compat = true
 dtls-legacy = true
@@ -959,6 +1134,54 @@ client-bypass-protocol = false
 	stop_containers
 }
 
+# run test with CPD
+test_cpd() {
+	out "Setting up test..."
+	start_containers
+
+	# enable captive portal
+	# pretend we are logged out and do not have network access
+	enable_captive_portal
+
+	# configure oc-daemon incl. cpd
+	save_oc_client_system_settings
+	set_profile_oc_daemon $WEB_INT_NAME
+	set_oc_daemon_config_cpd
+	restart_oc_daemon
+
+	sleep 10
+
+	# check if portal is detected
+	expect_ok is_detected_captive_portal
+	# make sure we cannot reach web-ext and web-int
+	test_expect_err_err
+	# make sure we cannot connect and
+	# cannot reach web-ext and web-int
+	connect_vpn_default
+	test_expect_err_err
+
+	# disable captive portal
+	# pretend we are logged in and have network access now
+	disable_captive_portal
+
+	sleep 10
+
+	# make sure portal is not detected any more
+	expect_err is_detected_captive_portal
+
+	# make sure we can reach web-ext now
+	test_expect_ok_err
+	# make sure we can connect now and
+	# can reach web-int now
+	connect_vpn_default
+	test_expect_err_ok
+
+	out "Shutting down test..."
+	stop_oc_daemon
+	save_gocover_dir
+	stop_containers
+}
+
 # define test cases/runs
 TEST_RUNS=(
 	test_default
@@ -972,6 +1195,7 @@ TEST_RUNS=(
 	test_profile_alwayson
 	test_profile_tnd
 	test_profile_server
+	test_cpd
 )
 
 ###############################################################################
