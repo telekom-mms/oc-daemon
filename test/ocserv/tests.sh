@@ -642,7 +642,7 @@ show_summary() {
 ###############################################################################
 
 # run tests and expect external server OK and internal ERR
-test_expect_ok_err() {
+test_expect_ext_ok_int_err() {
 	show_oc_client_status
 	show_routes
 	show_nft_ruleset
@@ -654,7 +654,7 @@ test_expect_ok_err() {
 }
 
 # run tests and expect external server ERR and internal OK
-test_expect_err_ok() {
+test_expect_ext_err_int_ok() {
 	show_oc_client_status
 	show_routes
 	show_nft_ruleset
@@ -666,7 +666,7 @@ test_expect_err_ok() {
 }
 
 # run tests and expect external server OK and internal OK
-test_expect_ok_ok() {
+test_expect_ext_ok_int_ok() {
 	show_oc_client_status
 	show_routes
 	show_nft_ruleset
@@ -678,7 +678,7 @@ test_expect_ok_ok() {
 }
 
 # run tests and expect external server ERR and internal ERR
-test_expect_err_err() {
+test_expect_ext_err_int_err() {
 	show_oc_client_status
 	show_routes
 	show_nft_ruleset
@@ -692,25 +692,25 @@ test_expect_err_err() {
 # common parts of tests with default settings in ocserv.conf.
 test_default_common() {
 	out "Testing before VPN connection..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# connect vpn
 	connect_vpn_cmdline
 
 	out "Testing after VPN connection..."
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	# reconnect vpn
 	reconnect_vpn_cmdline
 
 	out "Testing after reconnecting VPN..."
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	# disconnect vpn
 	disconnect_vpn_cmdline
 
 	out "Testing after disconnecting VPN..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 }
 
 # run test with default settings in ocserv.conf.
@@ -794,25 +794,25 @@ client-bypass-protocol = false
 	set_ocserv_config "$config"
 
 	out "Testing before VPN connection..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# connect vpn
 	connect_vpn_cmdline
 
 	out "Testing after VPN connection..."
-	test_expect_ok_ok
+	test_expect_ext_ok_int_ok
 
 	# reconnect vpn
 	reconnect_vpn_cmdline
 
 	out "Testing after reconnecting VPN..."
-	test_expect_ok_ok
+	test_expect_ext_ok_int_ok
 
 	# disconnect vpn
 	disconnect_vpn_cmdline
 
 	out "Testing after disconnecting VPN..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 }
 
 # run test with split routing for ext-web.
@@ -879,12 +879,12 @@ test_reconnect() {
 	# check errors in log after reconnect without vpn connection
 	reconnect_vpn_cmdline
 	sleep 3
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	# check errors in log after reconnect with vpn connection
 	reconnect_vpn_cmdline
 	sleep 3
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	out "Shutting down test..."
 	stop_oc_daemon
@@ -903,13 +903,13 @@ test_disconnect() {
 	# check errors in log after disconnect without vpn connection
 	disconnect_vpn_cmdline
 	sleep 3
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# check errors in log after disconnect with vpn connection
 	connect_vpn_cmdline
 	disconnect_vpn_cmdline
 	sleep 3
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	out "Shutting down test..."
 	stop_oc_daemon
@@ -929,17 +929,17 @@ test_occlient_config() {
 	# connect vpn
 	connect_vpn_default
 	out "Testing with system settings, after VPN connection..."
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	# reconnect vpn
 	reconnect_vpn_default
 	out "Testing with system settings, after reconnecting VPN..."
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	# disconnect vpn
 	disconnect_vpn_default
 	out "Testing with system settings, after disconnecting VPN..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# test with user settings
 	out "Testing with user settings..."
@@ -948,17 +948,17 @@ test_occlient_config() {
 	# connect vpn
 	connect_vpn_default
 	out "Testing with user settings, after VPN connection..."
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	# reconnect vpn
 	reconnect_vpn_default
 	out "Testing with user settings, after reconnecting VPN..."
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	# disconnect vpn
 	disconnect_vpn_default
 	out "Testing with user settings, after disconnecting VPN..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	out "Shutting down test..."
 	stop_oc_daemon
@@ -974,27 +974,27 @@ test_profile_alwayson() {
 	# set xml profile
 	set_profile_oc_daemon $WEB_INT_NAME
 	sleep 1
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# connect vpn
 	connect_vpn_cmdline
 	out "Testing after VPN connection before restart..."
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	# restart, load xml profile on startup
 	restart_oc_daemon
 	sleep 1
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# connect vpn
 	connect_vpn_cmdline
 	out "Testing after VPN connection after restart..."
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	# set xml profile again, should not change anything
 	set_profile_oc_daemon $WEB_INT_NAME
 	sleep 1
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	out "Shutting down test..."
 	stop_oc_daemon
@@ -1011,32 +1011,32 @@ test_profile_tnd() {
 	# set external web server in profile, pretend to be in trusted network
 	set_profile_oc_daemon $WEB_EXT_NAME
 	sleep 1
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# connect vpn
 	connect_vpn_cmdline
 	out "Testing after VPN connection attempt before restart..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# restart, load xml profile on startup
 	restart_oc_daemon
 	sleep 1
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# connect vpn
 	connect_vpn_cmdline
 	out "Testing after VPN connection attempt after restart..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# set internal web server in profile, not in a trusted network
 	set_profile_oc_daemon $WEB_INT_NAME
 	sleep 1
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# connect vpn
 	connect_vpn_cmdline
 	out "Testing after VPN connection after switching to internal server..."
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	out "Shutting down test..."
 	stop_oc_daemon
@@ -1108,12 +1108,12 @@ client-bypass-protocol = false
 	set_ocserv_config "$config"
 
 	out "Testing before VPN connection..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# connect vpn
 	connect_vpn_cmdline
 	out "Testing after VPN connection..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# check profile on oc-daemon
 	out "Checking XML Profile on oc-daemon after connect..."
@@ -1122,7 +1122,7 @@ client-bypass-protocol = false
 	# reconnect vpn
 	reconnect_vpn_cmdline
 	out "Testing after VPN connection..."
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 
 	# check profile on oc-daemon
 	out "Checking XML Profile on oc-daemon after reconnect..."
@@ -1154,11 +1154,11 @@ test_cpd() {
 	# check if portal is detected
 	expect_ok is_detected_captive_portal
 	# make sure we cannot reach web-ext and web-int
-	test_expect_err_err
+	test_expect_ext_err_int_err
 	# make sure we cannot connect and
 	# cannot reach web-ext and web-int
 	connect_vpn_default
-	test_expect_err_err
+	test_expect_ext_err_int_err
 
 	# disable captive portal
 	# pretend we are logged in and have network access now
@@ -1170,11 +1170,11 @@ test_cpd() {
 	expect_err is_detected_captive_portal
 
 	# make sure we can reach web-ext now
-	test_expect_ok_err
+	test_expect_ext_ok_int_err
 	# make sure we can connect now and
 	# can reach web-int now
 	connect_vpn_default
-	test_expect_err_ok
+	test_expect_ext_err_int_ok
 
 	out "Shutting down test..."
 	stop_oc_daemon
