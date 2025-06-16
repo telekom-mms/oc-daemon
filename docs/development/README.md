@@ -149,7 +149,7 @@ TODO: Sub-documents D-Bus API, Socket API
 ```
 
 - [Overview](overview.md)
-- [Daemon API](api.md)
+- [Daemon D-Bus/Socket API](api.md)
 - [VPN Network Configuration](vpn-network-config.md)
 - [Split Routing](split-routing.md)
 - [DNS Configuration](dns-config.md)

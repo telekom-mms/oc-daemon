@@ -131,16 +131,26 @@ Client    OC-Daemon
   * Little-Endian byte order
 
 ```
-+---------------+-----------------+---------------------+
-| Type (16 bit) | Length (32 bit) | Value (Length byte) |
-+---------------+-----------------+---------------------+
++---------------+-----------------+-----------------+---------------------+
+| Type (16 bit) | Length (32 bit) | Token (16 byte) | Value (Length byte) |
++---------------+-----------------+-----------------+---------------------+
 ```
 
 Message format:
 
  * Type: 16 Bits
  * Length: 32 Bits
+ * Token: 16 Bytes
  * Value: Length Bytes
+
+TODO: mention other fields?
+
+`Token` is a secret shared between the oc-daemon and the client. It is used to
+verify a legitimate request to change the VPN configuration.
+
+Note: the token is passed from the oc-daemon to OpenConnect via an environment
+variable. This variable is also passed by OpenConnect to oc-daemon-vpncscript,
+that then uses it in its Config Update request.
 
 Message Types:
 
@@ -168,17 +178,12 @@ Go-representation of the config update:
 ```go
 type ConfigUpdate struct {
 	Reason string
-	Token  string
 	Config *vpnconfig.Config
 }
 ```
 
-`Reason` is the reason of the update: `connect` or `disconnect`. `Token` is a
-secret shared between the oc-daemon and the client. It is used to verify a
-legitimate request to change the VPN configuration. `Config` is the VPN network
-configuration. For the go-representation of the configuration see [VPN Network
-Configuration](vpn-network-config.md).
+TODO: more reasons? attempt-reconnect etc?
 
-Note: the token is passed from the oc-daemon to OpenConnect via an environment
-variable. This variable is also passed by OpenConnect to oc-daemon-vpncscript,
-that then uses it in its Config Update request.
+`Reason` is the reason of the update: `connect` or `disconnect`. `Config` is
+the VPN network configuration. For the go-representation of the configuration
+see [VPN Network Configuration](vpn-network-config.md).
