@@ -41,6 +41,19 @@ func printUsage() {
 	)
 }
 
+// printJSON prints a as JSON.
+func printJSON(a any) {
+	// convert to json
+	b, err := json.MarshalIndent(a, "", "    ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		return
+	}
+
+	// print to stdout
+	_, _ = fmt.Fprintf(os.Stdout, "%s\n", b)
+}
+
 func main() {
 	// make sure command line argument is present
 	if len(os.Args) < 2 {
@@ -52,18 +65,9 @@ func main() {
 	switch os.Args[1] {
 
 	case DaemonConfig:
-		// get default config
+		// get and print default config
 		c := daemoncfg.NewConfig()
-
-		// convert to json
-		b, err := json.MarshalIndent(c, "", "    ")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			return
-		}
-
-		// print to stdout
-		_, _ = fmt.Fprintf(os.Stdout, "%s\n", b)
+		printJSON(c)
 
 	case CommandLists:
 		// sort function
@@ -74,33 +78,17 @@ func main() {
 		// get command lists as sorted slice
 		cl := slices.SortedFunc(maps.Values(cmdtmpl.CommandLists), sf)
 
-		// convert to json
-		b, err := json.MarshalIndent(cl, "", "    ")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			return
-		}
-
-		// print to stdout
-		_, _ = fmt.Fprintf(os.Stdout, "%s\n", b)
+		// print command lists
+		printJSON(cl)
 
 	case CommandTemplates:
 		// print to stdout
 		_, _ = fmt.Fprintf(os.Stdout, "%s\n", cmdtmpl.DefaultTemplate)
 
 	case ClientConfig:
-		// get default config
+		// get and print default config
 		c := client.NewConfig()
-
-		// convert to json
-		b, err := json.MarshalIndent(c, "", "    ")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			return
-		}
-
-		// print to stdout
-		_, _ = fmt.Fprintf(os.Stdout, "%s\n", b)
+		printJSON(c)
 
 	default:
 		// unknown, print error message to stderr
