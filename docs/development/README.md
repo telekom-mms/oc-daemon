@@ -17,7 +17,7 @@ Features of the current implementation:
   - TLS, DTLS
 - Authentication Methods
   - Machine Certificate + Username/Password
-  - TODO: Machine Certificate + User Certificate (with newer OpenConnect version)?
+  - Machine Certificate + User Certificate (with OpenConnect v9.00 or later)
 
 ## Components
 

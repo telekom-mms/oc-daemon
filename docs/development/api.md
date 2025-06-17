@@ -143,7 +143,15 @@ Message format:
  * Token: 16 Bytes
  * Value: Length Bytes
 
-TODO: mention other fields?
+`Type` is the message type.
+
+Message Types:
+
+* 1: OK (Server Response - OK)
+* 2: Error (Server Response - Error)
+* 3: VPN Config Update (Client Request - Update VPN Network Configuration)
+
+`Length` is the length of the payload in bytes.
 
 `Token` is a secret shared between the oc-daemon and the client. It is used to
 verify a legitimate request to change the VPN configuration.
@@ -152,11 +160,7 @@ Note: the token is passed from the oc-daemon to OpenConnect via an environment
 variable. This variable is also passed by OpenConnect to oc-daemon-vpncscript,
 that then uses it in its Config Update request.
 
-Message Types:
-
-* 1: OK (Server Response - OK)
-* 2: Error (Server Response - Error)
-* 3: VPN Config Update (Client Request - Update VPN Network Configuration)
+`Value` is the payload.
 
 Value depends on message type:
 
@@ -182,8 +186,7 @@ type ConfigUpdate struct {
 }
 ```
 
-TODO: more reasons? attempt-reconnect etc?
-
-`Reason` is the reason of the update: `connect` or `disconnect`. `Config` is
-the VPN network configuration. For the go-representation of the configuration
-see [VPN Network Configuration](vpn-network-config.md).
+`Reason` is the reason of the update: `connect`, `disconnect`,
+`attempt-reconnect` or `reconnect`. `Config` is the VPN network configuration.
+For the go-representation of the configuration see [VPN Network
+Configuration](vpn-network-config.md).
