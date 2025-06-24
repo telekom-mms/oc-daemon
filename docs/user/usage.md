@@ -23,6 +23,8 @@ Options:
         set client certificate file or PKCS11 URI
   -config file
         set config file
+  -group usergroup
+        set usergroup
   -key file
         set client key file or PKCS11 URI
   -profile file
@@ -77,7 +79,7 @@ The user-specific configuration is stored in the JSON file
 `~/.config/oc-daemon/oc-client.json`. The system-wide configuration is stored
 in the JSON file `/var/lib/oc-daemon/oc-client.json`. If the user-specific
 configuration file exists, it is preferred. Otherwise, the system-wide
-configuration is used.  You can override this priority with the `oc-client`
+configuration is used. You can override this priority with the `oc-client`
 option `-system-settings` and load the system-wide configuration instead of the
 user-specific configuration.
 
