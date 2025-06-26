@@ -14,6 +14,15 @@ const (
 	prepareForSleep = iface + ".PrepareForSleep"
 )
 
+// Monitor is the Sleep Monitor interface.
+type Monitor interface {
+	Events() chan bool
+	Start() error
+	Stop()
+}
+
+var _ Monitor = &SleepMon{}
+
 // SleepMon is a suspend/hibernate monitor.
 type SleepMon struct {
 	conn   *dbus.Conn

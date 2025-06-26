@@ -37,6 +37,17 @@ type command struct {
 	done  chan struct{}
 }
 
+// Setup is the VPN Setup interface.
+type Setup interface {
+	GetState() *State
+	Setup(conf *daemoncfg.Config)
+	Start()
+	Stop()
+	Teardown(conf *daemoncfg.Config)
+}
+
+var _ Setup = &VPNSetup{}
+
 // VPNSetup sets up the configuration of the vpn tunnel that belongs to the
 // current VPN connection.
 type VPNSetup struct {

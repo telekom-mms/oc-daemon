@@ -31,6 +31,17 @@ type ConnectEvent struct {
 	env []string
 }
 
+// Runner is the OpenConnect Runner interface.
+type Runner interface {
+	Connect(config *daemoncfg.Config, env []string)
+	Disconnect()
+	Events() chan *ConnectEvent
+	Start()
+	Stop()
+}
+
+var _ Runner = &Connect{}
+
 // Connect is a openconnect connection runner.
 type Connect struct {
 	// openconnect command

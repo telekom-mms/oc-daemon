@@ -36,19 +36,19 @@ import (
 type Daemon struct {
 	config *daemoncfg.Config
 
-	server *api.Server
-	dbus   *dbusapi.Service
+	server api.SocketAPI
+	dbus   dbusapi.DBusAPI
 
 	tnd tnd.TND
 
-	vpnsetup *vpnsetup.VPNSetup
-	trafpol  *trafpol.TrafPol
+	vpnsetup vpnsetup.Setup
+	trafpol  trafpol.Policer
 
-	sleepmon *sleepmon.SleepMon
+	sleepmon sleepmon.Monitor
 
 	status *vpnstatus.Status
 
-	runner *ocrunner.Connect
+	runner ocrunner.Runner
 
 	// token is used for client authentication
 	token string
@@ -62,7 +62,7 @@ type Daemon struct {
 
 	// profile is the xml profile
 	profile *xmlprofile.Profile
-	profmon *profilemon.ProfileMon
+	profmon profilemon.Monitor
 
 	// disableTrafPol determines if traffic policing should be disabled,
 	// overrides other traffic policing settings

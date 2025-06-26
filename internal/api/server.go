@@ -19,6 +19,16 @@ const (
 	ServerShuttingDown = "server is shutting down"
 )
 
+// SocketAPI is the Socket API interface.
+type SocketAPI interface {
+	Requests() chan *Request
+	Shutdown()
+	Start() error
+	Stop()
+}
+
+var _ SocketAPI = &Server{}
+
 // Server is a Daemon API server.
 type Server struct {
 	config   *daemoncfg.SocketServer

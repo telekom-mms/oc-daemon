@@ -37,6 +37,18 @@ type trafPolCmd struct {
 	done  chan struct{}
 }
 
+// Policer is the Traffic Policing interface.
+type Policer interface {
+	AddAllowedAddr(addr netip.Addr) bool
+	CPDStatus() <-chan bool
+	GetState() *State
+	RemoveAllowedAddr(addr netip.Addr) bool
+	Start() error
+	Stop()
+}
+
+var _ Policer = &TrafPol{}
+
 // TrafPol is a traffic policing component.
 type TrafPol struct {
 	config *daemoncfg.Config
