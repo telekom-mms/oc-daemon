@@ -12,6 +12,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Monitor is the Profile Monitor interface.
+type Monitor interface {
+	Start() error
+	Stop()
+	Updates() chan struct{}
+}
+
+var _ Monitor = &ProfileMon{}
+
 // ProfileMon is a XML profile monitor.
 type ProfileMon struct {
 	watcher *fsnotify.Watcher

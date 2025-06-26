@@ -249,6 +249,16 @@ type propertyUpdate struct {
 	value any
 }
 
+// DBusAPI is the D-Bus API interface.
+type DBusAPI interface {
+	Requests() chan *Request
+	SetProperty(name string, value any)
+	Start() error
+	Stop()
+}
+
+var _ DBusAPI = &Service{}
+
 // Service is a D-Bus Service.
 type Service struct {
 	conn  dbusConn
