@@ -99,6 +99,96 @@ func getTestDaemon() *Daemon {
 	}
 }
 
+func TestDaemonCheckTND(t *testing.T) {
+	// no tnd
+	d := getTestDaemon()
+	d.tnd = nil
+	d.checkTND()
+
+	// start tnd
+	// note: cannot start without systemd-resolved
+	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
+		{
+			Address:         "tnd1.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd1 certificate",
+		},
+		{
+			Address:         "tnd2.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd2 certificate",
+		},
+	}
+	d.checkTND()
+
+	// start tnd, already running
+	d = getTestDaemon()
+	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
+		{
+			Address:         "tnd1.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd1 certificate",
+		},
+		{
+			Address:         "tnd2.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd2 certificate",
+		},
+	}
+	d.checkTND()
+
+	// stop tnd
+	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = nil
+	d.checkTND()
+}
+
+func TestDaemonStartStopTND(t *testing.T) {
+	// without tnd
+	d := getTestDaemon()
+	d.tnd = nil
+	d.checkTND()
+	go d.start()
+	d.Stop()
+
+	// start tnd
+	d = getTestDaemon()
+	d.tnd = nil
+	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
+		{
+			Address:         "tnd1.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd1 certificate",
+		},
+		{
+			Address:         "tnd2.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd2 certificate",
+		},
+	}
+	d.checkTND()
+
+	// with tnd
+	d = getTestDaemon()
+	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
+		{
+			Address:         "tnd1.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd1 certificate",
+		},
+		{
+			Address:         "tnd2.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd2 certificate",
+		},
+	}
+	go d.start()
+	d.tnd.(*tndDetector).r <- false
+	d.tnd.(*tndDetector).r <- false
+	d.tnd.(*tndDetector).r <- true
+	d.tnd.(*tndDetector).r <- true
+	d.Stop()
+}
+
 func TestTest(t *testing.T) {
 	d := getTestDaemon()
 	go d.start()
@@ -109,6 +199,7 @@ func TestTest(t *testing.T) {
 
 	d.tnd.(*tndDetector).r <- false
 	d.tnd.(*tndDetector).r <- true
+	d.tnd.(*tndDetector).r <- false
 	d.tnd.(*tndDetector).r <- false
 
 	//d.trafpol.(*trafPolicer).s <- true
