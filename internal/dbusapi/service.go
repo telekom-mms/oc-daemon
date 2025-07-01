@@ -173,6 +173,16 @@ func (r *Request) Wait() {
 	}
 }
 
+// NewRequest returns a new Request.
+// TODO: use it, add test
+func NewRequest(name string, done chan struct{}) *Request {
+	return &Request{
+		Name: name,
+		wait: make(chan struct{}),
+		done: done,
+	}
+}
+
 // daemon defines daemon interface methods.
 type daemon struct {
 	requests chan *Request

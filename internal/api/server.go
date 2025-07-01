@@ -93,10 +93,7 @@ func (s *Server) handleRequest(conn net.Conn) {
 
 	// forward client's request to daemon
 	select {
-	case s.requests <- &Request{
-		msg:  msg,
-		conn: conn,
-	}:
+	case s.requests <- NewRequest(conn, msg):
 	case <-s.shutdown:
 		s.sendShuttingDownError(conn)
 	case <-s.done:

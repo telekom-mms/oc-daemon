@@ -15,6 +15,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/trafpol"
 	"github.com/telekom-mms/oc-daemon/internal/vpnsetup"
+	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
 	"github.com/vishvananda/netlink"
@@ -189,10 +190,92 @@ func TestDaemonCheckTrafPol(t *testing.T) {
 	fmt.Println(d.checkTrafPol())
 }
 
-//func TestDaemonHandleClientRequest(t *testing.T) {
-//	d := getTestDaemon()
-//	d.handleClientRequest(&api.Request{})
-//}
+func TestDaemonHandleClientRequest(t *testing.T) {
+	d := getTestDaemon()
+	c1, c2 := net.Pipe()
+	defer c1.Close()
+	defer c2.Close()
+
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeOK, nil)))
+	api.ReadMessage(c1)
+
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, nil)))
+	api.ReadMessage(c1)
+
+	confup := NewVPNConfigUpdate()
+	b, _ := confup.JSON()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	confup.Reason = "pre-init"
+	b, _ = confup.JSON()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	// TODO: updateVPNConfigDown cov
+	confup.Reason = "disconnect"
+	b, _ = confup.JSON()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	// TODO: handleVPNAttemptReconnect cov
+	confup.Reason = "attempt-reconnect"
+	b, _ = confup.JSON()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	// TODO: handleVPNReconnect cov
+	confup.Reason = "reconnect"
+	b, _ = confup.JSON()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	// TODO: updateVPNConfigUp cov
+	confup.Reason = "connect"
+	confup.Config = vpnconfig.New()
+	b, _ = confup.JSON()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+}
+
+func TestDaemonHandleDBusRequest(t *testing.T) {
+	d := getTestDaemon()
+	r := dbusapi.NewRequest("", make(chan struct{}))
+	d.handleDBusRequest(r)
+
+	// TODO: connectVPN cov
+	r = dbusapi.NewRequest(dbusapi.RequestConnect, make(chan struct{}))
+	r.Parameters = []any{"", "", "", "", "", ""}
+	d.handleDBusRequest(r)
+
+	// TODO: disconnectVPN cov
+	r = dbusapi.NewRequest(dbusapi.RequestDisconnect, make(chan struct{}))
+	d.handleDBusRequest(r)
+
+	// dump state
+	r = dbusapi.NewRequest(dbusapi.RequestDumpState, make(chan struct{}))
+	d.handleDBusRequest(r)
+}
+
+func TestDaemonHandleTNDResult(t *testing.T) {
+	d := getTestDaemon()
+	d.handleTNDResult(false)
+	d.handleTNDResult(false)
+
+	d.status.OCRunning = vpnstatus.OCRunningRunning
+	d.handleTNDResult(true)
+}
+
+func TestDaemonHandleRunnerEvent(t *testing.T) {
+	d := getTestDaemon()
+
+	d.handleRunnerEvent(&ocrunner.ConnectEvent{Connect: true, PID: 1})
+
+	d.handleRunnerEvent(&ocrunner.ConnectEvent{Connect: true, PID: 1})
+
+	d.serverIPAllowed = true
+	d.handleRunnerEvent(&ocrunner.ConnectEvent{})
+}
 
 func TestDaemonStartStopTND(t *testing.T) {
 	// without tnd

@@ -62,3 +62,12 @@ func (r *Request) Close() {
 	}
 	r.sendOK()
 }
+
+// NewRequest returns a new Request.
+// TODO: add test
+func NewRequest(conn net.Conn, msg *Message) *Request {
+	return &Request{
+		msg:  msg,
+		conn: conn,
+	}
+}
