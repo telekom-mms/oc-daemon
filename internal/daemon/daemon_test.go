@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"fmt"
 	"net"
 	"net/netip"
 	"path/filepath"
@@ -10,11 +11,13 @@ import (
 	"github.com/telekom-mms/oc-daemon/internal/api"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
+	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/trafpol"
 	"github.com/telekom-mms/oc-daemon/internal/vpnsetup"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
+	"github.com/vishvananda/netlink"
 )
 
 type socketServer struct{ r chan *api.Request }
@@ -119,7 +122,7 @@ func TestDaemonCheckTND(t *testing.T) {
 			CertificateHash: "hash of tnd2 certificate",
 		},
 	}
-	d.checkTND()
+	fmt.Println(d.checkTND())
 
 	// start tnd, already running
 	d = getTestDaemon()
@@ -141,6 +144,55 @@ func TestDaemonCheckTND(t *testing.T) {
 	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = nil
 	d.checkTND()
 }
+
+func TestDaemonCheckTrafPol(t *testing.T) {
+	// no trafpol
+	d := getTestDaemon()
+	d.trafpol = nil
+	d.checkTrafPol()
+
+	d = getTestDaemon()
+	d.checkTrafPol()
+
+	d = getTestDaemon()
+	d.disableTrafPol = true
+	d.checkTrafPol()
+
+	//
+	d = getTestDaemon()
+	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
+	d.status.TrustedNetwork = vpnstatus.TrustedNetworkTrusted
+	d.checkTrafPol()
+
+	d = getTestDaemon()
+	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
+	d.checkTrafPol()
+
+	rlu := devmon.RegisterLinkUpdates
+	defer func() { devmon.RegisterLinkUpdates = rlu }()
+
+	d = getTestDaemon()
+	d.trafpol = nil
+	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
+	devmon.RegisterLinkUpdates = func(d *devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, fmt.Errorf("test error")
+	}
+	fmt.Println(d.checkTrafPol())
+
+	d = getTestDaemon()
+	d.trafpol = nil
+	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
+	devmon.RegisterLinkUpdates = func(d *devmon.DevMon) (chan netlink.LinkUpdate, error) {
+		return nil, nil
+	}
+	d.serverIP = netip.MustParseAddr("192.168.1.1")
+	fmt.Println(d.checkTrafPol())
+}
+
+//func TestDaemonHandleClientRequest(t *testing.T) {
+//	d := getTestDaemon()
+//	d.handleClientRequest(&api.Request{})
+//}
 
 func TestDaemonStartStopTND(t *testing.T) {
 	// without tnd
