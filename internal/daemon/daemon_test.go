@@ -277,6 +277,32 @@ func TestDaemonHandleRunnerEvent(t *testing.T) {
 	d.handleRunnerEvent(&ocrunner.ConnectEvent{})
 }
 
+func TestDaemonHandleSleepMonEvent(t *testing.T) {
+	d := getTestDaemon()
+
+	d.handleSleepMonEvent(true)
+
+	d.status.OCRunning = vpnstatus.OCRunningRunning
+	d.handleSleepMonEvent(false)
+}
+
+func TestDaemonHandleProfileUpdate(t *testing.T) {
+	d := getTestDaemon()
+
+	d.handleProfileUpdate()
+	// TODO: setStatusServers cov
+}
+
+func TestDaemonHandleCPDStatusUpdate(t *testing.T) {
+	d := getTestDaemon()
+
+	d.handleCPDStatusUpdate(false)
+	d.handleCPDStatusUpdate(false)
+
+	d.handleCPDStatusUpdate(true)
+	d.handleCPDStatusUpdate(true)
+}
+
 func TestDaemonStartStopTND(t *testing.T) {
 	// without tnd
 	d := getTestDaemon()
