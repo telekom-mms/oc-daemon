@@ -191,68 +191,203 @@ func TestDaemonCheckTrafPol(t *testing.T) {
 }
 
 func TestDaemonHandleClientRequest(t *testing.T) {
+	// ok
 	d := getTestDaemon()
 	c1, c2 := net.Pipe()
 	defer c1.Close()
-	defer c2.Close()
-
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeOK, nil)))
 	api.ReadMessage(c1)
 
+	// vpn config update
+	d = getTestDaemon()
+	c1, c2 = net.Pipe()
+	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, nil)))
 	api.ReadMessage(c1)
 
+	d = getTestDaemon()
 	confup := NewVPNConfigUpdate()
 	b, _ := confup.JSON()
+	c1, c2 = net.Pipe()
+	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
 	api.ReadMessage(c1)
 
+	// pre-init
+	d = getTestDaemon()
+	confup = NewVPNConfigUpdate()
 	confup.Reason = "pre-init"
 	b, _ = confup.JSON()
+	c1, c2 = net.Pipe()
+	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
 	api.ReadMessage(c1)
 
-	// TODO: updateVPNConfigDown cov
-	confup.Reason = "disconnect"
-	b, _ = confup.JSON()
-	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
-
-	// TODO: handleVPNAttemptReconnect cov
-	confup.Reason = "attempt-reconnect"
-	b, _ = confup.JSON()
-	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
-
-	// TODO: handleVPNReconnect cov
-	confup.Reason = "reconnect"
-	b, _ = confup.JSON()
-	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
-
-	// TODO: updateVPNConfigUp cov
+	// connect
+	d = getTestDaemon()
+	confup = NewVPNConfigUpdate()
 	confup.Reason = "connect"
 	confup.Config = vpnconfig.New()
+	d.status.VPNConfig = confup.Config
 	b, _ = confup.JSON()
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	d.status.VPNConfig = nil
+	b, _ = confup.JSON()
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	d.status.VPNConfig = nil
+	d.status.OCRunning = vpnstatus.OCRunningRunning
+	d.status.ConnectionState = vpnstatus.ConnectionStateConnected
+	b, _ = confup.JSON()
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	d.status.VPNConfig = nil
+	d.status.OCRunning = vpnstatus.OCRunningRunning
+	d.status.ConnectionState = vpnstatus.ConnectionStateConnecting
+	confup.Config.Gateway = net.ParseIP("10.0.0.1")
+	confup.Config.Device.Name = "oc-daemon-tun0"
+	confup.Config.Device.MTU = 1300
+	confup.Config.IPv4.Address = net.ParseIP("192.168.1.1")
+	confup.Config.IPv4.Netmask = net.CIDRMask(24, 32)
+	confup.Config.DNS.ServersIPv4 = []net.IP{net.ParseIP("192.168.1.2")}
+	fmt.Println("### IPv4:", confup.Config.IPv4.Address, confup.Config.IPv4.Netmask)
+	b, _ = confup.JSON()
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	// disconnect
+	d = getTestDaemon()
+	confup = NewVPNConfigUpdate()
+	confup.Reason = "disconnect"
+	b, _ = confup.JSON()
+	d.status.VPNConfig = vpnconfig.New()
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	if m, err := api.ReadMessage(c1); err != nil || m.Type != api.TypeOK {
+		t.Errorf("ERROR %p %s", m, err)
+	}
+
+	d = getTestDaemon()
+	d.status.ConnectionState = vpnstatus.ConnectionStateConnected
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	// attempt-reconnect
+	d = getTestDaemon()
+	confup = NewVPNConfigUpdate()
+	confup.Reason = "attempt-reconnect"
+	b, _ = confup.JSON()
+	d.status.OCRunning = vpnstatus.OCRunningNotRunning
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	d = getTestDaemon()
+	d.status.OCRunning = vpnstatus.OCRunningRunning
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	d = getTestDaemon()
+	d.status.OCRunning = vpnstatus.OCRunningRunning
+	d.status.ConnectionState = vpnstatus.ConnectionStateConnected
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	// reconnect
+	d = getTestDaemon()
+	confup = NewVPNConfigUpdate()
+	confup.Reason = "reconnect"
+	b, _ = confup.JSON()
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	d = getTestDaemon()
+	d.status.OCRunning = vpnstatus.OCRunningRunning
+	c1, c2 = net.Pipe()
+	defer c1.Close()
+	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
+	api.ReadMessage(c1)
+
+	d = getTestDaemon()
+	d.status.OCRunning = vpnstatus.OCRunningRunning
+	d.status.ConnectionState = vpnstatus.ConnectionStateConnecting
+	c1, c2 = net.Pipe()
+	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
 	api.ReadMessage(c1)
 }
 
 func TestDaemonHandleDBusRequest(t *testing.T) {
+	// other
 	d := getTestDaemon()
 	r := dbusapi.NewRequest("", make(chan struct{}))
 	d.handleDBusRequest(r)
 
-	// TODO: connectVPN cov
+	// connect
+	d = getTestDaemon()
 	r = dbusapi.NewRequest(dbusapi.RequestConnect, make(chan struct{}))
 	r.Parameters = []any{"", "", "", "", "", ""}
+	d.status.OCRunning = vpnstatus.OCRunningRunning
 	d.handleDBusRequest(r)
 
-	// TODO: disconnectVPN cov
+	d = getTestDaemon()
+	r = dbusapi.NewRequest(dbusapi.RequestConnect, make(chan struct{}))
+	r.Parameters = []any{"", "", "", "", "", ""}
+	d.status.OCRunning = vpnstatus.OCRunningNotRunning
+	d.handleDBusRequest(r)
+
+	d = getTestDaemon()
+	r = dbusapi.NewRequest(dbusapi.RequestConnect, make(chan struct{}))
+	r.Parameters = []any{"server", "cookie", "host", "connectURL", "fingerprint", "resolve"}
+	d.status.OCRunning = vpnstatus.OCRunningNotRunning
+	d.handleDBusRequest(r)
+
+	d = getTestDaemon()
+	r = dbusapi.NewRequest(dbusapi.RequestConnect, make(chan struct{}))
+	r.Parameters = []any{"server", "cookie", "10.0.0.1", "connectURL", "fingerprint", "resolve"}
+	d.status.OCRunning = vpnstatus.OCRunningNotRunning
+	d.handleDBusRequest(r)
+
+	// disconnect
+	d = getTestDaemon()
+	r = dbusapi.NewRequest(dbusapi.RequestDisconnect, make(chan struct{}))
+	d.handleDBusRequest(r)
+
+	d = getTestDaemon()
+	d.status.OCRunning = vpnstatus.OCRunningRunning
+	d.runner = nil
+	r = dbusapi.NewRequest(dbusapi.RequestDisconnect, make(chan struct{}))
+	d.handleDBusRequest(r)
+
+	d = getTestDaemon()
+	d.status.OCRunning = vpnstatus.OCRunningRunning
 	r = dbusapi.NewRequest(dbusapi.RequestDisconnect, make(chan struct{}))
 	d.handleDBusRequest(r)
 
 	// dump state
+	d = getTestDaemon()
 	r = dbusapi.NewRequest(dbusapi.RequestDumpState, make(chan struct{}))
 	d.handleDBusRequest(r)
 }
