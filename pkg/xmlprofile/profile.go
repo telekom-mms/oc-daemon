@@ -102,13 +102,16 @@ func LoadProfile(file string) (*Profile, error) {
 	// try to read file
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not read file %s: %w", file, err)
 	}
 
 	// try to parse file contents
-	p := NewProfile()
+	//p := NewProfile()
+	var prof Profile
+	p := &prof
+	log.Println("unmarshalling file content: ", string(b))
 	if err := xml.Unmarshal(b, p); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not unmarshal file %s: %w", file, err)
 	}
 
 	return p, nil

@@ -1,9 +1,11 @@
 package daemon
 
 import (
+	"encoding/xml"
 	"fmt"
 	"net"
 	"net/netip"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -18,6 +20,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnconfig"
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
+	"github.com/telekom-mms/tnd/pkg/tnd"
 	"github.com/vishvananda/netlink"
 )
 
@@ -103,6 +106,7 @@ func getTestDaemon() *Daemon {
 	}
 }
 
+// TODO: test with tndNewDetector
 func TestDaemonCheckTND(t *testing.T) {
 	// no tnd
 	d := getTestDaemon()
@@ -127,6 +131,33 @@ func TestDaemonCheckTND(t *testing.T) {
 
 	// start tnd, already running
 	d = getTestDaemon()
+	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
+		{
+			Address:         "tnd1.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd1 certificate",
+		},
+		{
+			Address:         "tnd2.mycompany.com",
+			Port:            "443",
+			CertificateHash: "hash of tnd2 certificate",
+		},
+	}
+	d.checkTND()
+
+	// stop tnd
+	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = nil
+	d.checkTND()
+
+	// start tnd, x TODO: fix comment, check
+	oldTndNewDetector := tndNewDetector
+	defer func() { tndNewDetector = oldTndNewDetector }()
+	tndNewDetector = func(config *tnd.Config) tnd.TND {
+		return &tndDetector{r: make(chan bool)}
+	}
+
+	d = getTestDaemon()
+	d.tnd = nil
 	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
 		{
 			Address:         "tnd1.mycompany.com",
@@ -424,8 +455,28 @@ func TestDaemonHandleSleepMonEvent(t *testing.T) {
 func TestDaemonHandleProfileUpdate(t *testing.T) {
 	d := getTestDaemon()
 
+	// empty profile
 	d.handleProfileUpdate()
-	// TODO: setStatusServers cov
+
+	// server in profile
+	profile := xmlprofile.NewProfile()
+	profile.ServerList.HostEntry = []xmlprofile.HostEntry{
+		{HostName: "test"},
+	}
+
+	b, err := xml.Marshal(profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dir := t.TempDir()
+	file := filepath.Join(dir, "profile.xml")
+	if err := os.WriteFile(file, b, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	d.config.OpenConnect.XMLProfile = file
+	d.handleProfileUpdate()
 }
 
 func TestDaemonHandleCPDStatusUpdate(t *testing.T) {

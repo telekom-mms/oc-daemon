@@ -683,7 +683,7 @@ func readXMLProfile(xmlProfile string) *xmlprofile.Profile {
 	profile, err := xmlprofile.LoadProfile(xmlProfile)
 	if err != nil {
 		// invalid config, use empty config
-		log.WithError(err).Error("Could not read XML profile")
+		log.WithError(err).Error("Could not read XML profile ", xmlProfile)
 		profile = xmlprofile.NewProfile()
 	}
 	return profile
@@ -785,13 +785,18 @@ func (d *Daemon) setTNDDialer() {
 	d.tnd.SetDialer(dialer)
 }
 
+// tndNewDetector is tnd.NewDetector for testing.
+var tndNewDetector = func(config *tnd.Config) tnd.TND {
+	return tnd.NewDetector(config)
+}
+
 // startTND starts TND if it's not running.
 func (d *Daemon) startTND() error {
 	if d.tnd != nil {
 		return nil
 	}
 	log.Info("Daemon starting TND")
-	d.tnd = tnd.NewDetector(d.config.TND)
+	d.tnd = tndNewDetector(d.config.TND)
 	servers := d.profile.GetTNDHTTPSServers()
 	d.tnd.SetServers(servers)
 	d.setTNDDialer()
