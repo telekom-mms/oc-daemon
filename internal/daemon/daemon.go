@@ -847,6 +847,12 @@ func (d *Daemon) getTNDResults() chan bool {
 	return d.tnd.Results()
 }
 
+// TODO: add testing helper trafpolNewTrafPol?
+// trafpolNewTrafPol is trafpol.NewTrafPol for testing.
+var trafpolNewTrafPol = func(c *daemoncfg.Config) trafpol.Policer {
+	return trafpol.NewTrafPol(c)
+}
+
 // startTrafPol starts traffic policing if it's not running.
 func (d *Daemon) startTrafPol() error {
 	if d.trafpol != nil {
@@ -855,7 +861,7 @@ func (d *Daemon) startTrafPol() error {
 	log.Info("Daemon starting TrafPol")
 	c := d.config.Copy()
 	c.TrafficPolicing.AllowedHosts = append(c.TrafficPolicing.AllowedHosts, d.getProfileAllowedHosts()...)
-	d.trafpol = trafpol.NewTrafPol(c)
+	d.trafpol = trafpolNewTrafPol(c)
 	if err := d.trafpol.Start(); err != nil {
 		return fmt.Errorf("Daemon could not start TrafPol: %w", err)
 	}

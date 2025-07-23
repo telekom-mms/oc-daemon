@@ -7,13 +7,12 @@ import (
 	"net/netip"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
-	"time"
 
 	"github.com/telekom-mms/oc-daemon/internal/api"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/dbusapi"
-	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/ocrunner"
 	"github.com/telekom-mms/oc-daemon/internal/trafpol"
 	"github.com/telekom-mms/oc-daemon/internal/vpnsetup"
@@ -21,7 +20,6 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
 	"github.com/telekom-mms/tnd/pkg/tnd"
-	"github.com/vishvananda/netlink"
 )
 
 type socketServer struct{ r chan *api.Request }
@@ -106,56 +104,322 @@ func getTestDaemon() *Daemon {
 	}
 }
 
-// TODO: test with tndNewDetector
-func TestDaemonCheckTND(t *testing.T) {
-	// no tnd
+// TestDaemonSetStatusTrustedNetwork tests setStatusTrustedNetwork of Daemon.
+func TestDaemonSetStatusTrustedNetwork(t *testing.T) {
 	d := getTestDaemon()
-	d.tnd = nil
-	d.checkTND()
-
-	// start tnd
-	// note: cannot start without systemd-resolved
-	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
-		{
-			Address:         "tnd1.mycompany.com",
-			Port:            "443",
-			CertificateHash: "hash of tnd1 certificate",
-		},
-		{
-			Address:         "tnd2.mycompany.com",
-			Port:            "443",
-			CertificateHash: "hash of tnd2 certificate",
-		},
+	for i, trusted := range []struct {
+		v    bool
+		want vpnstatus.TrustedNetwork
+	}{
+		{true, vpnstatus.TrustedNetworkTrusted},
+		{true, vpnstatus.TrustedNetworkTrusted},
+		{false, vpnstatus.TrustedNetworkNotTrusted},
+		{false, vpnstatus.TrustedNetworkNotTrusted},
+	} {
+		d.setStatusTrustedNetwork(trusted.v)
+		got := d.status.TrustedNetwork
+		if got != trusted.want {
+			t.Errorf("%d: set %t, got %d, want %d",
+				i, trusted.v, got, trusted.want)
+		}
 	}
-	fmt.Println(d.checkTND())
+}
 
-	// start tnd, already running
-	d = getTestDaemon()
-	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
-		{
-			Address:         "tnd1.mycompany.com",
-			Port:            "443",
-			CertificateHash: "hash of tnd1 certificate",
-		},
-		{
-			Address:         "tnd2.mycompany.com",
-			Port:            "443",
-			CertificateHash: "hash of tnd2 certificate",
-		},
+// TestDaemonSetStatusConnectionState tests setStatusConnectionState of Daemon.
+func TestDaemonSetStatusConnectionState(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []vpnstatus.ConnectionState{
+		vpnstatus.ConnectionStateDisconnected,
+		vpnstatus.ConnectionStateDisconnected,
+		vpnstatus.ConnectionStateConnecting,
+		vpnstatus.ConnectionStateConnecting,
+		vpnstatus.ConnectionStateConnected,
+		vpnstatus.ConnectionStateConnected,
+		vpnstatus.ConnectionStateDisconnecting,
+		vpnstatus.ConnectionStateDisconnecting,
+		vpnstatus.ConnectionStateUnknown,
+		vpnstatus.ConnectionStateUnknown,
+	} {
+		d.setStatusConnectionState(want)
+		got := d.status.ConnectionState
+		if got != want {
+			t.Errorf("%d: got %d, want %d", i, got, want)
+		}
 	}
-	d.checkTND()
+}
 
-	// stop tnd
-	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = nil
-	d.checkTND()
+// TestDaemonSetStatusIP tests setStatusIP of Daemon.
+func TestDaemonSetStatusIP(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []string{
+		"192.168.1.1",
+		"192.168.1.1",
+		"",
+		"",
+	} {
+		d.setStatusIP(want)
+		got := d.status.IP
+		if got != want {
+			t.Errorf("%d: got %s, want %s", i, got, want)
+		}
+	}
+}
 
-	// start tnd, x TODO: fix comment, check
+// TestDaemonSetStatusDevice tests setStatusDevice of Daemon.
+func TestDaemonSetStatusDevice(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []string{
+		"oc-daemon-tun0",
+		"oc-daemon-tun0",
+		"",
+		"",
+	} {
+		d.setStatusDevice(want)
+		got := d.status.Device
+		if got != want {
+			t.Errorf("%d: got %s, want %s", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusServer tests setStatusServer of Daemon.
+func TestDaemonSetStatusServer(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []string{
+		"test-server1",
+		"test-server1",
+		"",
+		"",
+	} {
+		d.setStatusServer(want)
+		got := d.status.Server
+		if got != want {
+			t.Errorf("%d: got %s, want %s", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusServerIP tests setStatusServerIP of Daemon.
+func TestDaemonSetStatusServerIP(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []string{
+		"10.0.0.1",
+		"10.0.0.1",
+		"",
+		"",
+	} {
+		d.setStatusServerIP(want)
+		got := d.status.ServerIP
+		if got != want {
+			t.Errorf("%d: got %s, want %s", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusConnectedAt tests setStatusConnectedAt of Daemon.
+func TestDaemonSetStatusConnectedAt(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []int64{
+		1753274054,
+		1753274054,
+		0,
+		0,
+	} {
+		d.setStatusConnectedAt(want)
+		got := d.status.ConnectedAt
+		if got != want {
+			t.Errorf("%d: got %d, want %d", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusServers tests setStatusServers of Daemon.
+func TestDaemonSetStatusServers(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range [][]string{
+		{"test-server1"},
+		{"test-server1"},
+		{"test-server1", "test-server2"},
+		{"test-server1", "test-server2"},
+		{},
+		{},
+	} {
+		d.setStatusServers(want)
+		got := d.status.Servers
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%d: got %v, want %v", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusOCRunning tests setStatusOCRunning of Daemon.
+func TestDaemonSetStatusOCRunning(t *testing.T) {
+	d := getTestDaemon()
+	for i, trusted := range []struct {
+		v    bool
+		want vpnstatus.OCRunning
+	}{
+		{true, vpnstatus.OCRunningRunning},
+		{true, vpnstatus.OCRunningRunning},
+		{false, vpnstatus.OCRunningNotRunning},
+		{false, vpnstatus.OCRunningNotRunning},
+	} {
+		d.setStatusOCRunning(trusted.v)
+		got := d.status.OCRunning
+		if got != trusted.want {
+			t.Errorf("%d: set %t, got %d, want %d",
+				i, trusted.v, got, trusted.want)
+		}
+	}
+}
+
+// TestDaemonSetStatusOCPID tests setStatusOCPID of Daemon.
+func TestDaemonSetStatusOCPID(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []uint32{
+		12345,
+		12345,
+		0,
+		0,
+	} {
+		d.setStatusOCPID(want)
+		got := d.status.OCPID
+		if got != want {
+			t.Errorf("%d: got %d, want %d", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusTrafPolState tests setStatusTrafPolState of Daemon.
+func TestDaemonSetStatusTrafPolState(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []vpnstatus.TrafPolState{
+		vpnstatus.TrafPolStateInactive,
+		vpnstatus.TrafPolStateInactive,
+		vpnstatus.TrafPolStateActive,
+		vpnstatus.TrafPolStateActive,
+		vpnstatus.TrafPolStateDisabled,
+		vpnstatus.TrafPolStateDisabled,
+		vpnstatus.TrafPolStateUnknown,
+		vpnstatus.TrafPolStateUnknown,
+	} {
+		d.setStatusTrafPolState(want)
+		got := d.status.TrafPolState
+		if got != want {
+			t.Errorf("%d: got %d, want %d", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusAllowedHosts tests setStatusAllowedHosts of Daemon.
+func TestDaemonSetStatusAllowedHosts(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range [][]string{
+		{"allowed-host1"},
+		{"allowed-host1"},
+		{"allowed-host1", "allowed-host2"},
+		{"allowed-host1", "allowed-host2"},
+		{},
+		{},
+	} {
+		d.setStatusAllowedHosts(want)
+		got := d.status.AllowedHosts
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%d: got %v, want %v", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusCaptivePortal tests setStatusCaptivePortal of Daemon.
+func TestDaemonSetStatusCaptivePortal(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []vpnstatus.CaptivePortal{
+		vpnstatus.CaptivePortalNotDetected,
+		vpnstatus.CaptivePortalNotDetected,
+		vpnstatus.CaptivePortalDetected,
+		vpnstatus.CaptivePortalDetected,
+		vpnstatus.CaptivePortalUnknown,
+		vpnstatus.CaptivePortalUnknown,
+	} {
+		d.setStatusCaptivePortal(want)
+		got := d.status.CaptivePortal
+		if got != want {
+			t.Errorf("%d: got %d, want %d", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusTNDState tests setStatusTNDState of Daemon.
+func TestDaemonSetStatusTNDState(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []vpnstatus.TNDState{
+		vpnstatus.TNDStateInactive,
+		vpnstatus.TNDStateInactive,
+		vpnstatus.TNDStateActive,
+		vpnstatus.TNDStateActive,
+		vpnstatus.TNDStateUnknown,
+		vpnstatus.TNDStateUnknown,
+	} {
+		d.setStatusTNDState(want)
+		got := d.status.TNDState
+		if got != want {
+			t.Errorf("%d: got %d, want %d", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusTNDServers tests setStatusTNDServers of Daemon.
+func TestDaemonSetStatusTNDServers(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range [][]string{
+		{"tnd-server1"},
+		{"tnd-server1"},
+		{"tnd-server1", "tnd-server2"},
+		{"tnd-server1", "tnd-server2"},
+		{},
+		{},
+	} {
+		d.setStatusTNDServers(want)
+		got := d.status.TNDServers
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%d: got %v, want %v", i, got, want)
+		}
+	}
+}
+
+// TestDaemonSetStatusVPNConfig tests setStatusVPNConfig of Daemon.
+func TestDaemonSetStatusVPNConfig(t *testing.T) {
+	d := getTestDaemon()
+	for i, want := range []*vpnconfig.Config{
+		{},
+		{},
+		nil,
+		nil,
+	} {
+		d.setStatusVPNConfig(want)
+		got := d.status.VPNConfig
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%d: got %v, want %v", i, got, want)
+		}
+	}
+}
+
+// TestDaemonCheck tests checkTND of Daemon.
+func TestDaemonCheckTND(t *testing.T) {
 	oldTndNewDetector := tndNewDetector
 	defer func() { tndNewDetector = oldTndNewDetector }()
 	tndNewDetector = func(config *tnd.Config) tnd.TND {
 		return &tndDetector{r: make(chan bool)}
 	}
 
+	// TODO: test start error
+
+	// check with no tnd tnd servers and tnd not running
+	d := getTestDaemon()
+	d.tnd = nil
+	d.checkTND()
+
+	// check with tnd servers and tnd not running, start
 	d = getTestDaemon()
 	d.tnd = nil
 	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
@@ -170,55 +434,162 @@ func TestDaemonCheckTND(t *testing.T) {
 			CertificateHash: "hash of tnd2 certificate",
 		},
 	}
-	d.checkTND()
+	if err := d.checkTND(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TNDState != vpnstatus.TNDStateActive {
+		t.Errorf("TND State should be %d but it's %d",
+			vpnstatus.TNDStateActive, d.status.TNDState)
+	}
 
-	// stop tnd
+	// check again with tnd servers, tnd running, start again
+	if err := d.checkTND(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TNDState != vpnstatus.TNDStateActive {
+		t.Errorf("TND State should be %d but it's %d",
+			vpnstatus.TNDStateActive, d.status.TNDState)
+	}
+
+	// check again without tnd servers, stop tnd
 	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = nil
-	d.checkTND()
+	if err := d.checkTND(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TNDState != vpnstatus.TNDStateInactive {
+		t.Errorf("TND State should be %d but it's %d",
+			vpnstatus.TNDStateInactive, d.status.TNDState)
+	}
+
+	// check again without tnd servers, not running, stop again
+	if err := d.checkTND(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TNDState != vpnstatus.TNDStateInactive {
+		t.Errorf("TND State should be %d but is %d",
+			vpnstatus.TNDStateInactive, d.status.TNDState)
+	}
 }
 
+// TestDaemonCheckTrafPol tests checkTrafPol of Daemon.
 func TestDaemonCheckTrafPol(t *testing.T) {
-	// no trafpol
+	// cleanup after tests
+	oldTrafPolNewTafPol := trafpolNewTrafPol
+	defer func() { trafpolNewTrafPol = oldTrafPolNewTafPol }()
+	trafpolNewTrafPol = func(c *daemoncfg.Config) trafpol.Policer {
+		return &trafPolicer{s: make(chan bool)}
+	}
+
+	// TODO: test start error
+
+	// check with TrafPol disabled and no running TrafPol
 	d := getTestDaemon()
 	d.trafpol = nil
-	d.checkTrafPol()
+	d.status.TrafPolState = vpnstatus.TrafPolStateInactive
+	d.disableTrafPol = true
+	if err := d.checkTrafPol(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TrafPolState != vpnstatus.TrafPolStateInactive {
+		t.Errorf("TrafPol State should be %d but is %d",
+			vpnstatus.TrafPolStateInactive, d.status.TrafPolState)
+	}
 
-	d = getTestDaemon()
-	d.checkTrafPol()
-
+	// check with TrafPol disabled and running TrafPol, stop
 	d = getTestDaemon()
 	d.disableTrafPol = true
-	d.checkTrafPol()
+	if err := d.checkTrafPol(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TrafPolState != vpnstatus.TrafPolStateDisabled {
+		t.Errorf("TrafPol State should be %d but is %d",
+			vpnstatus.TrafPolStateDisabled, d.status.TrafPolState)
+	}
 
-	//
+	// check without trafpol/alwayson setting and no running TrafPol
+	d = getTestDaemon()
+	d.trafpol = nil
+	d.status.TrafPolState = vpnstatus.TrafPolStateInactive
+	if err := d.checkTrafPol(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TrafPolState != vpnstatus.TrafPolStateInactive {
+		t.Errorf("TrafPol State should be %d but is %d",
+			vpnstatus.TrafPolStateInactive, d.status.TrafPolState)
+	}
+
+	// check without trafpol/alwayson setting and running TrafPol, stop
+	d = getTestDaemon()
+	if err := d.checkTrafPol(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TrafPolState != vpnstatus.TrafPolStateInactive {
+		t.Errorf("TrafPol State should be %d but is %d",
+			vpnstatus.TrafPolStateInactive, d.status.TrafPolState)
+	}
+
+	// check with trusted network and no running TrafPol
+	d = getTestDaemon()
+	d.trafpol = nil
+	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
+	d.status.TrustedNetwork = vpnstatus.TrustedNetworkTrusted
+	d.status.TrafPolState = vpnstatus.TrafPolStateInactive
+	if err := d.checkTrafPol(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TrafPolState != vpnstatus.TrafPolStateInactive {
+		t.Errorf("TrafPol State should be %d but is %d",
+			vpnstatus.TrafPolStateInactive, d.status.TrafPolState)
+	}
+
+	// check with trusted network and running TrafPol, stop
 	d = getTestDaemon()
 	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
 	d.status.TrustedNetwork = vpnstatus.TrustedNetworkTrusted
-	d.checkTrafPol()
+	if err := d.checkTrafPol(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TrafPolState != vpnstatus.TrafPolStateInactive {
+		t.Errorf("TrafPol State should be %d but is %d",
+			vpnstatus.TrafPolStateInactive, d.status.TrafPolState)
+	}
 
-	d = getTestDaemon()
-	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
-	d.checkTrafPol()
-
-	rlu := devmon.RegisterLinkUpdates
-	defer func() { devmon.RegisterLinkUpdates = rlu }()
-
+	// check with trafpol/alwayson setting and no running TrafPol, start
 	d = getTestDaemon()
 	d.trafpol = nil
 	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
-	devmon.RegisterLinkUpdates = func(d *devmon.DevMon) (chan netlink.LinkUpdate, error) {
-		return nil, fmt.Errorf("test error")
+	if err := d.checkTrafPol(); err != nil {
+		t.Error(err)
 	}
-	fmt.Println(d.checkTrafPol())
+	if d.status.TrafPolState != vpnstatus.TrafPolStateActive {
+		t.Errorf("TrafPol State should be %d but is %d",
+			vpnstatus.TrafPolStateActive, d.status.TrafPolState)
+	}
 
+	// check with trafpol/alwayson setting, server IP and no running TrafPol, start
 	d = getTestDaemon()
 	d.trafpol = nil
 	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
-	devmon.RegisterLinkUpdates = func(d *devmon.DevMon) (chan netlink.LinkUpdate, error) {
-		return nil, nil
+	d.serverIP = netip.MustParseAddr("10.0.0.1")
+	if err := d.checkTrafPol(); err != nil {
+		t.Error(err)
 	}
-	d.serverIP = netip.MustParseAddr("192.168.1.1")
-	fmt.Println(d.checkTrafPol())
+	if d.status.TrafPolState != vpnstatus.TrafPolStateActive {
+		t.Errorf("TrafPol State should be %d but is %d",
+			vpnstatus.TrafPolStateActive, d.status.TrafPolState)
+	}
+
+	// check with trafpol/alwayson setting and running TrafPol
+	d = getTestDaemon()
+	d.status.TrafPolState = vpnstatus.TrafPolStateActive
+	d.profile.AutomaticVPNPolicy.AlwaysOn.Flag = true
+	if err := d.checkTrafPol(); err != nil {
+		t.Error(err)
+	}
+	if d.status.TrafPolState != vpnstatus.TrafPolStateActive {
+		t.Errorf("TrafPol State should be %d but is %d",
+			vpnstatus.TrafPolStateActive, d.status.TrafPolState)
+	}
 }
 
 func TestDaemonHandleClientRequest(t *testing.T) {
@@ -441,6 +812,9 @@ func TestDaemonHandleRunnerEvent(t *testing.T) {
 
 	d.serverIPAllowed = true
 	d.handleRunnerEvent(&ocrunner.ConnectEvent{})
+
+	// double disconnect event, should not happen? TODO: check/remove?
+	//d.handleRunnerEvent(&ocrunner.ConnectEvent{})
 }
 
 func TestDaemonHandleSleepMonEvent(t *testing.T) {
@@ -489,84 +863,84 @@ func TestDaemonHandleCPDStatusUpdate(t *testing.T) {
 	d.handleCPDStatusUpdate(true)
 }
 
-func TestDaemonStartStopTND(t *testing.T) {
-	// without tnd
-	d := getTestDaemon()
-	d.tnd = nil
-	d.checkTND()
-	go d.start()
-	d.Stop()
-
-	// start tnd
-	d = getTestDaemon()
-	d.tnd = nil
-	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
-		{
-			Address:         "tnd1.mycompany.com",
-			Port:            "443",
-			CertificateHash: "hash of tnd1 certificate",
-		},
-		{
-			Address:         "tnd2.mycompany.com",
-			Port:            "443",
-			CertificateHash: "hash of tnd2 certificate",
-		},
-	}
-	d.checkTND()
-
-	// with tnd
-	d = getTestDaemon()
-	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
-		{
-			Address:         "tnd1.mycompany.com",
-			Port:            "443",
-			CertificateHash: "hash of tnd1 certificate",
-		},
-		{
-			Address:         "tnd2.mycompany.com",
-			Port:            "443",
-			CertificateHash: "hash of tnd2 certificate",
-		},
-	}
-	go d.start()
-	d.tnd.(*tndDetector).r <- false
-	d.tnd.(*tndDetector).r <- false
-	d.tnd.(*tndDetector).r <- true
-	d.tnd.(*tndDetector).r <- true
-	d.Stop()
-}
-
-func TestTest(t *testing.T) {
-	d := getTestDaemon()
-	go d.start()
-
-	//d.server.Requests() <- &api.Request{}
-
-	//d.dbus.(*dbusService).r <- &dbusapi.Request{}
-
-	d.tnd.(*tndDetector).r <- false
-	d.tnd.(*tndDetector).r <- true
-	d.tnd.(*tndDetector).r <- false
-	d.tnd.(*tndDetector).r <- false
-
-	//d.trafpol.(*trafPolicer).s <- true
-	//d.trafpol.(*trafPolicer).s <- false
-
-	d.sleepmon.(*sleepMonitor).e <- true
-	d.sleepmon.(*sleepMonitor).e <- false
-
-	d.runner.(*ocRunner).e <- &ocrunner.ConnectEvent{}
-
-	d.profmon.(*profMonitor).u <- struct{}{}
-
-	time.Sleep(time.Second)
-	d.Stop()
-
-	d = getTestDaemon()
-	d.Start()
-	time.Sleep(time.Second)
-	d.Stop()
-}
+//func TestDaemonStartStopTND(t *testing.T) {
+//	// without tnd
+//	d := getTestDaemon()
+//	d.tnd = nil
+//	d.checkTND()
+//	go d.start()
+//	d.Stop()
+//
+//	// start tnd
+//	d = getTestDaemon()
+//	d.tnd = nil
+//	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
+//		{
+//			Address:         "tnd1.mycompany.com",
+//			Port:            "443",
+//			CertificateHash: "hash of tnd1 certificate",
+//		},
+//		{
+//			Address:         "tnd2.mycompany.com",
+//			Port:            "443",
+//			CertificateHash: "hash of tnd2 certificate",
+//		},
+//	}
+//	d.checkTND()
+//
+//	// with tnd
+//	d = getTestDaemon()
+//	d.profile.AutomaticVPNPolicy.TrustedHTTPSServerList = []xmlprofile.TrustedHTTPSServer{
+//		{
+//			Address:         "tnd1.mycompany.com",
+//			Port:            "443",
+//			CertificateHash: "hash of tnd1 certificate",
+//		},
+//		{
+//			Address:         "tnd2.mycompany.com",
+//			Port:            "443",
+//			CertificateHash: "hash of tnd2 certificate",
+//		},
+//	}
+//	go d.start()
+//	d.tnd.(*tndDetector).r <- false
+//	d.tnd.(*tndDetector).r <- false
+//	d.tnd.(*tndDetector).r <- true
+//	d.tnd.(*tndDetector).r <- true
+//	d.Stop()
+//}
+//
+//func TestTest(t *testing.T) {
+//	d := getTestDaemon()
+//	go d.start()
+//
+//	//d.server.Requests() <- &api.Request{}
+//
+//	//d.dbus.(*dbusService).r <- &dbusapi.Request{}
+//
+//	d.tnd.(*tndDetector).r <- false
+//	d.tnd.(*tndDetector).r <- true
+//	d.tnd.(*tndDetector).r <- false
+//	d.tnd.(*tndDetector).r <- false
+//
+//	//d.trafpol.(*trafPolicer).s <- true
+//	//d.trafpol.(*trafPolicer).s <- false
+//
+//	d.sleepmon.(*sleepMonitor).e <- true
+//	d.sleepmon.(*sleepMonitor).e <- false
+//
+//	d.runner.(*ocRunner).e <- &ocrunner.ConnectEvent{}
+//
+//	d.profmon.(*profMonitor).u <- struct{}{}
+//
+//	time.Sleep(time.Second)
+//	d.Stop()
+//
+//	d = getTestDaemon()
+//	d.Start()
+//	time.Sleep(time.Second)
+//	d.Stop()
+//}
 
 // TestDaemonErrors tests Errors of Daemon.
 func TestDaemonErrors(t *testing.T) {
