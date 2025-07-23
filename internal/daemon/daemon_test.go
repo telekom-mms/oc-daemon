@@ -598,15 +598,42 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 := net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeOK, nil)))
-	api.ReadMessage(c1)
+	m, err := api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType := m.Type
+	wantType := uint16(api.TypeOK)
+	gotValue := string(m.Value)
+	wantValue := ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
-	// vpn config update
+	// vpn config update, missing config
 	d = getTestDaemon()
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, nil)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeError)
+	gotValue = string(m.Value)
+	wantValue = "invalid config update message"
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
+	// vpn config update, empty config
 	d = getTestDaemon()
 	confup := NewVPNConfigUpdate()
 	b, _ := confup.JSON()
@@ -614,8 +641,21 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
 	api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeError)
+	gotValue = string(m.Value)
+	wantValue = "invalid config update message"
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got error %s, want %s", gotValue, wantValue)
+	}
 
-	// pre-init
+	// vpn config update, pre-init
 	d = getTestDaemon()
 	confup = NewVPNConfigUpdate()
 	confup.Reason = "pre-init"
@@ -623,9 +663,22 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
-	// connect
+	// vpn config update, connect, config not changed
 	d = getTestDaemon()
 	confup = NewVPNConfigUpdate()
 	confup.Reason = "connect"
@@ -635,8 +688,22 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
+	// vpn config update, connect, config changed, openconnect not running
 	d.status.VPNConfig = nil
 	b, _ = confup.JSON()
 	c1, c2 = net.Pipe()
@@ -644,6 +711,7 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
 	api.ReadMessage(c1)
 
+	// vpn config update, connect, config changed, openconnect running and already connected
 	d.status.VPNConfig = nil
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	d.status.ConnectionState = vpnstatus.ConnectionStateConnected
@@ -653,6 +721,7 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
 	api.ReadMessage(c1)
 
+	// vpn config update, connect, config changed, openconnect running and connecting
 	d.status.VPNConfig = nil
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	d.status.ConnectionState = vpnstatus.ConnectionStateConnecting
@@ -669,7 +738,7 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
 	api.ReadMessage(c1)
 
-	// disconnect
+	// vpn config update, disconnect
 	d = getTestDaemon()
 	confup = NewVPNConfigUpdate()
 	confup.Reason = "disconnect"
@@ -682,6 +751,7 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 		t.Errorf("ERROR %p %s", m, err)
 	}
 
+	// vpn config update, disconnect, still connected
 	d = getTestDaemon()
 	d.status.ConnectionState = vpnstatus.ConnectionStateConnected
 	c1, c2 = net.Pipe()
@@ -689,7 +759,7 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
 	api.ReadMessage(c1)
 
-	// attempt-reconnect
+	// vpn config update, attempt-reconnect
 	d = getTestDaemon()
 	confup = NewVPNConfigUpdate()
 	confup.Reason = "attempt-reconnect"
