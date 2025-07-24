@@ -1081,13 +1081,32 @@ func TestDaemonHandleDBusRequest(t *testing.T) {
 	}
 }
 
+// TestDaemonHandleTNDResult tests handleTNDResult of Daemon.
 func TestDaemonHandleTNDResult(t *testing.T) {
+	// TODO: use tndNewDetector helper?
+
+	// no trusted network
 	d := getTestDaemon()
 	d.handleTNDResult(false)
-	d.handleTNDResult(false)
+	gotTrusted := d.status.TrustedNetwork
+	wantTrusted := vpnstatus.TrustedNetworkNotTrusted
+	if gotTrusted != wantTrusted {
+		t.Errorf("got trusted %d, want %d", gotTrusted, wantTrusted)
+	}
 
+	// trusted network, openconnect running
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	d.handleTNDResult(true)
+	gotTrusted = d.status.TrustedNetwork
+	wantTrusted = vpnstatus.TrustedNetworkTrusted
+	if gotTrusted != wantTrusted {
+		t.Errorf("got trusted %d, want %d", gotTrusted, wantTrusted)
+	}
+	gotState := d.status.ConnectionState
+	wantState := vpnstatus.ConnectionStateDisconnecting
+	if gotTrusted != wantTrusted {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
 }
 
 func TestDaemonHandleRunnerEvent(t *testing.T) {
