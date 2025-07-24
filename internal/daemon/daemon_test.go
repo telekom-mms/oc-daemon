@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"net"
@@ -592,6 +593,7 @@ func TestDaemonCheckTrafPol(t *testing.T) {
 	}
 }
 
+// TestDaemonHandleClientRequest tests handleClientRequest of Daemon.
 func TestDaemonHandleClientRequest(t *testing.T) {
 	// ok
 	d := getTestDaemon()
@@ -709,7 +711,20 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
 	// vpn config update, connect, config changed, openconnect running and already connected
 	d.status.VPNConfig = nil
@@ -719,7 +734,20 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
 	// vpn config update, connect, config changed, openconnect running and connecting
 	d.status.VPNConfig = nil
@@ -736,7 +764,25 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
+	gotState := d.status.ConnectionState
+	wantState := vpnstatus.ConnectionStateConnected
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
 
 	// vpn config update, disconnect
 	d = getTestDaemon()
@@ -747,8 +793,24 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	if m, err := api.ReadMessage(c1); err != nil || m.Type != api.TypeOK {
-		t.Errorf("ERROR %p %s", m, err)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
+	gotConfig := d.status.VPNConfig
+	wantConfig := (*vpnconfig.Config)(nil)
+	if gotConfig != wantConfig {
+		t.Errorf("got state %p, want %p", gotConfig, wantConfig)
 	}
 
 	// vpn config update, disconnect, still connected
@@ -757,9 +819,22 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
-	// vpn config update, attempt-reconnect
+	// vpn config update, attempt-reconnect, openconnect not running
 	d = getTestDaemon()
 	confup = NewVPNConfigUpdate()
 	confup.Reason = "attempt-reconnect"
@@ -768,24 +843,70 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
+	// vpn config update, attempt-reconnect, openconnect running, not connected
 	d = getTestDaemon()
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
+	// vpn config update, attempt-reconnect, openconnect running, connected
 	d = getTestDaemon()
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	d.status.ConnectionState = vpnstatus.ConnectionStateConnected
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
+	gotState = d.status.ConnectionState
+	wantState = vpnstatus.ConnectionStateConnecting
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
 
-	// reconnect
+	// vpn config update, reconnect, openconnect not running
 	d = getTestDaemon()
 	confup = NewVPNConfigUpdate()
 	confup.Reason = "reconnect"
@@ -793,75 +914,171 @@ func TestDaemonHandleClientRequest(t *testing.T) {
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
+	// vpn config update, reconnect, openconnect running, not connecting
 	d = getTestDaemon()
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
 
+	// vpn config update, reconnect, openconnect running, connecting
 	d = getTestDaemon()
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	d.status.ConnectionState = vpnstatus.ConnectionStateConnecting
 	c1, c2 = net.Pipe()
 	defer c1.Close()
 	go d.handleClientRequest(api.NewRequest(c2, api.NewMessage(api.TypeVPNConfigUpdate, b)))
-	api.ReadMessage(c1)
+	m, err = api.ReadMessage(c1)
+	if err != nil {
+		t.Error(err)
+	}
+	gotType = m.Type
+	wantType = uint16(api.TypeOK)
+	gotValue = string(m.Value)
+	wantValue = ""
+	if gotType != wantType {
+		t.Errorf("got message type %d, want %d", gotType, wantType)
+	}
+	if gotValue != wantValue {
+		t.Errorf("got value %s, want %s", gotValue, wantValue)
+	}
+	gotState = d.status.ConnectionState
+	wantState = vpnstatus.ConnectionStateConnected
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
 }
 
+// TestDaemonHandleDBusRequest tests handleDBusRequest of Daemon.
 func TestDaemonHandleDBusRequest(t *testing.T) {
 	// other
 	d := getTestDaemon()
 	r := dbusapi.NewRequest("", make(chan struct{}))
-	d.handleDBusRequest(r)
+	go d.handleDBusRequest(r)
+	r.Wait()
 
-	// connect
+	// connect, openconnect running
 	d = getTestDaemon()
 	r = dbusapi.NewRequest(dbusapi.RequestConnect, make(chan struct{}))
 	r.Parameters = []any{"", "", "", "", "", ""}
 	d.status.OCRunning = vpnstatus.OCRunningRunning
-	d.handleDBusRequest(r)
+	go d.handleDBusRequest(r)
+	r.Wait()
 
+	// connect, openconnect not running, login invalid
 	d = getTestDaemon()
 	r = dbusapi.NewRequest(dbusapi.RequestConnect, make(chan struct{}))
 	r.Parameters = []any{"", "", "", "", "", ""}
 	d.status.OCRunning = vpnstatus.OCRunningNotRunning
-	d.handleDBusRequest(r)
+	go d.handleDBusRequest(r)
+	r.Wait()
 
+	// connect, openconnect not running, login valid, no server ip
 	d = getTestDaemon()
 	r = dbusapi.NewRequest(dbusapi.RequestConnect, make(chan struct{}))
 	r.Parameters = []any{"server", "cookie", "host", "connectURL", "fingerprint", "resolve"}
 	d.status.OCRunning = vpnstatus.OCRunningNotRunning
-	d.handleDBusRequest(r)
+	go d.handleDBusRequest(r)
+	r.Wait()
+	gotState := d.status.ConnectionState
+	wantState := vpnstatus.ConnectionStateConnecting
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
 
+	// connect, openconnect not running, login valid, server ip
 	d = getTestDaemon()
 	r = dbusapi.NewRequest(dbusapi.RequestConnect, make(chan struct{}))
 	r.Parameters = []any{"server", "cookie", "10.0.0.1", "connectURL", "fingerprint", "resolve"}
 	d.status.OCRunning = vpnstatus.OCRunningNotRunning
-	d.handleDBusRequest(r)
+	go d.handleDBusRequest(r)
+	r.Wait()
+	gotState = d.status.ConnectionState
+	wantState = vpnstatus.ConnectionStateConnecting
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
+	gotServerIP := d.serverIP
+	wantServerIP := netip.MustParseAddr("10.0.0.1")
+	if gotServerIP != wantServerIP {
+		t.Errorf("got server ip %s, want %s", gotServerIP, wantServerIP)
+	}
 
-	// disconnect
+	// disconnect, openconnect not running
 	d = getTestDaemon()
 	r = dbusapi.NewRequest(dbusapi.RequestDisconnect, make(chan struct{}))
-	d.handleDBusRequest(r)
+	go d.handleDBusRequest(r)
+	r.Wait()
 
+	// disconnect, openconnect running, without runner
 	d = getTestDaemon()
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	d.runner = nil
 	r = dbusapi.NewRequest(dbusapi.RequestDisconnect, make(chan struct{}))
-	d.handleDBusRequest(r)
+	go d.handleDBusRequest(r)
+	r.Wait()
+	gotState = d.status.ConnectionState
+	wantState = vpnstatus.ConnectionStateDisconnecting
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
 
+	// disconnect, openconnect running, with runner
 	d = getTestDaemon()
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	r = dbusapi.NewRequest(dbusapi.RequestDisconnect, make(chan struct{}))
-	d.handleDBusRequest(r)
+	go d.handleDBusRequest(r)
+	r.Wait()
+	gotState = d.status.ConnectionState
+	wantState = vpnstatus.ConnectionStateDisconnecting
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
 
 	// dump state
 	d = getTestDaemon()
 	r = dbusapi.NewRequest(dbusapi.RequestDumpState, make(chan struct{}))
-	d.handleDBusRequest(r)
+	go d.handleDBusRequest(r)
+	r.Wait()
+	if len(r.Results) != 1 {
+		t.Error("invalid dump state results")
+	}
+	if _, ok := r.Results[0].(string); !ok {
+		t.Error("no string in dump state results")
+	}
+	state := make(map[string]any)
+	if err := json.Unmarshal([]byte(r.Results[0].(string)), &state); err != nil {
+		t.Error("no json string in dump state results")
+	}
 }
 
 func TestDaemonHandleTNDResult(t *testing.T) {
