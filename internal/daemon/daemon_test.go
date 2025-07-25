@@ -1104,39 +1104,87 @@ func TestDaemonHandleTNDResult(t *testing.T) {
 	}
 	gotState := d.status.ConnectionState
 	wantState := vpnstatus.ConnectionStateDisconnecting
-	if gotTrusted != wantTrusted {
+	if gotState != wantState {
 		t.Errorf("got state %d, want %d", gotState, wantState)
 	}
 }
 
+// TestDaemonHandleRunnerEvent tests handleRunnerEvent of Daemon.
 func TestDaemonHandleRunnerEvent(t *testing.T) {
+	// connect event
 	d := getTestDaemon()
-
 	d.handleRunnerEvent(&ocrunner.ConnectEvent{Connect: true, PID: 1})
+	gotRunning := d.status.OCRunning
+	wantRunning := vpnstatus.OCRunningRunning
+	if gotRunning != wantRunning {
+		t.Errorf("got running %d, want %d", gotRunning, wantRunning)
+	}
 
-	d.handleRunnerEvent(&ocrunner.ConnectEvent{Connect: true, PID: 1})
+	// disconnect event, no server IP allowed
+	d = getTestDaemon()
+	d.handleRunnerEvent(&ocrunner.ConnectEvent{})
+	gotRunning = d.status.OCRunning
+	wantRunning = vpnstatus.OCRunningNotRunning
+	if gotRunning != wantRunning {
+		t.Errorf("got running %d, want %d", gotRunning, wantRunning)
+	}
 
+	// disconnect event, server IP allowed
+	d = getTestDaemon()
 	d.serverIPAllowed = true
 	d.handleRunnerEvent(&ocrunner.ConnectEvent{})
-
-	// double disconnect event, should not happen? TODO: check/remove?
-	//d.handleRunnerEvent(&ocrunner.ConnectEvent{})
+	gotRunning = d.status.OCRunning
+	wantRunning = vpnstatus.OCRunningNotRunning
+	if gotRunning != wantRunning {
+		t.Errorf("got running %d, want %d", gotRunning, wantRunning)
+	}
 }
 
+// TestDaemonHandleSleepMonEvent tests handleSleepMonEvent of Daemon.
 func TestDaemonHandleSleepMonEvent(t *testing.T) {
+	// sleep, openconnect not running
 	d := getTestDaemon()
-
 	d.handleSleepMonEvent(true)
+	gotState := d.status.ConnectionState
+	wantState := vpnstatus.ConnectionStateUnknown
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
 
+	// resume, openconnect not running
+	d = getTestDaemon()
+	d.handleSleepMonEvent(true)
+	gotState = d.status.ConnectionState
+	wantState = vpnstatus.ConnectionStateUnknown
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
+
+	// resume, openconnect running
+	d = getTestDaemon()
 	d.status.OCRunning = vpnstatus.OCRunningRunning
 	d.handleSleepMonEvent(false)
+	gotState = d.status.ConnectionState
+	wantState = vpnstatus.ConnectionStateDisconnecting
+	if gotState != wantState {
+		t.Errorf("got state %d, want %d", gotState, wantState)
+	}
 }
 
+// TestDaemonHandleProfileUpdate tests handleProfileUpdate of Daemon.
 func TestDaemonHandleProfileUpdate(t *testing.T) {
-	d := getTestDaemon()
+	dir := t.TempDir()
+	file := filepath.Join(dir, "profile.xml")
 
-	// empty profile
+	// no profile
+	d := getTestDaemon()
+	d.config.OpenConnect.XMLProfile = file
 	d.handleProfileUpdate()
+	gotServers := d.status.Servers
+	wantServers := []string(nil)
+	if !reflect.DeepEqual(gotServers, wantServers) {
+		t.Errorf("got servers %v, want %v", gotServers, wantServers)
+	}
 
 	// server in profile
 	profile := xmlprofile.NewProfile()
@@ -1149,24 +1197,39 @@ func TestDaemonHandleProfileUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dir := t.TempDir()
-	file := filepath.Join(dir, "profile.xml")
 	if err := os.WriteFile(file, b, 0600); err != nil {
 		t.Fatal(err)
 	}
 
+	d = getTestDaemon()
 	d.config.OpenConnect.XMLProfile = file
 	d.handleProfileUpdate()
+	gotServers = d.status.Servers
+	wantServers = []string{"test"}
+	if !reflect.DeepEqual(gotServers, wantServers) {
+		t.Errorf("got servers %v, want %v", gotServers, wantServers)
+	}
 }
 
+// TestDaemonHandleCPDStatusUpdate tests handleCPDStatusUpdate of Daemon.
 func TestDaemonHandleCPDStatusUpdate(t *testing.T) {
+	// no captive portal
 	d := getTestDaemon()
-
 	d.handleCPDStatusUpdate(false)
-	d.handleCPDStatusUpdate(false)
+	gotCP := d.status.CaptivePortal
+	wantCP := vpnstatus.CaptivePortalNotDetected
+	if gotCP != wantCP {
+		t.Errorf("got captive portal %d, want %d", gotCP, wantCP)
+	}
 
+	// captive portal
+	d = getTestDaemon()
 	d.handleCPDStatusUpdate(true)
-	d.handleCPDStatusUpdate(true)
+	gotCP = d.status.CaptivePortal
+	wantCP = vpnstatus.CaptivePortalDetected
+	if gotCP != wantCP {
+		t.Errorf("got captive portal %d, want %d", gotCP, wantCP)
+	}
 }
 
 //func TestDaemonStartStopTND(t *testing.T) {
