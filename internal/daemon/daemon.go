@@ -785,13 +785,18 @@ func (d *Daemon) setTNDDialer() {
 	d.tnd.SetDialer(dialer)
 }
 
+// tndNewDetector is tnd.NewDetector for testing.
+var tndNewDetector = func(config *tnd.Config) tnd.TND {
+	return tnd.NewDetector(config)
+}
+
 // startTND starts TND if it's not running.
 func (d *Daemon) startTND() error {
 	if d.tnd != nil {
 		return nil
 	}
 	log.Info("Daemon starting TND")
-	d.tnd = tnd.NewDetector(d.config.TND)
+	d.tnd = tndNewDetector(d.config.TND)
 	servers := d.profile.GetTNDHTTPSServers()
 	d.tnd.SetServers(servers)
 	d.setTNDDialer()
@@ -842,6 +847,11 @@ func (d *Daemon) getTNDResults() chan bool {
 	return d.tnd.Results()
 }
 
+// trafpolNewTrafPol is trafpol.NewTrafPol for testing.
+var trafpolNewTrafPol = func(c *daemoncfg.Config) trafpol.Policer {
+	return trafpol.NewTrafPol(c)
+}
+
 // startTrafPol starts traffic policing if it's not running.
 func (d *Daemon) startTrafPol() error {
 	if d.trafpol != nil {
@@ -850,7 +860,7 @@ func (d *Daemon) startTrafPol() error {
 	log.Info("Daemon starting TrafPol")
 	c := d.config.Copy()
 	c.TrafficPolicing.AllowedHosts = append(c.TrafficPolicing.AllowedHosts, d.getProfileAllowedHosts()...)
-	d.trafpol = trafpol.NewTrafPol(c)
+	d.trafpol = trafpolNewTrafPol(c)
 	if err := d.trafpol.Start(); err != nil {
 		return fmt.Errorf("Daemon could not start TrafPol: %w", err)
 	}
