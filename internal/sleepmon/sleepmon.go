@@ -62,7 +62,6 @@ func (s *SleepMon) handleSignal(signal *dbus.Signal) {
 		// send event
 		s.sendEvent(sleep)
 	}
-
 }
 
 // start starts the sleep monitor.
