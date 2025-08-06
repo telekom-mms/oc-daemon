@@ -173,6 +173,15 @@ func (r *Request) Wait() {
 	}
 }
 
+// NewRequest returns a new Request.
+func NewRequest(name string, done chan struct{}) *Request {
+	return &Request{
+		Name: name,
+		wait: make(chan struct{}),
+		done: done,
+	}
+}
+
 // daemon defines daemon interface methods.
 type daemon struct {
 	requests chan *Request
@@ -182,12 +191,8 @@ type daemon struct {
 // Connect is the "Connect" method of the D-Bus interface.
 func (d daemon) Connect(sender dbus.Sender, server, cookie, host, connectURL, fingerprint, resolve string) *dbus.Error {
 	log.WithField("sender", sender).Debug("Received D-Bus Connect() call")
-	request := &Request{
-		Name:       RequestConnect,
-		Parameters: []any{server, cookie, host, connectURL, fingerprint, resolve},
-		wait:       make(chan struct{}),
-		done:       d.done,
-	}
+	request := NewRequest(RequestConnect, d.done)
+	request.Parameters = []any{server, cookie, host, connectURL, fingerprint, resolve}
 	select {
 	case d.requests <- request:
 	case <-d.done:
@@ -204,11 +209,7 @@ func (d daemon) Connect(sender dbus.Sender, server, cookie, host, connectURL, fi
 // Disconnect is the "Disconnect" method of the D-Bus interface.
 func (d daemon) Disconnect(sender dbus.Sender) *dbus.Error {
 	log.WithField("sender", sender).Debug("Received D-Bus Disconnect() call")
-	request := &Request{
-		Name: RequestDisconnect,
-		wait: make(chan struct{}),
-		done: d.done,
-	}
+	request := NewRequest(RequestDisconnect, d.done)
 	select {
 	case d.requests <- request:
 	case <-d.done:
@@ -225,11 +226,7 @@ func (d daemon) Disconnect(sender dbus.Sender) *dbus.Error {
 // DumpState is the "DumpState" method of the D-Bus interface.
 func (d daemon) DumpState(sender dbus.Sender) (string, *dbus.Error) {
 	log.WithField("sender", sender).Debug("Received D-Bus DumpState() call")
-	request := &Request{
-		Name: RequestDumpState,
-		wait: make(chan struct{}),
-		done: d.done,
-	}
+	request := NewRequest(RequestDumpState, d.done)
 	select {
 	case d.requests <- request:
 	case <-d.done:
