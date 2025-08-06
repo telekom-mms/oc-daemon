@@ -111,3 +111,18 @@ func TestRequestClose(t *testing.T) {
 		t.Errorf("got %d, want %d", msg.Type, TypeError)
 	}
 }
+
+// TestNewRequest tests NewRequest.
+func TestNewRequest(t *testing.T) {
+	c1, c2 := net.Pipe()
+	defer func() {
+		_ = c1.Close()
+		_ = c2.Close()
+	}()
+	m := NewOK(nil)
+	r := NewRequest(c1, m)
+	if r.msg != m ||
+		r.conn != c1 {
+		t.Error("invalid request")
+	}
+}
