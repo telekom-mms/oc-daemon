@@ -19,6 +19,16 @@ const (
 	ServerShuttingDown = "server is shutting down"
 )
 
+// SocketAPI is the Socket API interface.
+type SocketAPI interface {
+	Requests() chan *Request
+	Shutdown()
+	Start() error
+	Stop()
+}
+
+var _ SocketAPI = &Server{}
+
 // Server is a Daemon API server.
 type Server struct {
 	config   *daemoncfg.SocketServer
@@ -83,10 +93,7 @@ func (s *Server) handleRequest(conn net.Conn) {
 
 	// forward client's request to daemon
 	select {
-	case s.requests <- &Request{
-		msg:  msg,
-		conn: conn,
-	}:
+	case s.requests <- NewRequest(conn, msg):
 	case <-s.shutdown:
 		s.sendShuttingDownError(conn)
 	case <-s.done:

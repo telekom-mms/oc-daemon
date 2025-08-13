@@ -36,6 +36,17 @@ func TestRequestWaitClose(_ *testing.T) {
 	r.Wait()
 }
 
+// TestNewRequest tests NewRequest.
+func TestNewRequest(t *testing.T) {
+	name := RequestConnect
+	done := make(chan struct{})
+	r := NewRequest(name, done)
+	if r.Name != name ||
+		r.done != done {
+		t.Error("invalid request")
+	}
+}
+
 // TestDaemonConnectErrors tests Connect of daemon, errors.
 func TestDaemonConnectErrors(t *testing.T) {
 	// create daemon
