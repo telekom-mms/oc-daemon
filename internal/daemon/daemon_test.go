@@ -20,6 +20,7 @@ import (
 	"github.com/telekom-mms/oc-daemon/pkg/vpnstatus"
 	"github.com/telekom-mms/oc-daemon/pkg/xmlprofile"
 	"github.com/telekom-mms/tnd/pkg/tnd"
+	"github.com/telekom-mms/tnd/pkg/tnd/tndtest"
 )
 
 // socketServer is a socket API server for testing.
@@ -37,18 +38,6 @@ func (d *dbusService) Requests() chan *dbusapi.Request { return d.r }
 func (d *dbusService) SetProperty(string, any)         {}
 func (d *dbusService) Start() error                    { return nil }
 func (d *dbusService) Stop()                           {}
-
-// tndDetector is a TND detector for testing.
-type tndDetector struct{ r chan bool }
-
-func (t *tndDetector) SetServers(map[string]string)  {}
-func (t *tndDetector) GetServers() map[string]string { return nil }
-func (t *tndDetector) SetDialer(*net.Dialer)         {}
-func (t *tndDetector) GetDialer() *net.Dialer        { return nil }
-func (t *tndDetector) Start() error                  { return nil }
-func (t *tndDetector) Stop()                         {}
-func (t *tndDetector) Probe()                        {}
-func (t *tndDetector) Results() chan bool            { return t.r }
 
 // vpnSetup is VPN Setup for testing.
 type vpnSetup struct{}
@@ -104,7 +93,7 @@ func getTestDaemon() *Daemon {
 
 		server:   &socketServer{r: make(chan *api.Request)},
 		dbus:     &dbusService{r: make(chan *dbusapi.Request)},
-		tnd:      &tndDetector{r: make(chan bool)},
+		tnd:      tndtest.NewDetector(),
 		vpnsetup: &vpnSetup{},
 		trafpol:  &trafPolicer{s: make(chan bool)},
 		sleepmon: &sleepMonitor{e: make(chan bool)},
@@ -418,7 +407,7 @@ func TestDaemonCheckTND(t *testing.T) {
 	oldTndNewDetector := tndNewDetector
 	defer func() { tndNewDetector = oldTndNewDetector }()
 	tndNewDetector = func(*tnd.Config) tnd.TND {
-		return &tndDetector{r: make(chan bool)}
+		return tndtest.NewDetector()
 	}
 
 	// tnd servers
@@ -454,13 +443,13 @@ func TestDaemonCheckTND(t *testing.T) {
 		},
 		// check again with tnd servers, tnd running, start again
 		{
-			tnd:          &tndDetector{r: make(chan bool)},
+			tnd:          tndtest.NewDetector(),
 			tndServers:   tndServers,
 			wantTNDState: vpnstatus.TNDStateUnknown,
 		},
 		// check again without tnd servers, stop tnd
 		{
-			tnd:          &tndDetector{r: make(chan bool)},
+			tnd:          tndtest.NewDetector(),
 			tndServers:   nil,
 			wantTNDState: vpnstatus.TNDStateInactive,
 		},
@@ -1166,8 +1155,13 @@ func TestDaemonStartStop(t *testing.T) {
 	// set testing functions and cleanup after tests
 	oldTndNewDetector := tndNewDetector
 	defer func() { tndNewDetector = oldTndNewDetector }()
+	tndResults := make(chan bool)
 	tndNewDetector = func(*tnd.Config) tnd.TND {
-		return &tndDetector{r: make(chan bool)}
+		d := tndtest.NewDetector()
+		d.Funcs.Results = func() chan bool {
+			return tndResults
+		}
+		return d
 	}
 	oldTrafPolNewTafPol := trafpolNewTrafPol
 	defer func() { trafpolNewTrafPol = oldTrafPolNewTafPol }()
@@ -1262,7 +1256,7 @@ func TestDaemonStartStop(t *testing.T) {
 	d.runner.(*ocRunner).e <- &ocrunner.ConnectEvent{}
 
 	// tnd event
-	d.tnd.(*tndDetector).r <- false
+	d.tnd.Results() <- false
 
 	// trafpol/cpd event
 	d.trafpol.(*trafPolicer).s <- false
