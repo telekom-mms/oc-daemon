@@ -82,22 +82,26 @@ func run(args []string) error {
 		config.Config = *cfgFile
 	}
 	if err := config.Load(); err != nil {
-		log.WithError(err).Warn("Daemon could not load config, using default config")
+		log.WithError(err).WithField("config", config.Config).
+			Warn("Daemon could not load config, using default config")
 	}
 	if !config.Valid() {
 		config = daemoncfg.NewConfig()
-		log.Warn("Daemon loaded invalid config, using default config")
+		log.WithField("config", config.Config).
+			Warn("Daemon loaded invalid config, using default config")
 	}
 
 	// load command lists
 	if err := cmdtmpl.LoadTemplates(config.CommandLists.TemplatesFile); err != nil {
-		log.WithError(err).Debug("Daemon did not load command templates, using defaults")
+		log.WithError(err).WithField("file", config.CommandLists.TemplatesFile).
+			Debug("Daemon did not load command templates, using defaults")
 	} else {
 		log.WithField("file", config.CommandLists.TemplatesFile).
 			Info("Daemon loaded command templates from file")
 	}
 	if err := cmdtmpl.LoadCommandLists(config.CommandLists.ListsFile); err != nil {
-		log.WithError(err).Debug("Daemon did not load command lists, using defaults")
+		log.WithError(err).WithField("file", config.CommandLists.ListsFile).
+			Debug("Daemon did not load command lists, using defaults")
 	} else {
 		log.WithField("file", config.CommandLists.ListsFile).
 			Info("Daemon loaded command lists from file")

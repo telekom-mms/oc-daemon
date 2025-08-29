@@ -683,7 +683,8 @@ func readXMLProfile(xmlProfile string) *xmlprofile.Profile {
 	profile, err := xmlprofile.LoadProfile(xmlProfile)
 	if err != nil {
 		// invalid config, use empty config
-		log.WithError(err).Error("Could not read XML profile")
+		log.WithError(err).WithField("profile", xmlProfile).
+			Error("Could not read XML profile")
 		profile = xmlprofile.NewProfile()
 	}
 	return profile
