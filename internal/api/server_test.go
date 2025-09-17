@@ -72,7 +72,7 @@ func TestServerHandleRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if msg.Header.Type != TypeError || string(msg.Value) != ServerShuttingDown {
+	if msg.Type != TypeError || string(msg.Value) != ServerShuttingDown {
 		t.Error("unexpected reply")
 	}
 }

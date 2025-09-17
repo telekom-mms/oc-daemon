@@ -34,10 +34,10 @@ func saveConfig() error {
 	userConfig := clientUserConfig()
 	userDir := filepath.Dir(userConfig)
 	if err := os.MkdirAll(userDir, 0700); err != nil {
-		return fmt.Errorf("Client could not create user dir: %w", err)
+		return fmt.Errorf("could not create user dir: %w", err)
 	}
 	if err := config.Save(userConfig); err != nil {
-		return fmt.Errorf("Client could not save config to file: %w", err)
+		return fmt.Errorf("could not save config to file: %w", err)
 	}
 	return nil
 }
@@ -150,7 +150,7 @@ func setConfig(args []string) error {
 		// load config from command line
 		c, err := client.LoadConfig(*cfgFile)
 		if err != nil {
-			return fmt.Errorf("Client could not load config %s: %w", *cfgFile, err)
+			return fmt.Errorf("could not load config %s: %w", *cfgFile, err)
 		}
 		c.Expand()
 		config = c
@@ -214,7 +214,7 @@ func setConfig(args []string) error {
 		systemConfig := clientSystemConfig()
 		c, err := client.LoadConfig(systemConfig)
 		if err != nil {
-			return fmt.Errorf("Client could not load system settings from system config %s: %w", systemConfig, err)
+			return fmt.Errorf("could not load system settings from system config %s: %w", systemConfig, err)
 		}
 		config = c
 	}
