@@ -23,11 +23,9 @@ jobs:
           go-version: stable
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v8
         with:
           version: latest
-          # https://github.com/golangci/golangci-lint-action/issues/135
-          skip-pkg-cache: true
   testAndBuild:
     runs-on: ubuntu-22.04
     steps:
