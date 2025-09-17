@@ -52,7 +52,7 @@ jobs:
         version: [jammy] # add others, if same package should be available in many versions
     steps:
       - name: Deploy
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.PULL_TOKEN }}
           script: |+
