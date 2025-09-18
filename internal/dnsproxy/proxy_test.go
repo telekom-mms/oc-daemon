@@ -23,16 +23,16 @@ func getTestConfig() *daemoncfg.DNSProxy {
 
 // getTestDNSServer returns a dns server for testing.
 func getTestDNSServer(t *testing.T, handler dns.Handler) *dns.Server {
-	s := &dns.Server{
-		Addr: "127.0.0.1:4255",
-		Net:  "udp",
-	}
-	p, err := net.ListenPacket("udp", s.Addr)
+	p, err := net.ListenPacket("udp", "127.0.0.1:")
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.PacketConn = p
-	s.Handler = handler
+	s := &dns.Server{
+		Addr:       p.LocalAddr().String(),
+		Net:        "udp",
+		PacketConn: p,
+		Handler:    handler,
+	}
 	go func() {
 		if err := s.ActivateAndServe(); err != nil {
 			panic(err)
