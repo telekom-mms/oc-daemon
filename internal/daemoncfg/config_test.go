@@ -833,6 +833,7 @@ func TestConfigLoad(t *testing.T) {
 		"ResolveTTL": 300000000000
 	},
 	"TND": {
+		"WatchFiles": ["/etc/resolv.conf", "/run/systemd/resolve/resolv.conf", "/run/systemd/resolve/stub-resolv.conf"],
 		"WaitCheck": 1000000000,
 		"HTTPSTimeout": 5000000000,
 		"UntrustedTimer": 30000000000,

@@ -835,7 +835,6 @@ type Config struct {
 
 // Copy returns a copy of the configuration.
 func (c *Config) Copy() *Config {
-	t := *c.TND
 	return &Config{
 		Config:  c.Config,
 		Verbose: c.Verbose,
@@ -847,7 +846,7 @@ func (c *Config) Copy() *Config {
 		Executables:     c.Executables.Copy(),
 		SplitRouting:    c.SplitRouting.Copy(),
 		TrafficPolicing: c.TrafficPolicing.Copy(),
-		TND:             &t,
+		TND:             c.TND.Copy(),
 
 		CommandLists: c.CommandLists.Copy(),
 
