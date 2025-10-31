@@ -3,6 +3,7 @@ package cpd
 
 import (
 	"io"
+	"net"
 	"net/http"
 	"time"
 
@@ -23,6 +24,7 @@ type CPD struct {
 	probes  chan struct{}
 	done    chan struct{}
 	closed  chan struct{}
+	dialer  *net.Dialer
 
 	// internal probe reports
 	probeReports chan *Report
@@ -46,6 +48,13 @@ func (c *CPD) check() *Report {
 			return http.ErrUseLastResponse
 		},
 	}
+	if c.dialer != nil {
+		// set custom dialer
+		client.Transport = &http.Transport{
+			DialContext: c.dialer.DialContext,
+		}
+	}
+
 	resp, err := client.Get("http://" + c.config.Host)
 	if err != nil {
 		log.WithError(err).Debug("CPD GET error")
@@ -183,6 +192,17 @@ func (c *CPD) start() {
 			return
 		}
 	}
+}
+
+// SetDialer sets a custom dialer for the http connections; note: the dialer
+// must be set before Start().
+func (c *CPD) SetDialer(dialer *net.Dialer) {
+	c.dialer = dialer
+}
+
+// GetDialer returns the custom dialer for the http connections.
+func (c *CPD) GetDialer() *net.Dialer {
+	return c.dialer
 }
 
 // Start starts the captive portal detection.

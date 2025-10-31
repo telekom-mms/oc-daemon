@@ -100,6 +100,10 @@ var (
 	// CPDProbeTimerDetected is the probe timer in case of a detected portal
 	// in seconds.
 	CPDProbeTimerDetected = 15 * time.Second
+
+	// CPDSetFirewallMark specifies whether the firewall mark should be set
+	// in the http connection.
+	CPDSetFirewallMark = true
 )
 
 // CPD is the configuration of the captive portal detection.
@@ -110,6 +114,7 @@ type CPD struct {
 	ProbeWait          time.Duration
 	ProbeTimer         time.Duration
 	ProbeTimerDetected time.Duration
+	SetFirewallMark    bool
 }
 
 // Copy returns a copy of the CPD configuration.
@@ -142,6 +147,7 @@ func NewCPD() *CPD {
 		ProbeWait:          CPDProbeWait,
 		ProbeTimer:         CPDProbeTimer,
 		ProbeTimerDetected: CPDProbeTimerDetected,
+		SetFirewallMark:    CPDSetFirewallMark,
 	}
 }
 
