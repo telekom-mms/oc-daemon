@@ -1,6 +1,7 @@
 package cpd
 
 import (
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -69,6 +70,23 @@ func TestCPDProbeCheck(t *testing.T) {
 			t.Error("should not be detected")
 		}
 	})
+
+	// check with custom dialer
+	t.Run("custom dialer", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		}))
+		defer ts.Close()
+		c := NewCPD(daemoncfg.NewCPD())
+		c.SetDialer(&net.Dialer{})
+		c.config.Host = ts.Listener.Addr().String()
+		c.config.ProbeWait = 0
+
+		r := c.check()
+		if r.Detected {
+			t.Error("should not be detected")
+		}
+	})
 }
 
 // TestCPDHandleProbeRequest tests handleProbeRequest of CPD.
@@ -128,6 +146,16 @@ func TestCPDHandleTimer(t *testing.T) {
 		if c.running != true {
 			t.Error("probe should be running")
 		}
+	}
+}
+
+// TestCPDSetGetDialer tests SetDialer and GetDialer of CPD.
+func TestCPDSetGetDialer(t *testing.T) {
+	c := NewCPD(daemoncfg.NewCPD())
+	dialer := &net.Dialer{}
+	c.SetDialer(dialer)
+	if c.GetDialer() != dialer {
+		t.Errorf("dialers should be equal")
 	}
 }
 

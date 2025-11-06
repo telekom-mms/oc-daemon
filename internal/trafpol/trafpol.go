@@ -4,13 +4,17 @@ package trafpol
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/netip"
+	"strconv"
+	"syscall"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/telekom-mms/oc-daemon/internal/cpd"
 	"github.com/telekom-mms/oc-daemon/internal/daemoncfg"
 	"github.com/telekom-mms/oc-daemon/internal/devmon"
 	"github.com/telekom-mms/oc-daemon/internal/dnsmon"
+	"golang.org/x/sys/unix"
 )
 
 // TrafPol command types.
@@ -402,10 +406,49 @@ func parseAllowedHosts(hosts []string) (addrs []netip.Prefix, names []string) {
 	return
 }
 
+// getCPDDialerFWMark returns a custom dialer for CPD that sets the FirewallMark.
+func getCPDDialerFWMark(config *daemoncfg.Config) *net.Dialer {
+	mark, err := strconv.Atoi(config.SplitRouting.FirewallMark)
+	if err != nil {
+		log.WithError(err).Error("CPD could not convert FWMark to int")
+		return nil
+	}
+
+	// control function that sets socket option on raw connection
+	control := func(_, _ string, c syscall.RawConn) error {
+		// set socket option function for setting mark with SO_MARK
+		var soerr error
+		setsockopt := func(fd uintptr) {
+			soerr = unix.SetsockoptInt(
+				int(fd),
+				unix.SOL_SOCKET,
+				unix.SO_MARK,
+				mark,
+			)
+			if soerr != nil {
+				log.WithError(soerr).Error("CPD could not set SO_MARK")
+			}
+		}
+
+		if err := c.Control(setsockopt); err != nil {
+			return err
+		}
+		return soerr
+	}
+
+	// create and set dialer
+	return &net.Dialer{
+		Control: control,
+	}
+}
+
 // NewTrafPol returns a new traffic policing component.
 func NewTrafPol(config *daemoncfg.Config) *TrafPol {
 	// create cpd
 	c := cpd.NewCPD(config.CPD)
+	if config.CPD.SetFirewallMark {
+		c.SetDialer(getCPDDialerFWMark(config))
+	}
 
 	// get allowed addrs and names
 	hosts := append(config.TrafficPolicing.AllowedHosts, c.Hosts()...)

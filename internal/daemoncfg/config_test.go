@@ -74,6 +74,7 @@ func TestCPDValid(t *testing.T) {
 			ProbeWait:          2 * time.Second,
 			ProbeTimer:         150 * time.Second,
 			ProbeTimerDetected: 10 * time.Second,
+			SetFirewallMark:    true,
 		},
 	} {
 		if !valid.Valid() {
@@ -795,7 +796,8 @@ func TestConfigLoad(t *testing.T) {
 		"HTTPTimeout": 5000000000,
 		"ProbeCount": 3,
 		"ProbeTimer": 300000000000,
-		"ProbeTimerDetected": 15000000000
+		"ProbeTimerDetected": 15000000000,
+		"SetFirewallMark": true
 	},
 	"DNSProxy": {
 		"Address": "127.0.0.1:4253",
