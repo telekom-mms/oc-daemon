@@ -385,7 +385,7 @@ func (t *TrafPol) CPDStatus() <-chan bool {
 	return t.cpdStatus
 }
 
-// parseAllowedHosts parses the allowed hosts and returns IP addresses and DNS names
+// parseAllowedHosts parses the allowed hosts and returns IP addresses and DNS names.
 func parseAllowedHosts(hosts []string) (addrs []netip.Prefix, names []string) {
 	for _, h := range hosts {
 		// check if it's an IP address
